@@ -173,6 +173,8 @@ export const uz = {
     loginError: "Email yoki parol noto'g'ri",
     registerError: "Ro'yxatdan o'tishda xato",
     accountExists: "Bu email bilan ro'yxatdan o'tilgan",
+    playRequired: "O'yinni boshlash uchun tizimga kiring yoki ro'yxatdan o'ting.",
+    backHome: "Bosh sahifaga qaytish",
   },
   profile: {
     title: "Profil",
