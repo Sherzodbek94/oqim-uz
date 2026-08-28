@@ -26,5 +26,5 @@ echo Frontend build...
 npm run build
 
 echo Cloudflare Pages'ga joylash...
-wrangler pages deploy dist --project-name=oqim
+wrangler pages deploy dist --project-name=oqim --branch=main
 pause
