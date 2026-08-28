@@ -156,8 +156,18 @@ function json(data: unknown, status = 200, origin: string | null = null): Respon
 
 const ALLOWED_ORIGINS = ["https://oqim.pages.dev", "https://master.oqim.pages.dev", "http://localhost:5173"];
 
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  try {
+    const url = new URL(origin);
+    return url.hostname.endsWith(".oqim.pages.dev") || url.hostname === "oqim.pages.dev";
+  } catch {
+    return false;
+  }
+}
+
 function corsHeaders(origin: string | null): Record<string, string> {
-  const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allow = origin && isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
