@@ -9,6 +9,7 @@ import Investments from "./home/Investments";
 import EventsMarquee from "./home/EventsMarquee";
 import Academy from "./home/Academy";
 import CtaBand from "./home/CtaBand";
+import ModeSelector from "@/components/ModeSelector";
 
 /**
  * Bosh sahifa `/` (home.md) — marketing landing with scroll storytelling.
@@ -16,6 +17,7 @@ import CtaBand from "./home/CtaBand";
  */
 export default function Home() {
   const [toast, setToast] = useState<string | null>(null);
+  const [modeOpen, setModeOpen] = useState(false);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -44,14 +46,16 @@ export default function Home() {
 
   return (
     <>
-      <Hero onToast={showToast} />
+      <Hero onToast={showToast} onOpenMode={() => setModeOpen(true)} />
       <HowItWorks />
       <Rings onToast={showToast} />
       <Professions />
       <Investments />
       <EventsMarquee />
       <Academy />
-      <CtaBand />
+      <CtaBand onOpenMode={() => setModeOpen(true)} />
+
+      <ModeSelector open={modeOpen} onClose={() => setModeOpen(false)} />
 
       {/* Toast (§9.10): bottom-center pill, slide-up 250ms, auto-dismiss 3.5s */}
       <AnimatePresence>

@@ -68,7 +68,7 @@ export const uz = {
     heroTitleC: "o'yin orqali o'rgan.",
     heroSub:
       "Kasblar, narxlar, investitsiyalar va hodisalar butunlay o'zbekcha. Oylik 3,5 mln so'mdan boshlang, passiv daromading xarajatlardan oshguncha kurash — Kundalik aylanadan chiq!",
-    trust: "Ro'yxatdan o'tish yo'q ✦ Brauzerda saqlanadi ✦ 2–4 o'yinchi (botlar bilan)",
+    trust: "Yakka yoki jamoaviy ✦ Brauzerda saqlanadi ✦ 2–4 o'yinchi (botlar bilan)",
     luckToast: (n: number) => `Demak, bugun omading: ${n}!`,
     stats: [
       { value: 10, suffix: "", label: "Haqiqiy o'zbek kasblari" },

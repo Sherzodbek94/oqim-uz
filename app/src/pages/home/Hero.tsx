@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Play, BookOpen, Coins, Globe, Home as HomeIcon, Rocket } from "lucide-react";
+import { Play, BookOpen, Coins, Home as HomeIcon, Rocket } from "lucide-react";
 import Dice from "@/components/Dice";
 import { uz } from "@/lib/uz";
 
@@ -74,7 +74,7 @@ function StatTile({ value, suffix, label, delay }: { value: number; suffix: stri
   );
 }
 
-export default function Hero({ onToast }: { onToast: (msg: string) => void }) {
+export default function Hero({ onToast, onOpenMode }: { onToast: (msg: string) => void; onOpenMode: () => void }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
@@ -164,17 +164,13 @@ export default function Hero({ onToast }: { onToast: (msg: string) => void }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.7, ease: EASE }}
             >
-              <Link to="/game" className="btn-primary !px-7 !py-3.5 !text-base">
+              <button onClick={onOpenMode} className="btn-primary !px-7 !py-3.5 !text-base">
                 <Play className="h-5 w-5" />
                 {uz.common.start}
-              </Link>
+              </button>
               <Link to="/rules" className="btn-secondary !px-7 !py-3.5 !text-base">
                 <BookOpen className="h-5 w-5" />
                 {uz.common.learnRules}
-              </Link>
-              <Link to="/onlayn" className="btn-secondary !px-7 !py-3.5 !text-base">
-                <Globe className="h-5 w-5" />
-                🌐 Onlayn o'yin
               </Link>
             </motion.div>
             <motion.p

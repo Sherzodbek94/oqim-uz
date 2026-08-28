@@ -5,6 +5,7 @@ import { Menu, X, Play, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uz } from "@/lib/uz";
 import { OLD_SAVE_KEY, SAVE_KEY } from "@/lib/game/types";
+import AuthButton from "@/components/AuthButton";
 
 /**
  * Navbar (design.md §9.1) — home + rules pages only.
@@ -114,6 +115,7 @@ export default function Navbar() {
               {uz.nav.resume}
             </Link>
           )}
+          <AuthButton />
           <Link to="/game" className="btn-primary !px-5 !py-2.5">
             <Play className="h-4 w-4" />
             {uz.nav.play}
@@ -178,8 +180,11 @@ export default function Navbar() {
                 initial={{ y: 24, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.25, duration: 0.3 }}
-                className="pt-4"
+                className="space-y-3 pt-4"
               >
+                <div className="flex justify-center">
+                  <AuthButton />
+                </div>
                 <Link to="/game" className="btn-primary w-full">
                   <Play className="h-4 w-4" />
                   {uz.nav.play}
