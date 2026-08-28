@@ -16,6 +16,7 @@ import {
   type PublicState,
   type ServerMsg,
 } from "@/lib/net/client";
+import { getAuthUser } from "@/lib/auth";
 import { CELL_CAPTIONS, CELL_COLORS, RAT_CELLS } from "@/lib/game/types";
 import { formatUZSCompact } from "@/lib/format";
 
@@ -28,7 +29,7 @@ const inputCls =
 
 export default function Online() {
   const [screen, setScreen] = useState<Screen>("entry");
-  const [name, setName] = useState(savedName());
+  const [name, setName] = useState(() => savedName() || getAuthUser()?.name || "");
   const [codeInput, setCodeInput] = useState("");
   const [timerSec, setTimerSec] = useState<60 | 120>(60);
   const [bots, setBots] = useState(1);
