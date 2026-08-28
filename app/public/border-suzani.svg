@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 24" width="480" height="24" preserveAspectRatio="none">
+  <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+    <path d="M0 12 H480" opacity="0.55"/>
+    <path d="M0 12 Q15 3 30 12 T60 12 T90 12 T120 12 T150 12 T180 12 T210 12 T240 12 T270 12 T300 12 T330 12 T360 12 T390 12 T420 12 T450 12 T480 12"/>
+  </g>
+  <g fill="currentColor">
+    <!-- tulip buds along the vine -->
+    <path d="M30 10 C26.5 5 28 1.5 30 1 C32 1.5 33.5 5 30 10 Z"/>
+    <path d="M90 10 C86.5 5 88 1.5 90 1 C92 1.5 93.5 5 90 10 Z"/>
+    <path d="M150 10 C146.5 5 148 1.5 150 1 C152 1.5 153.5 5 150 10 Z"/>
+    <path d="M210 10 C206.5 5 208 1.5 210 1 C212 1.5 213.5 5 210 10 Z"/>
+    <path d="M270 10 C266.5 5 268 1.5 270 1 C272 1.5 273.5 5 270 10 Z"/>
+    <path d="M330 10 C326.5 5 328 1.5 330 1 C332 1.5 333.5 5 330 10 Z"/>
+    <path d="M390 10 C386.5 5 388 1.5 390 1 C392 1.5 393.5 5 390 10 Z"/>
+    <path d="M450 10 C446.5 5 448 1.5 450 1 C452 1.5 453.5 5 450 10 Z"/>
+    <!-- leaves -->
+    <circle cx="60" cy="17" r="2"/><circle cx="120" cy="17" r="2"/><circle cx="180" cy="17" r="2"/>
+    <circle cx="240" cy="17" r="2"/><circle cx="300" cy="17" r="2"/><circle cx="360" cy="17" r="2"/><circle cx="420" cy="17" r="2"/>
+  </g>
+</svg>

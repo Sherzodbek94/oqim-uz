@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E9BC5E"/>
+      <stop offset="1" stop-color="#B98428"/>
+    </linearGradient>
+    <path id="arcPath" d="M14 40 A20 20 0 0 0 50 40" fill="none"/>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#gold)"/>
+  <circle cx="32" cy="32" r="25.5" fill="none" stroke="#B98428" stroke-width="1.5" opacity="0.7"/>
+  <path fill="#FBF8F2" opacity="0.9" d="M32 12 L35.66 21.06 L45.4 15.74 L40.44 25.16 L50.5 28 L41.2 32.9 L47.7 41.4 L37.9 38.6 L34.6 48 L30.4 40.4 L21.6 45.4 L24.4 35.9 L15 33.4 L24 28.4 L20.4 19.4 L29.4 23.4 Z" transform="translate(0 -2) scale(0.72) translate(12.4 10.4)"/>
+  <text font-family="Verdana, sans-serif" font-size="8.5" font-weight="bold" fill="#FBF8F2" letter-spacing="1.5">
+    <textPath href="#arcPath" startOffset="50%" text-anchor="middle">so'm</textPath>
+  </text>
+</svg>
