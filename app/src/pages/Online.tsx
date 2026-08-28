@@ -19,6 +19,7 @@ import {
 import { getAuthUser } from "@/lib/auth";
 import { CELL_CAPTIONS, CELL_COLORS, RAT_CELLS } from "@/lib/game/types";
 import { formatUZSCompact } from "@/lib/format";
+import { sanitizeInput } from "@/lib/utils";
 
 type Screen = "entry" | "room";
 
@@ -62,13 +63,15 @@ export default function Online() {
     setScreen("room");
   };
 
+  const sanitizedName = sanitizeInput(name, 16);
+
   const onCreate = async () => {
-    if (!name.trim()) return setError("Ismingizni yozing");
-    saveName(name.trim());
+    if (!sanitizedName) return setError("Ismingizni yozing");
+    saveName(sanitizedName);
     setBusy(true);
     setError(null);
     try {
-      const r = await createRoom(name.trim(), timerSec, bots);
+      const r = await createRoom(sanitizedName, timerSec, bots);
       if (!r.ok || !r.code || !r.hostToken) throw new Error(r.error || "Server javob bermadi");
       openRoom(r.code, r.hostToken);
     } catch (e) {
@@ -82,9 +85,9 @@ export default function Online() {
 
   const onJoin = () => {
     const code = codeInput.trim().toUpperCase();
-    if (!name.trim()) return setError("Ismingizni yozing");
+    if (!sanitizedName) return setError("Ismingizni yozing");
     if (code.length !== 6) return setError("Xona kodi 6 belgidan iborat");
-    saveName(name.trim());
+    saveName(sanitizedName);
     openRoom(code, savedToken(code));
   };
 

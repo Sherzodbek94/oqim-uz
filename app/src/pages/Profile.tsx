@@ -14,12 +14,15 @@ import {
   Lock,
   Award,
   Bot,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 import { uz } from "@/lib/uz";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeInput } from "@/lib/utils";
 import { formatUZSCompact } from "@/lib/format";
 import {
+  adminBan,
+  adminListUsers,
   fetchCurrentUser,
   getAuthUser,
   login,
@@ -28,6 +31,7 @@ import {
   syncCloudProfile,
   updateStoredUser,
   type AuthUser,
+  type AdminUser,
 } from "@/lib/auth";
 import {
   clearProfile,
@@ -111,7 +115,9 @@ function AuthCard({ onUserChange }: { onUserChange: (u: AuthUser | null) => void
     const v = validate();
     if (v) return setError(v);
     setLoading(true);
-    const res = mode === "login" ? await login(email, password) : await register(email, password, name);
+    const cleanName = sanitizeInput(name, 32);
+    const cleanEmail = email.trim().toLowerCase();
+    const res = mode === "login" ? await login(cleanEmail, password) : await register(cleanEmail, password, cleanName);
     setLoading(false);
     if (!res.ok) {
       setError(res.error || (mode === "login" ? uz.auth.loginError : uz.auth.registerError));
@@ -276,6 +282,96 @@ function AuthCard({ onUserChange }: { onUserChange: (u: AuthUser | null) => void
       {error && <p className="mt-3 text-body-sm text-clay-600">{error}</p>}
       {message && <p className="mt-3 text-body-sm text-emerald-700">{message}</p>}
     </motion.div>
+  );
+}
+
+/** Admin paneli — foydalanuvchilarni ko'rish va bloklash. */
+function AdminPanel() {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const list = await adminListUsers();
+    setUsers(list);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const toggleBan = async (email: string, banned: boolean) => {
+    setMessage(null);
+    const res = await adminBan(email, banned);
+    if (res.ok) {
+      setMessage(banned ? `${email} bloklandi` : `${email} blokdan chiqarildi`);
+      load();
+    } else {
+      setMessage(res.error || "Xato");
+    }
+  };
+
+  return (
+    <motion.section
+      className="mt-10"
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.24, ease: EASE }}
+    >
+      <h2 className="text-h2 flex items-center gap-2">
+        <Shield className="h-6 w-6 text-emerald-700" /> Admin panel
+      </h2>
+      <p className="mt-1 text-body-sm text-ink-600">Test foydalanuvchilarni boshqarish</p>
+
+      {message && <p className="mt-3 text-body-sm text-emerald-700">{message}</p>}
+
+      <div className="mt-4 overflow-x-auto rounded-3xl border border-sand-200 bg-white shadow-card">
+        <table className="w-full min-w-[400px] text-left text-body-sm">
+          <thead>
+            <tr className="border-b border-sand-200 text-caption text-ink-400">
+              <th className="px-5 py-3 font-medium">Email</th>
+              <th className="px-5 py-3 font-medium">Ism</th>
+              <th className="px-5 py-3 font-medium">Rol</th>
+              <th className="px-5 py-3 font-medium">Holat</th>
+              <th className="px-5 py-3 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.email} className="border-b border-sand-100 last:border-0">
+                <td className="px-5 py-3 text-ink-900">{u.email}</td>
+                <td className="px-5 py-3 text-ink-600">{u.name}</td>
+                <td className="px-5 py-3 text-ink-600">{u.role}</td>
+                <td className="px-5 py-3">
+                  {u.banned ? (
+                    <span className="chip bg-clay-100 text-clay-600">Bloklangan</span>
+                  ) : (
+                    <span className="chip bg-emerald-100 text-emerald-700">Faol</span>
+                  )}
+                </td>
+                <td className="px-5 py-3">
+                  <button
+                    onClick={() => toggleBan(u.email, !u.banned)}
+                    disabled={u.role === "admin"}
+                    className={cn(
+                      "text-xs font-semibold",
+                      u.role === "admin" ? "text-ink-300" : u.banned ? "text-emerald-700" : "text-clay-600"
+                    )}
+                  >
+                    {u.banned ? "Blokdan chiqarish" : "Bloklash"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button onClick={load} disabled={loading} className="btn-secondary mt-4">
+        {loading ? "Yuklanmoqda..." : "Yangilash"}
+      </button>
+    </motion.section>
   );
 }
 
@@ -525,6 +621,9 @@ export default function Profile() {
               })}
             </div>
           </motion.section>
+
+          {/* Admin panel faqat adminlar uchun */}
+          {getAuthUser()?.role === "admin" && <AdminPanel />}
 
           {/* 4. Ma'lumotlarni tozalash */}
           <motion.section

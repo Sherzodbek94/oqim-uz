@@ -10,6 +10,7 @@ const AUTH_USER_KEY = "oqim-auth-user";
 export interface AuthUser {
   email: string;
   name: string;
+  role?: "user" | "admin";
   profile: {
     games: unknown[];
     lessons: string[];
@@ -134,5 +135,35 @@ export async function syncCloudProfile(profile: { games: unknown[]; lessons: str
     return data.ok;
   } catch {
     return false;
+  }
+}
+
+export interface AdminUser {
+  email: string;
+  name: string;
+  role: string;
+  banned: boolean;
+  createdAt: number;
+}
+
+export async function adminListUsers(): Promise<AdminUser[]> {
+  const token = getToken();
+  if (!token) return [];
+  try {
+    const data = await get<{ ok: boolean; users?: AdminUser[] }>("/api/admin/users", token);
+    return data.ok && Array.isArray(data.users) ? data.users : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function adminBan(email: string, banned: boolean): Promise<{ ok: boolean; error?: string }> {
+  const token = getToken();
+  if (!token) return { ok: false, error: "Avtorizatsiya kerak" };
+  try {
+    const data = await post<{ ok: boolean; error?: string }>("/api/admin/ban", { email, banned }, token);
+    return data;
+  } catch {
+    return { ok: false, error: "Serverga ulanib bo'lmadi" };
   }
 }

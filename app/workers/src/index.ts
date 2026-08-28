@@ -9,7 +9,7 @@
  *  GET  /api/rooms/:code/ws — WebSocket upgrade → GameRoom DO
  */
 import { GameRoom } from "./GameRoom";
-import { getMe, login, register, syncProfile } from "./auth";
+import { adminBan, adminListUsers, getMe, login, register, syncProfile } from "./auth";
 import { makeRoomCode, makeToken, MAX_PLAYERS } from "./game/online";
 
 export { GameRoom };
@@ -29,6 +29,9 @@ function corsHeaders(origin: string | null): Record<string, string> {
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type,Authorization",
     "Access-Control-Max-Age": "86400",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
   };
 }
 
@@ -85,6 +88,17 @@ export default {
       const body = await readBody<{ profile?: { games?: unknown[]; lessons?: string[] } }>(request, MAX_SYNC_BODY_SIZE);
       if (!body) return json({ ok: false, error: "Noto'g'ri yoki hajm juda katta" }, 400, origin);
       return syncProfile(env, request.headers.get("Authorization"), body, origin);
+    }
+
+    // Admin marshrutlari
+    if (url.pathname === "/api/admin/ban" && request.method === "POST") {
+      const body = await readBody<{ email?: string; banned?: boolean }>(request);
+      if (!body) return json({ ok: false, error: "Noto'g'ri JSON" }, 400, origin);
+      return adminBan(env, request.headers.get("Authorization"), body, origin);
+    }
+
+    if (url.pathname === "/api/admin/users" && request.method === "GET") {
+      return adminListUsers(env, request.headers.get("Authorization"), origin);
     }
 
     // POST /api/rooms — xona yaratish

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { LogIn, Shield } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeInput } from "@/lib/utils";
 import { uz } from "@/lib/uz";
 import {
   fetchCurrentUser,
@@ -53,7 +53,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     const v = validate();
     if (v) return setError(v);
     setLoading(true);
-    const res = mode === "login" ? await login(email, password) : await register(email, password, name);
+    const cleanName = sanitizeInput(name, 32);
+    const cleanEmail = email.trim().toLowerCase();
+    const res = mode === "login" ? await login(cleanEmail, password) : await register(cleanEmail, password, cleanName);
     setLoading(false);
     if (!res.ok) {
       setError(res.error || (mode === "login" ? uz.auth.loginError : uz.auth.registerError));
