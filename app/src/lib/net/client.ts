@@ -77,6 +77,25 @@ export async function fetchResults(code: string): Promise<{ ok: boolean; results
   return data;
 }
 
+export interface LeaderboardEntry {
+  id: string;
+  code: string;
+  finishedAt: number;
+  createdAt: number;
+  winnerId: number | null;
+  winnerName: string | null;
+  playerCount: number;
+  humanCount: number;
+  players: { id: number; name: string; isBot: boolean; cash: number; escaped: boolean; bankrupt: boolean }[];
+}
+
+export async function fetchLeaderboard(): Promise<{ ok: boolean; entries?: LeaderboardEntry[]; error?: string }> {
+  const res = await fetch(`${OQIM_SERVER}/api/leaderboard`, { method: "GET" });
+  if (!res.ok) return { ok: false, error: "Reytingni olishda xato" };
+  const data = (await res.json()) as { ok: boolean; entries?: LeaderboardEntry[]; error?: string };
+  return data;
+}
+
 export interface PublicState {
   code: string;
   phase: "lobby" | "playing" | "finished";

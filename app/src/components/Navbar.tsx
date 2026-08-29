@@ -17,6 +17,7 @@ const links = [
   { to: "/", label: uz.nav.home },
   { to: "/game", label: uz.nav.game },
   { to: "/rules", label: uz.nav.rules },
+  { to: "/reyting", label: "Reyting" },
   { to: "/profil", label: uz.nav.profile, icon: true },
 ];
 

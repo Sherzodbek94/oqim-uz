@@ -5,11 +5,11 @@
  *  GET  /api/rooms/:code/ws — WebSocket upgrade → GameRoom DO
  */
 import { GameRoom } from "./GameRoom";
-import { makeRoomCode, makeToken, MAX_PLAYERS } from "./game/online";
+import { getLeaderboard, makeRoomCode, makeToken, MAX_PLAYERS, type LeaderboardEnv } from "./game/online";
 
 export { GameRoom };
 
-interface Env {
+interface Env extends LeaderboardEnv {
   GAME_ROOM: DurableObjectNamespace;
 }
 
@@ -72,6 +72,16 @@ export default {
       if (!suffix && request.method !== "GET") return json({ ok: false, error: "Faqat GET" }, 405);
       const res = await stub.fetch(request);
       return new Response(res.body, { status: res.status, headers: { "Content-Type": "application/json; charset=utf-8", ...CORS } });
+    }
+
+    // GET /api/leaderboard — global o'yin natijalari (#5)
+    if (request.method === "GET" && url.pathname === "/api/leaderboard") {
+      try {
+        const entries = await getLeaderboard(env, 50);
+        return json({ ok: true, entries });
+      } catch (e) {
+        return json({ ok: false, error: e instanceof Error ? e.message : "Leaderboard olishda xato" }, 500);
+      }
     }
 
     if (url.pathname === "/api/health") return json({ ok: true, service: "oqim-server", version: 19 });

@@ -95,6 +95,8 @@ export interface OnlineRoom {
   createdAt: number;
   /** o'yin tugagandan keyingi natijalar tarixi (#5) */
   results: GameResult[];
+  /** global leaderboard ga yozilganini oldini olish uchun (#5) */
+  globalResultRecorded: boolean;
 }
 
 export interface ActionResult {
@@ -118,6 +120,7 @@ export function createRoom(code: string, settings: RoomSettings, hostName: strin
     deadline: null,
     createdAt: now,
     results: [],
+    globalResultRecorded: false,
   };
 }
 
@@ -606,6 +609,74 @@ export function recordGameResult(room: OnlineRoom, now = Date.now()): void {
   });
   // faqat so'nggi 10 o'yinni saqlaymiz
   if (room.results.length > 10) room.results = room.results.slice(-10);
+}
+
+/* ---------------- Global leaderboard (#5) ---------------- */
+
+export interface LeaderboardEnv {
+  OQIM_USERS: KVNamespace;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  code: string;
+  finishedAt: number;
+  createdAt: number;
+  winnerId: number | null;
+  winnerName: string | null;
+  playerCount: number;
+  humanCount: number;
+  players: { id: number; name: string; isBot: boolean; cash: number; escaped: boolean; bankrupt: boolean }[];
+}
+
+const LEADERBOARD_PREFIX = "leaderboard:entry:";
+const LEADERBOARD_MAX_AGE_SECONDS = 90 * 24 * 60 * 60; // 90 kun
+const LEADERBOARD_MAX_ENTRIES = 100;
+
+/** Bitta tugagan o'yinni global leaderboard ga yozadi. */
+export async function recordGlobalResult(env: LeaderboardEnv, room: OnlineRoom, now = Date.now()): Promise<void> {
+  if (!room.game || room.phase !== "finished" || room.globalResultRecorded) return;
+  room.globalResultRecorded = true;
+  const winner = room.winnerId !== null ? room.game.players.find((p) => p.id === room.winnerId) ?? null : null;
+  const humans = room.players.filter((p) => !p.isBot);
+  const entry: LeaderboardEntry = {
+    id: `${room.code}:${now}`,
+    code: room.code,
+    finishedAt: now,
+    createdAt: room.createdAt,
+    winnerId: room.winnerId,
+    winnerName: winner?.name ?? null,
+    playerCount: room.game.players.length,
+    humanCount: humans.length,
+    players: room.game.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      isBot: p.isBot,
+      cash: p.cash,
+      escaped: p.escaped,
+      bankrupt: p.bankrupt,
+    })),
+  };
+  await env.OQIM_USERS.put(`${LEADERBOARD_PREFIX}${entry.id}`, JSON.stringify(entry), {
+    expirationTtl: LEADERBOARD_MAX_AGE_SECONDS,
+  });
+}
+
+/** Global leaderboard ni o'qiydi (so'nggi o'yinlar birinchi). */
+export async function getLeaderboard(env: LeaderboardEnv, limit = 50): Promise<LeaderboardEntry[]> {
+  const list = await env.OQIM_USERS.list({ prefix: LEADERBOARD_PREFIX });
+  const entries: LeaderboardEntry[] = [];
+  for (const key of list.keys) {
+    const raw = await env.OQIM_USERS.get(key.name);
+    if (!raw) continue;
+    try {
+      entries.push(JSON.parse(raw) as LeaderboardEntry);
+    } catch {
+      /* yomon yozuv */
+    }
+  }
+  entries.sort((a, b) => b.finishedAt - a.finishedAt);
+  return entries.slice(0, limit);
 }
 
 export { addLog };

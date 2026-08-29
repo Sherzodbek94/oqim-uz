@@ -5,19 +5,22 @@
 import {
   addLog,
   createRoom,
+  getLeaderboard,
   handleAction,
   joinRoom,
   makeToken,
   onTimeout,
   playerByToken,
   publicState,
+  recordGlobalResult,
   startGame,
   transferHost,
   type ClientAction,
+  type LeaderboardEnv,
   type OnlineRoom,
 } from "./game/online";
 
-interface Env {
+interface Env extends LeaderboardEnv {
   GAME_ROOM: DurableObjectNamespace;
 }
 
@@ -174,7 +177,10 @@ export class GameRoom {
       const r = handleAction(room, meta.token, msg.action, now);
       if (!r.ok) return this.send(ws, { t: "error", error: r.error });
       await this.afterChange();
-      if (room.phase === "finished") this.broadcast({ t: "end", winnerId: room.winnerId });
+      if (room.phase === "finished") {
+        await recordGlobalResult(this.env, room);
+        this.broadcast({ t: "end", winnerId: room.winnerId });
+      }
       return;
     }
   }
@@ -210,7 +216,10 @@ export class GameRoom {
     if (room.deadline && now >= room.deadline - 250) {
       onTimeout(room, now);
       await this.afterChange();
-      if ((room.phase as string) === "finished") this.broadcast({ t: "end", winnerId: room.winnerId });
+      if ((room.phase as string) === "finished") {
+        await recordGlobalResult(this.env, room);
+        this.broadcast({ t: "end", winnerId: room.winnerId });
+      }
     } else if (room.deadline) {
       await this.syncDeadline();
     }

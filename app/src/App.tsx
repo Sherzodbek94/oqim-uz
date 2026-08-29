@@ -4,6 +4,7 @@ import Home from '@/pages/Home'
 import Game from '@/pages/Game'
 import Rules from '@/pages/Rules'
 import Profile from '@/pages/Profile'
+import Leaderboard from '@/pages/Leaderboard'
 import Online from '@/pages/Online'
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="rules" element={<Rules />} />
         <Route path="profil" element={<Profile />} />
+        <Route path="reyting" element={<Leaderboard />} />
       </Route>
       {/* Game page stands alone — it has its own top bar (design.md §9.1) */}
       <Route path="/game" element={<Game />} />
