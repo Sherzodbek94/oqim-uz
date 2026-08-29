@@ -1,7 +1,7 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — StatementPanel (game.md §4).
+ * OQIM — StatementPanel (game.md §4).
  * White panel with suzani header strip; tabs: Hisobot · Aktivlar · Jurnal;
- * players strip on top; live row flashes + delta floaters; CashflowGauge.
+ * players strip on top; live row flashes + delta floaters; OqimGauge.
  */
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -53,7 +53,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import CashflowGauge from "@/components/CashflowGauge";
+import OqimGauge from "@/components/OqimGauge";
 import MoneyDisplay from "@/components/MoneyDisplay";
 import { PLAYER_COLORS } from "@/components/PlayerToken";
 import { cn } from "@/lib/utils";
@@ -555,7 +555,7 @@ function ReportTab({
       </div>
       <ClientsBlock p={p} month={month} readOnly={readOnly} onHireManager={onHireManager} onOfferWork={onOfferWork} />
       <div className="flex justify-center py-1">
-        <CashflowGauge
+        <OqimGauge
           passiveIncome={passive}
           expenses={expenses}
           caption={`${g.statement.gaugeCaption} · ${formatUZSCompact(passive)} / ${formatUZSCompact(expenses)}`}

@@ -5,21 +5,22 @@
  * Server o'chiq bo'lsa lokal o'yin (/game) avvalgidek ishlayveradi.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router";
-import { Copy, Crown, Globe, Loader2, LogIn, Play, Users, Wifi, WifiOff } from "lucide-react";
+import { Link, useSearchParams } from "react-router";
+import { ArrowLeft, Copy, Crown, Globe, Loader2, LogIn, LogOut, MessageCircle, Play, RefreshCw, Send, Users, Wifi, WifiOff } from "lucide-react";
 import {
   OnlineClient,
+  checkRoom,
   createRoom,
+  fetchResults,
   savedName,
   savedToken,
   saveName,
+  type GameResult,
   type PublicState,
   type ServerMsg,
 } from "@/lib/net/client";
-import { getAuthUser } from "@/lib/auth";
 import { CELL_CAPTIONS, CELL_COLORS, RAT_CELLS } from "@/lib/game/types";
 import { formatUZSCompact } from "@/lib/format";
-import { sanitizeInput } from "@/lib/utils";
 
 type Screen = "entry" | "room";
 
@@ -29,9 +30,10 @@ const inputCls =
   "mt-1 w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-ink-900 outline-none transition-colors focus:border-emerald-600";
 
 export default function Online() {
+  const [searchParams] = useSearchParams();
   const [screen, setScreen] = useState<Screen>("entry");
-  const [name, setName] = useState(() => savedName() || getAuthUser()?.name || "");
-  const [codeInput, setCodeInput] = useState("");
+  const [name, setName] = useState(savedName());
+  const [codeInput, setCodeInput] = useState(searchParams.get("kod")?.toUpperCase() ?? "");
   const [timerSec, setTimerSec] = useState<60 | 120>(60);
   const [bots, setBots] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -40,38 +42,70 @@ export default function Online() {
 
   const [state, setState] = useState<PublicState | null>(null);
   const [connected, setConnected] = useState(false);
+  const [canReconnect, setCanReconnect] = useState(true);
   const [winner, setWinner] = useState<number | null | "none">(null);
+  const [results, setResults] = useState<GameResult[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [messages, setMessages] = useState<{ playerId: number; text: string; at: number }[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
   const clientRef = useRef<OnlineClient | null>(null);
   const codeRef = useRef<string>("");
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  const loadResults = async () => {
+    const r = await fetchResults(codeRef.current);
+    if (r.ok && r.results) setResults(r.results);
+  };
 
   useEffect(() => () => clientRef.current?.close(), []);
+  useEffect(() => {
+    if (chatOpen) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, chatOpen]);
 
   const openRoom = (code: string, token: string | null) => {
     codeRef.current = code;
     setError(null);
     setState(null);
     setWinner(null);
+    setConnected(false);
+    setCanReconnect(true);
     const client = new OnlineClient(code, name.trim() || "O'yinchi", token);
     clientRef.current = client;
     client.on((msg: ServerMsg) => {
       if (msg.t === "state") setState(msg.state);
       else if (msg.t === "error") setError(msg.error);
-      else if (msg.t === "end") setWinner(msg.winnerId ?? "none");
-      else if (msg.t === "pong") setConnected(true);
+      else if (msg.t === "end") {
+        setWinner(msg.winnerId ?? "none");
+        loadResults();
+      } else if (msg.t === "status") {
+        setConnected(msg.connected);
+        setCanReconnect(msg.canReconnect);
+      } else if (msg.t === "chat") {
+        setMessages((m) => [...m.slice(-49), { playerId: msg.playerId, text: msg.text, at: msg.at }]);
+      }
     });
     client.connect();
     setScreen("room");
   };
 
-  const sanitizedName = sanitizeInput(name, 16);
+  const leaveRoom = () => {
+    clientRef.current?.close();
+    clientRef.current = null;
+    codeRef.current = "";
+    setScreen("entry");
+    setState(null);
+    setConnected(false);
+    setError(null);
+  };
 
   const onCreate = async () => {
-    if (!sanitizedName) return setError("Ismingizni yozing");
-    saveName(sanitizedName);
+    if (!name.trim()) return setError("Ismingizni yozing");
+    saveName(name.trim());
     setBusy(true);
     setError(null);
     try {
-      const r = await createRoom(sanitizedName, timerSec, bots);
+      const r = await createRoom(name.trim(), timerSec, bots);
       if (!r.ok || !r.code || !r.hostToken) throw new Error(r.error || "Server javob bermadi");
       openRoom(r.code, r.hostToken);
     } catch (e) {
@@ -83,12 +117,22 @@ export default function Online() {
     }
   };
 
-  const onJoin = () => {
+  const onJoin = async () => {
     const code = codeInput.trim().toUpperCase();
-    if (!sanitizedName) return setError("Ismingizni yozing");
+    if (!name.trim()) return setError("Ismingizni yozing");
     if (code.length !== 6) return setError("Xona kodi 6 belgidan iborat");
-    saveName(sanitizedName);
-    openRoom(code, savedToken(code));
+    setBusy(true);
+    setError(null);
+    try {
+      const check = await checkRoom(code);
+      if (!check.ok) throw new Error(check.error || "Xona topilmadi");
+      saveName(name.trim());
+      openRoom(code, savedToken(code));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Xona topilmadi");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const me = state?.you ?? null;
@@ -107,6 +151,24 @@ export default function Online() {
     }
   };
 
+  const inviteUrl = useMemo(() => {
+    const code = state?.code ?? "";
+    if (!code) return "";
+    const u = new URL(window.location.href);
+    u.search = `?kod=${code}`;
+    return u.toString();
+  }, [state?.code]);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl || window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard yo'q */
+    }
+  };
+
   if (screen === "entry") {
     return (
       <div className="min-h-screen bg-gradient-hero px-4 py-10 text-ink-900">
@@ -116,7 +178,7 @@ export default function Online() {
             <Globe className="h-7 w-7 text-emerald-700" /> Onlayn o'yin
           </h1>
           <p className="mt-2 text-body-sm text-ink-600">
-            4 kishigacha bitta xonada — klassik doska, navbat taymeri, botlar. Rat Race'dan birinchi qochgan g'olib!
+            4 kishigacha bitta xonada — klassik doska, navbat taymeri, botlar. Moliyaviy erkinlikka birinchi yetgan g'olib!
           </p>
 
           <label className="mt-6 block text-body-sm font-semibold">Ismingiz</label>
@@ -177,8 +239,9 @@ export default function Online() {
                 placeholder="ABC234"
                 className={`${inputCls} !mt-0 text-center font-mono text-lg font-bold tracking-[0.3em]`}
               />
-              <button onClick={onJoin} className="btn-secondary !px-5">
-                <LogIn className="h-5 w-5" /> Kirish
+              <button onClick={onJoin} disabled={busy} className="btn-secondary !px-5">
+                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogIn className="h-5 w-5" />}
+                Kirish
               </button>
             </div>
           </div>
@@ -195,20 +258,93 @@ export default function Online() {
       <div className="mx-auto max-w-4xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            <button onClick={leaveRoom} className="btn-ghost !p-2" aria-label="Orqaga">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
             <h1 className="text-h3 font-bold">
-              Xona <span className="font-mono tracking-[0.25em] text-emerald-700">{codeRef.current}</span>
+              Xona <span className="font-mono tracking-[0.25em] text-emerald-700">{state?.code ?? "..."}</span>
             </h1>
             <button onClick={copyCode} className="btn-secondary !px-3 !py-1.5 text-body-sm">
               <Copy className="h-4 w-4" /> {copied ? "Nusxalandi!" : "Kod"}
             </button>
+            <button onClick={copyLink} className="btn-secondary !px-3 !py-1.5 text-body-sm" disabled={!inviteUrl}>
+              <Globe className="h-4 w-4" /> Havola
+            </button>
           </div>
-          <span className={`flex items-center gap-1.5 text-body-sm ${connected ? "text-emerald-700" : "text-clay-600"}`}>
-            {connected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
-            {connected ? "Ulangan" : "Qayta ulanmoqda..."}
-          </span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setChatOpen((v) => !v)} className="btn-ghost !px-3 !py-1.5 text-body-sm relative">
+              <MessageCircle className="h-4 w-4" /> Chat
+              {messages.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
+                  {messages.length > 99 ? "99+" : messages.length}
+                </span>
+              )}
+            </button>
+            {!connected && !canReconnect && (
+              <button onClick={() => clientRef.current?.reconnect()} className="btn-secondary !px-3 !py-1.5 text-body-sm">
+                <RefreshCw className="h-4 w-4" /> Qayta ulanish
+              </button>
+            )}
+            <button onClick={leaveRoom} className="btn-ghost !px-3 !py-1.5 text-body-sm">
+              <LogOut className="h-4 w-4" /> Chiqish
+            </button>
+            <span className={`flex items-center gap-1.5 text-body-sm ${connected ? "text-emerald-700" : "text-clay-600"}`}>
+              {connected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+              {connected ? "Ulangan" : canReconnect ? "Qayta ulanmoqda..." : "Aloqa uzildi"}
+            </span>
+          </div>
         </div>
 
         {error && <p className="mt-3 rounded-xl bg-clay-100 px-4 py-2 text-body-sm text-clay-600">{error}</p>}
+
+        {/* CHAT */}
+        {chatOpen && (
+          <div className="card mt-4 !p-0 overflow-hidden">
+            <div className="flex h-64 flex-col">
+              <div className="flex-1 overflow-y-auto p-4">
+                {messages.length === 0 ? (
+                  <p className="text-center text-body-sm text-ink-400">Xabarlar yo'q</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {messages.map((m, i) => {
+                      const sender = state?.players.find((p) => p.id === m.playerId);
+                      const isMe = m.playerId === me;
+                      return (
+                        <li key={i} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-body-sm ${isMe ? "bg-emerald-600 text-white" : "bg-sand-100 text-ink-900"}`}>
+                            {!isMe && <p className="text-[10px] font-semibold text-emerald-700">{sender?.name ?? "Noma'lum"}</p>}
+                            <p>{m.text}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                    <div ref={chatEndRef} />
+                  </ul>
+                )}
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!chatInput.trim()) return;
+                  clientRef.current?.chat(chatInput.trim());
+                  setChatInput("");
+                }}
+                className="flex gap-2 border-t border-sand-200 p-3"
+              >
+                <input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  maxLength={200}
+                  placeholder="Xabar yozing..."
+                  className="flex-1 rounded-xl border border-sand-200 bg-white px-3 py-2 text-body-sm outline-none focus:border-emerald-600"
+                />
+                <button type="submit" className="btn-secondary !px-3" disabled={!chatInput.trim()}>
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* LOBBY */}
         {state?.phase === "lobby" && (
@@ -259,7 +395,7 @@ export default function Online() {
                       style={{ background: `${CELL_COLORS[cell]}18` }}
                       title={CELL_CAPTIONS[cell]}
                     >
-                      <span className="text-[10px] leading-tight text-ink-600">{i === 0 ? "💰 Oy kun" : CELL_CAPTIONS[cell]}</span>
+                      <span className="text-[10px] leading-tight text-ink-600 sm:text-xs">{i === 0 ? "💰 Oy kun" : CELL_CAPTIONS[cell]}</span>
                       <span className="mt-0.5 flex gap-0.5">
                         {here.map((p) => (
                           <span
@@ -286,7 +422,40 @@ export default function Online() {
                         ? "O'yin tugadi"
                         : `🏆 ${game.players.find((p) => p.id === winner)?.name} g'olib!`}
                     </p>
-                    <Link to="/" className="btn-secondary mt-4">Bosh sahifa</Link>
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                      <button onClick={() => { setShowResults((v) => !v); if (!showResults) loadResults(); }} className="btn-secondary">
+                        📊 Natijalar
+                      </button>
+                      {state?.isHost && (
+                        <button onClick={onCreate} disabled={busy} className="btn-primary">
+                          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                          Yangi xona
+                        </button>
+                      )}
+                      <Link to="/" className="btn-secondary">Bosh sahifa</Link>
+                    </div>
+                    {showResults && (
+                      <div className="mt-4 rounded-2xl border border-sand-200 bg-white p-4 text-left">
+                        <h3 className="font-bold">Xona natijalari</h3>
+                        {results.length === 0 ? (
+                          <p className="mt-2 text-body-sm text-ink-600">Hali natijalar yo'q</p>
+                        ) : (
+                          <ul className="mt-2 space-y-2">
+                            {results.map((r, i) => (
+                              <li key={i} className="rounded-xl bg-sand-100 p-3 text-body-sm">
+                                <p className="font-semibold">
+                                  {new Date(r.finishedAt).toLocaleString("uz-UZ")} —{" "}
+                                  {r.winnerId === null ? "Durrang" : `${r.players.find((p) => p.id === r.winnerId)?.name ?? "Noma'lum"} g'olib`}
+                                </p>
+                                <p className="mt-1 text-ink-600">
+                                  {r.players.map((p) => `${p.name} ${p.escaped ? "🏆" : p.bankrupt ? "💥" : ""}`).join(" · ")}
+                                </p>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : myTurn ? (
                   <div>
@@ -401,7 +570,7 @@ export default function Online() {
                       {formatUZSCompact(p.cash)}
                     </span>
                   </div>
-                  <p className="mt-1 text-[12px] text-ink-400">
+                  <p className="mt-1 text-[12px] text-ink-400 sm:text-body-sm">
                     Maosh {formatUZSCompact(p.salary)} · Aktivlar {p.assets.length} · Kredit {p.loansCount}
                     {p.children > 0 && ` · 👶${p.children}`}
                     {p.charityTurns > 0 && " · ❤️2 zar"}

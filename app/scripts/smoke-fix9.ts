@@ -77,7 +77,7 @@ function seq(...values: number[]): () => number {
   const corners = rects.map((r, i) => (r.corner ? i : -1)).filter((i) => i >= 0);
   check("F1: burchaklar 0/8/15/23", corners.join(",") === "0,8,15,23", corners);
   const ft = perimeterLayout(5, 5);
-  check("F1: Fast Track 16 katak", ft.length === 16);
+  check("F1: Erkinlik yo'li 16 katak", ft.length === 16);
 }
 
 /* ---------- F2. Bilim olish markazi ---------- */
@@ -311,7 +311,7 @@ function seq(...values: number[]): () => number {
   store.set(SAVE_KEY, JSON.stringify(legacy));
   const loaded = loadSave();
   check("migratsiya: v9 saqlanma o'qildi", loaded !== null);
-  check("migratsiya: version 19 ga ko'tarildi (fix-17: v19)", loaded !== null && loaded.version === 19, loaded?.version);
+  check("migratsiya: version 20 ga ko'tarildi (fix-18: v20)", loaded !== null && loaded.version === 20, loaded?.version);
   check(
     "migratsiya: notifications default [] (v12)",
     loaded !== null && Array.isArray(loaded.notifications) && loaded.notifications.length === 0

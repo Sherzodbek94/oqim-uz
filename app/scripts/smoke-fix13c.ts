@@ -129,8 +129,8 @@ check("Q1: classic rejimda streak 2 → Bosqich 3", freedomStage(esc) === 3);
 
 // makeGame mode
 check("Q1: makeGame default mode classic", makeGame([classicP]).mode === "classic");
-check("Q1: makeGame tez mode", makeGame([tezP], "tez").mode === "tez");
-check("Q1: makeGame version 15", makeGame([classicP]).version === 15);
+check("Q1: makeGame tez mode", makeGame([tezP], "classic", "tez").mode === "tez");
+check("Q1: makeGame version 20", makeGame([classicP]).version === 20);
 
 /* ================= Q3 — Aktiv risklari ================= */
 
@@ -294,7 +294,7 @@ store[SAVE_KEY] = JSON.stringify(oldSave);
 const loaded = loadSave();
 check("v15: eski saqlanma yuklanadi", loaded !== null);
 check("v15: mode default classic", loaded?.mode === "classic", loaded?.mode);
-check("v15: version 15 ga ko'tarildi", loaded?.version === 15);
+check("v15: version 20 ga ko'tarildi", loaded?.version === 20);
 
 console.log(failures === 0 ? "\nALL OK (smoke-fix13c)" : `\n${failures} FAILURES`);
 if (failures > 0) process.exit(1);

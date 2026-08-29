@@ -18,7 +18,7 @@ Klassik "zar tashla — N katak yur" (Monopoly, 1935) mexanikasida o'yinchi **ta
 - Zar saqlanishi mumkin, lekin faqat "kutilmagan hodisa" uchun, harakat uchun emas
 
 **Ta'limiy kuchi:** vaqt — eng kamlik resurs ekanini o'rgatadi. "Hamma narsaga vaqt yetmaydi — tanla."
-**Risolat:** klassik Cashflow ruhidan eng kengaydigan, lekin eng "premium" ko'rinadigan variant.
+**Risolat:** klassik moliyaviy stol o'yinlari ruhidan eng kengaydigan, lekin eng "premium" ko'rinadigan variant.
 **Murakkablik:** yuqori (marshrut AI botlar uchun ham kerak).
 
 ---

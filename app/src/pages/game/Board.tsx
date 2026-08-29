@@ -1,8 +1,8 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — perimeter board (Monopoly-style).
- * Rat Race: 30 cells on a 9×8 rectangular perimeter (2×(9+8)−4), corners at
+ * OQIM — perimeter board (Monopoly-style).
+ * Asosiy doska: 30 katak on a 9×8 rectangular perimeter (2×(9+8)−4), corners at
  * indices 0 / 8 / 15 / 23 (0 = Oy kun, 15 = Avans).
- * Fast Track: 16 cells on a 5×5 square perimeter.
+ * Erkinlik yo'li: 16 katak on a 5×5 square perimeter.
  * Both laid out around the perimeter of a 1000×1000 viewBox. Corners are larger.
  * Tokens walk ON the cells with hop-by-hop springs (arc + landing squash).
  *

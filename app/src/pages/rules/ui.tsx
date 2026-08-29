@@ -81,7 +81,7 @@ export function Term({ label, tip }: { label: string; tip: string }) {
   );
 }
 
-/** 8-point star bullet used in Fast Track + timeline glyph. */
+/** 8-point star bullet Erkinlik yo'li sahifasida ishlatiladi + timeline glyph. */
 export function StarBullet({ className }: { className?: string }) {
   return <img src="/star-8.svg" alt="" aria-hidden className={cn("h-4 w-4", className)} />;
 }

@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — Stage B exchange smoke test.
+ * OQIM — Stage B exchange smoke test.
  * Run: ./node_modules/.bin/esbuild scripts/smoke-exchange.ts --bundle --platform=node --alias:@=./src --outfile=/tmp/smoke-exchange.mjs && node /tmp/smoke-exchange.mjs
  */
 import {

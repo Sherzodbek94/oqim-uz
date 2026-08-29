@@ -49,7 +49,7 @@ function StarParticles() {
   );
 }
 
-export default function CtaBand({ onOpenMode }: { onOpenMode: () => void }) {
+export default function CtaBand() {
   return (
     <section className="relative overflow-hidden bg-emerald-700 py-20 md:py-28">
       {/* dreams strip blended at top edge */}
@@ -91,10 +91,10 @@ export default function CtaBand({ onOpenMode }: { onOpenMode: () => void }) {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.25, ease: EASE }}
         >
-          <button onClick={onOpenMode} className="btn-gold animate-btn-pulse !px-8 !py-4 !text-base">
+          <Link to="/game" className="btn-gold animate-btn-pulse !px-8 !py-4 !text-base">
             <Dices className="h-5 w-5" />
             {uz.home.cta.start}
-          </button>
+          </Link>
           <Link
             to="/rules"
             className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-white/50 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"

@@ -189,15 +189,15 @@ function mkAsset(kind: Asset["kind"], n: number): Asset {
 
 /* ---------- M2.1 Versiya aniqlash mantiq'i ---------- */
 {
-  check("M2: APP_VERSION=17", APP_VERSION === 17);
-  check("M2: changelog v1..v17 to'liq", APP_CHANGELOG.length === 17 && APP_CHANGELOG[16].v === 17);
+  check("M2: APP_VERSION joriy", APP_VERSION >= 17);
+  check("M2: changelog to'liq", APP_CHANGELOG.length >= 17 && APP_CHANGELOG[APP_CHANGELOG.length - 1].v === APP_VERSION);
   check("M2: har yozuvda point bor", APP_CHANGELOG.every((e) => e.points.length > 0));
   const entry = whatsNewFor(0);
-  check("M2: yangi foydalanuvchi (0) → v17 paneli", entry?.v === 17, entry);
-  check("M2: eski versiya (12) → v17 paneli", whatsNewFor(12)?.v === 17);
-  check("M2: joriy versiya (17) → panel yo'q", whatsNewFor(17) === null);
+  check("M2: yangi foydalanuvchi → joriy paneli", entry?.v === APP_VERSION, entry);
+  check("M2: eski versiya → joriy paneli", whatsNewFor(12)?.v === APP_VERSION);
+  check("M2: joriy versiya → panel yo'q", whatsNewFor(APP_VERSION) === null);
   // kelajak reliz ssenariysi
-  check("M2: current 17 bo'lsa 17 ko'rdi → null", whatsNewFor(17, 17) === null);
+  check("M2: current joriy bo'lsa → null", whatsNewFor(APP_VERSION, APP_VERSION) === null);
 
   // localStorage roundtrip
   delete store[VERSION_KEY];
@@ -219,7 +219,7 @@ function mkAsset(kind: Asset["kind"], n: number): Asset {
   store["oqim-save-v1"] = JSON.stringify(legacy);
   const loaded = loadSave();
   check("M3: v13 saqlanma yuklandi", loaded !== null);
-  check("M3: versiya 19 ga ko'tarildi (fix-17: v19)", (loaded as unknown as { version: number }).version === 19);
+  check("M3: versiya 20 ga ko'tarildi (fix-18: v20)", (loaded as unknown as { version: number }).version === 20);
   check("M3: lessonsSeen default []", Array.isArray(loaded?.players[0].lessonsSeen));
   check("M3: idleCashMonths default 0", loaded?.players[0].idleCashMonths === 0);
   check("M3: lessonsSeen bilan mentor ishlaydi", checkMentor(loaded!, loaded!.players[0], { kind: "avans" }).some((l) => l.id === "avans-xatar"));

@@ -19,7 +19,7 @@ export interface GameRecord {
   won: boolean;
   /** fix-13c (Q1): o'yin rejimi */
   mode?: GameMode;
-  /** Rat Race'dan chiqilgan oy (round) — chiqilmagan bo'lsa null */
+  /** Asosiy aylanadan chiqilgan oy (round) — chiqilmagan bo'lsa null */
   escapeMonth: number | null;
   endMonth: number;
   winPath: "dream" | "cashflow" | null;
@@ -83,28 +83,6 @@ export function recordGame(rec: GameRecord): void {
 export function clearProfile(): void {
   try {
     localStorage.removeItem(PROFILE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-/** To'liq profil ma'lumotlarini qaytarish (bulutga sinxronlash uchun). */
-export function getFullProfile(): ProfileData {
-  return loadProfile();
-}
-
-/** Bulutdan kelgan profilni mahalliy profil bilan birlashtirish. */
-export function mergeProfile(cloud: Partial<ProfileData>): void {
-  try {
-    const local = loadProfile();
-    const mergedGames = [...local.games];
-    const localDates = new Set(local.games.map((g) => g.date));
-    for (const g of cloud.games ?? []) {
-      const rec = g as GameRecord;
-      if (!localDates.has(rec.date)) mergedGames.push(rec);
-    }
-    const mergedLessons = Array.from(new Set([...local.lessons, ...(cloud.lessons ?? [])]));
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ games: mergedGames, lessons: mergedLessons }));
   } catch {
     /* ignore */
   }

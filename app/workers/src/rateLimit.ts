@@ -12,13 +12,14 @@ export interface RateLimitEnv {
 
 const WINDOW_MS = 15 * 60 * 1000; // 15 daqiqa
 const MAX_ATTEMPTS = 10; // 15 daqiqada 10 ta auth urinish
+const MAX_ROOMS = 10; // 15 daqiqada 10 ta xona yaratish
 
-function key(ip: string): string {
-  return `ratelimit:auth:${ip}`;
-}
-
-export async function checkAuthRateLimit(env: RateLimitEnv, ip: string): Promise<{ ok: boolean; retryAfter?: number }> {
-  const k = key(ip);
+async function checkRateLimit(
+  env: RateLimitEnv,
+  k: string,
+  maxAttempts: number,
+  windowMs: number
+): Promise<{ ok: boolean; retryAfter?: number }> {
   const now = Date.now();
   const raw = await env.OQIM_USERS.get(k);
   let data: { count: number; windowStart: number };
@@ -33,20 +34,28 @@ export async function checkAuthRateLimit(env: RateLimitEnv, ip: string): Promise
     data = { count: 0, windowStart: now };
   }
 
-  if (now - data.windowStart > WINDOW_MS) {
+  if (now - data.windowStart > windowMs) {
     data = { count: 0, windowStart: now };
   }
 
   data.count += 1;
 
   // TTL ni qolgan vaqtga moslashtirish
-  const ttlSeconds = Math.ceil((WINDOW_MS - (now - data.windowStart)) / 1000);
+  const ttlSeconds = Math.ceil((windowMs - (now - data.windowStart)) / 1000);
   await env.OQIM_USERS.put(k, JSON.stringify(data), { expirationTtl: Math.max(60, ttlSeconds) });
 
-  if (data.count > MAX_ATTEMPTS) {
-    const retryAfter = Math.ceil((data.windowStart + WINDOW_MS - now) / 1000);
+  if (data.count > maxAttempts) {
+    const retryAfter = Math.ceil((data.windowStart + windowMs - now) / 1000);
     return { ok: false, retryAfter };
   }
 
   return { ok: true };
+}
+
+export async function checkAuthRateLimit(env: RateLimitEnv, ip: string): Promise<{ ok: boolean; retryAfter?: number }> {
+  return checkRateLimit(env, `ratelimit:auth:${ip}`, MAX_ATTEMPTS, WINDOW_MS);
+}
+
+export async function checkRoomsRateLimit(env: RateLimitEnv, ip: string): Promise<{ ok: boolean; retryAfter?: number }> {
+  return checkRateLimit(env, `ratelimit:rooms:${ip}`, MAX_ROOMS, WINDOW_MS);
 }

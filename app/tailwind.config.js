@@ -48,7 +48,7 @@ module.exports = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        /* Cashflow UZ design tokens (design.md §2.1) */
+        /* OQIM design tokens (design.md §2.1) */
         sand: {
           50: "#FBF8F2",
           100: "#F4EEE1",

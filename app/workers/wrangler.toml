@@ -8,8 +8,4 @@ bindings = [{ name = "GAME_ROOM", class_name = "GameRoom" }]
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["GameRoom"]
-
-[[kv_namespaces]]
-binding = "OQIM_USERS"
-id = "0bf2111264104a40b2c2ed068bcb9564"
+new_classes = ["GameRoom"]

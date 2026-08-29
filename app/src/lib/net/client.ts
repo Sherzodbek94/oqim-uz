@@ -57,6 +57,26 @@ export async function createRoom(name: string, timerSec: 60 | 120, bots: number)
   return (await res.json()) as CreateRoomResponse;
 }
 
+export async function checkRoom(code: string): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`${OQIM_SERVER}/api/rooms/${code}`, { method: "GET" });
+  if (res.status === 404) return { ok: false, error: "Xona topilmadi — kodni tekshiring" };
+  if (!res.ok) return { ok: false, error: "Serverga ulanib bo'lmadi" };
+  return { ok: true };
+}
+
+export interface GameResult {
+  finishedAt: number;
+  winnerId: number | null;
+  players: { id: number; name: string; isBot: boolean; cash: number; escaped: boolean; bankrupt: boolean }[];
+}
+
+export async function fetchResults(code: string): Promise<{ ok: boolean; results?: GameResult[]; error?: string }> {
+  const res = await fetch(`${OQIM_SERVER}/api/rooms/${code}/results`, { method: "GET" });
+  if (!res.ok) return { ok: false, error: "Natijalarni olishda xato" };
+  const data = (await res.json()) as { ok: boolean; results?: GameResult[]; error?: string };
+  return data;
+}
+
 export interface PublicState {
   code: string;
   phase: "lobby" | "playing" | "finished";
@@ -119,7 +139,9 @@ export type ServerMsg =
   | { t: "joined"; token: string; playerId: number }
   | { t: "error"; error: string }
   | { t: "end"; winnerId: number | null }
-  | { t: "pong" };
+  | { t: "pong" }
+  | { t: "status"; connected: boolean; canReconnect: boolean }
+  | { t: "chat"; playerId: number; text: string; at: number };
 
 export type ClientAction =
   | { kind: "roll" }
@@ -131,12 +153,15 @@ export type ClientAction =
 
 type Listener = (msg: ServerMsg) => void;
 
+const MAX_RETRIES = 6;
+
 export class OnlineClient {
   private ws: WebSocket | null = null;
   private listeners = new Set<Listener>();
   private closedByUser = false;
   private retry = 0;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private canReconnect = true;
   status: "connecting" | "open" | "closed" = "connecting";
 
   private code: string;
@@ -158,17 +183,23 @@ export class OnlineClient {
     for (const fn of this.listeners) fn(msg);
   }
 
+  private emitStatus(): void {
+    this.emit({ t: "status", connected: this.status === "open", canReconnect: this.canReconnect });
+  }
+
   connect(): void {
     this.closedByUser = false;
     this.status = "connecting";
+    this.emitStatus();
     const base = OQIM_SERVER.replace(/^http/, "ws");
     const ws = new WebSocket(`${base}/api/rooms/${this.code}/ws`);
     this.ws = ws;
     ws.onopen = () => {
       this.status = "open";
       this.retry = 0;
+      this.canReconnect = true;
       this.send({ t: "join", name: this.name, token: this.token ?? undefined });
-      this.emit({ t: "pong" }); // status yangilansin
+      this.emitStatus();
     };
     ws.onmessage = (ev) => {
       try {
@@ -184,15 +215,34 @@ export class OnlineClient {
     };
     ws.onclose = () => {
       this.status = "closed";
-      if (!this.closedByUser && this.retry < 6) {
+      this.emitStatus();
+      if (this.closedByUser) return;
+      if (this.retry < MAX_RETRIES) {
         const delay = Math.min(8000, 500 * 2 ** this.retry++);
         this.retryTimer = setTimeout(() => this.connect(), delay);
+      } else {
+        this.canReconnect = false;
+        this.emitStatus();
       }
     };
     ws.onerror = () => ws.close();
   }
 
-  send(msg: { t: "join"; name: string; token?: string } | { t: "start" } | { t: "action"; action: ClientAction } | { t: "ping" }): void {
+  /** Qo'lda qayta ulanish (avto-retry tugagandan keyin). */
+  reconnect(): void {
+    this.retry = 0;
+    this.canReconnect = true;
+    this.connect();
+  }
+
+  send(
+    msg:
+      | { t: "join"; name: string; token?: string }
+      | { t: "start" }
+      | { t: "action"; action: ClientAction }
+      | { t: "chat"; text: string }
+      | { t: "ping" }
+  ): void {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
   }
 
@@ -202,11 +252,16 @@ export class OnlineClient {
   action(action: ClientAction): void {
     this.send({ t: "action", action });
   }
+  chat(text: string): void {
+    this.send({ t: "chat", text: text.slice(0, 200) });
+  }
 
   close(): void {
     this.closedByUser = true;
+    this.canReconnect = false;
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.ws?.close();
     this.ws = null;
+    this.emitStatus();
   }
 }

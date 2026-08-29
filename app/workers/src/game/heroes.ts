@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — Qahramonlar (heroes) layer on top of professions.
+ * OQIM — Qahramonlar (heroes) layer on top of professions.
  * Ported from erkinlik_kvadranti assets/data/characters.json (+advanced):
  * 8 heroes with starting finances (UZS) and special abilities that have
  * real mechanical effects in the engine (deal price, income, events).

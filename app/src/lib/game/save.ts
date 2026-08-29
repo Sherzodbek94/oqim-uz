@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — persistence (design.md §10).
+ * OQIM — persistence (design.md §10).
  * Keys: oqim-save-v1 (full game state; eski cfuz-save-v1 bir marta ko'chiriladi),
  * cfuz-best (best escape turn count), cfuz-settings (haptics, speed).
  */

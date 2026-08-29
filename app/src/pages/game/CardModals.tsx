@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — card-draw modals (game.md §3.3, §7).
+ * OQIM — card-draw modals (game.md §3.3, §7).
  * Desktop: centered rounded-3xl; mobile: bottom-sheet. Card draws flip from
  * their card-back asset with content stagger-in (design.md §7.2.3).
  */

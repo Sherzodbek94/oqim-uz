@@ -1,11 +1,11 @@
-# YO'NALISH HUJJATI — Cashflow UZ v7 (professional audit asosida)
+# YO'NALISH HUJJATI — OQIM v7 (professional audit asosida)
 
 Sana: 2026-08-24. Asos: 2 parallel audit (moliyaviy verifier 63 tekshiruv + game-design reviewer).
 
 ## 1. BREND QARORI
 
-**Yangi nom: OQIM** — tagline: «Moliyaviy erkinlik o'yini» / «Rat Race'dan chiq».
-Sabablar: «CASHFLOW» — Rich Dad'ning ro'yxatdan o'tgan savdo belgisi (huquqiy xavf); «OQIM» qisqa, o'zbekcha, naqd oqim mohiyatini beradi, esda qolinadigan.
+**Yangi nom: OQIM** — tagline: «Moliyaviy erkinlik o'yini» / «Aylanadan chiq».
+Sabablar: «OQIM» qisqa, o'zbekcha, naqd oqim mohiyatini beradi, esda qolinadigan.
 Kengaytirilgan nom: **OQIM — Erkinlik Yo'li**.
 Bajariladi: Stage C'da (title, logo, strings, home, footer, save key migratsiyasi).
 

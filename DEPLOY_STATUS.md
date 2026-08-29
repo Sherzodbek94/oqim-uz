@@ -33,15 +33,15 @@
 
 Server:
 ```cmd
-cd "C:\Users\1\Downloads\Kimi_Agent_O'zbek Cashflow O'yini\app\workers"
-set PATH=C:\Users\1\Downloads\Kimi_Agent_O'zbek Cashflow O'yini\.tools\node;%PATH%
+cd app\workers
+set PATH=..\..\.tools\node;%PATH%
 wrangler deploy
 ```
 
 Frontend (doimiy manzilni yangilaydi):
 ```cmd
-cd "C:\Users\1\Downloads\Kimi_Agent_O'zbek Cashflow O'yini\app"
-set PATH=C:\Users\1\Downloads\Kimi_Agent_O'zbek Cashflow O'yini\.tools\node;%PATH%
+cd app
+set PATH=..\.tools\node;%PATH%
 set VITE_OQIM_SERVER=https://oqim-server.yigitcha-9493.workers.dev
 npm run build
 wrangler pages deploy dist --project-name=oqim --branch=main

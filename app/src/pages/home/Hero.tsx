@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Play, BookOpen, Coins, Home as HomeIcon, Rocket } from "lucide-react";
 import Dice from "@/components/Dice";
+import ModeSelector from "@/components/ModeSelector";
 import { uz } from "@/lib/uz";
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -74,7 +75,8 @@ function StatTile({ value, suffix, label, delay }: { value: number; suffix: stri
   );
 }
 
-export default function Hero({ onToast, onOpenMode }: { onToast: (msg: string) => void; onOpenMode: () => void }) {
+export default function Hero({ onToast }: { onToast: (msg: string) => void }) {
+  const [modeOpen, setModeOpen] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
@@ -164,7 +166,7 @@ export default function Hero({ onToast, onOpenMode }: { onToast: (msg: string) =
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.7, ease: EASE }}
             >
-              <button onClick={onOpenMode} className="btn-primary !px-7 !py-3.5 !text-base">
+              <button onClick={() => setModeOpen(true)} className="btn-primary !px-7 !py-3.5 !text-base">
                 <Play className="h-5 w-5" />
                 {uz.common.start}
               </button>
@@ -250,6 +252,7 @@ export default function Hero({ onToast, onOpenMode }: { onToast: (msg: string) =
           ))}
         </div>
       </div>
+      <ModeSelector open={modeOpen} onClose={() => setModeOpen(false)} />
     </section>
   );
 }

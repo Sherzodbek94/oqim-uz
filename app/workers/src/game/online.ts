@@ -4,7 +4,7 @@
  * DOM/localStorage'dan mustaqil.
  *
  * MVP cheklovi: faqat KLASSIK doska rejimi onlayn o'ynaladi (path/plan — keyingi versiyalarda).
- * G'alaba: Rat Race'dan birinchi qochgan o'yinchi (canEscape).
+ * G'alaba: Asosiy aylanadan birinchi chiqgan o'yinchi (canEscape).
  */
 import {
   addLog,
@@ -34,7 +34,7 @@ import {
 } from "./engine";
 import { BIG_DEALS, DOODAD_CARDS, DREAMS, MARKET_CARDS, PROFESSIONS, SMALL_DEALS, WEEKEND_CARDS } from "./data";
 import { botCharityDecision, botDealDecision, botDoodadDecline, botDoodadMode, botPickDealSize, botSellDecision, botWeekendChoice } from "./bots";
-import type { DealCard, GameState, MarketCard, Player } from "./types";
+import type { BotPersonality, DealCard, GameState, MarketCard, Player } from "./types";
 import { RAT_CELLS } from "./types";
 
 export const MAX_PLAYERS = 4;
@@ -73,6 +73,12 @@ export type Pending =
 
 export type RoomPhase = "lobby" | "playing" | "finished";
 
+export interface GameResult {
+  finishedAt: number;
+  winnerId: number | null;
+  players: { id: number; name: string; isBot: boolean; cash: number; escaped: boolean; bankrupt: boolean }[];
+}
+
 export interface OnlineRoom {
   code: string;
   hostToken: string;
@@ -87,6 +93,8 @@ export interface OnlineRoom {
   /** turn timer deadline (ms epoch) — alarm shu vaqtga qo'yiladi */
   deadline: number | null;
   createdAt: number;
+  /** o'yin tugagandan keyingi natijalar tarixi (#5) */
+  results: GameResult[];
 }
 
 export interface ActionResult {
@@ -109,6 +117,7 @@ export function createRoom(code: string, settings: RoomSettings, hostName: strin
     winnerId: null,
     deadline: null,
     createdAt: now,
+    results: [],
   };
 }
 
@@ -122,6 +131,15 @@ export function joinRoom(room: OnlineRoom, name: string, token: string): ActionR
 
 export function playerByToken(room: OnlineRoom, token: string): RoomPlayer | undefined {
   return room.players.find((p) => p.token === token);
+}
+
+/** Xost chiqib ketsa, navbatdagi ulangan inson o'yinchisiga xost huquqini o'tkazadi. */
+export function transferHost(room: OnlineRoom, leavingToken: string): { ok: boolean; newHostToken?: string } {
+  if (room.hostToken !== leavingToken) return { ok: false };
+  const next = room.players.find((p) => !p.isBot && p.connected && p.token !== leavingToken);
+  if (!next) return { ok: false };
+  room.hostToken = next.token;
+  return { ok: true, newHostToken: next.token };
 }
 
 /** O'yinni boshlash — faqat xost. Botlar qo'shiladi. */
@@ -140,30 +158,34 @@ export function startGame(room: OnlineRoom, token: string): ActionResult {
     });
   }
   const usedProf = new Set<string>();
+  const botPersonalities: BotPersonality[] = ["cautious", "balanced", "bold"];
+  let botIndex = 0;
   const players: Player[] = room.players.map((rp, i) => {
     const avail = PROFESSIONS.filter((pr) => !usedProf.has(pr.id));
     const prof = pick(avail.length ? avail : PROFESSIONS);
     usedProf.add(prof.id);
+    const personality: BotPersonality = rp.isBot ? botPersonalities[botIndex++ % botPersonalities.length] : "balanced";
     return makePlayer(i, rp.name, prof, {
       isBot: rp.isBot,
-      personality: "balanced",
+      personality,
       colorIndex: (i % 4) as Player["colorIndex"],
       dreamId: pick(DREAMS).id,
     });
   });
   room.game = makeGame(players, "classic", "classic");
   room.phase = "playing";
-  addLog(room.game, "rocket", "🌐 Onlayn o'yin boshlandi! Rat Race'dan birinchi qochgan g'olib.", "gold");
+  addLog(room.game, "rocket", "🌐 Onlayn o'yin boshlandi! Asosiy aylanadan birinchi chiqgan g'olib.", "gold");
   beginTurn(room, Date.now());
   return { ok: true };
 }
+
+const BOT_DELAY_MS = 1200;
 
 /** Navbat boshlanishi: deadline + skipTurns + bot avtomatik yurish. */
 function beginTurn(room: OnlineRoom, now: number): void {
   const g = room.game!;
   const p = g.players[g.current];
   room.pending = null;
-  room.deadline = now + room.settings.timerSec * 1000;
   if (p.skipTurns > 0) {
     p.skipTurns -= 1;
     addLog(g, "work", `${p.name}: dam olish/ishsizlik — navbat o'tkazib yuborildi`, "bad");
@@ -171,10 +193,12 @@ function beginTurn(room: OnlineRoom, now: number): void {
     return;
   }
   if (p.isBot) {
-    botPlay(room, now);
+    room.awaiting = p.id;
+    room.deadline = now + BOT_DELAY_MS;
     return;
   }
   room.awaiting = p.id;
+  room.deadline = now + room.settings.timerSec * 1000;
 }
 
 function cur(room: OnlineRoom): Player {
@@ -186,7 +210,7 @@ function cur(room: OnlineRoom): Player {
 function finishTurn(room: OnlineRoom, now: number): void {
   const g = room.game!;
   const p = cur(room);
-  // G'alaba tekshiruvi — Rat Race'dan qochish
+  // G'alaba tekshiruvi — Asosiy aylanadan chiqish
   if (canEscape(p, g.news, g.exchange, g.mode)) {
     p.escaped = true;
     p.escapeTurn = g.round;
@@ -195,7 +219,8 @@ function finishTurn(room: OnlineRoom, now: number): void {
     room.pending = null;
     room.awaiting = null;
     room.deadline = null;
-    addLog(g, "rocket", `🏆 ${p.name} Rat Race'dan qochdi va o'yinda G'OLIB bo'ldi!`, "gold");
+    recordGameResult(room);
+    addLog(g, "rocket", `🏆 ${p.name} Asosiy aylanadan chiqdi va o'yinda G'OLIB bo'ldi!`, "gold");
     return;
   }
   if (p.cash < 0) {
@@ -213,6 +238,7 @@ function finishTurn(room: OnlineRoom, now: number): void {
     room.phase = "finished";
     room.winnerId = null;
     room.deadline = null;
+    recordGameResult(room);
     addLog(g, "work", "Barcha o'yinchilar o'yindan chiqdi — o'yin tugadi", "bad");
     return;
   }
@@ -221,6 +247,7 @@ function finishTurn(room: OnlineRoom, now: number): void {
     room.phase = "finished";
     room.winnerId = alive[0].id;
     room.deadline = null;
+    recordGameResult(room);
     addLog(g, "rocket", `🏆 ${alive[0].name} yagona qoldi — G'OLIB!`, "gold");
     return;
   }
@@ -469,7 +496,21 @@ export function onTimeout(room: OnlineRoom, now = Date.now()): void {
   if (room.phase !== "playing" || !room.game) return;
   const g = room.game;
   const p = g.players[g.current];
-  if (p.isBot) return; // botlar sinxron o'ynaydi
+  if (p.isBot) {
+    // botlar jonli taassurot uchun kichik kechikish bilan o'ynaydi (#9)
+    room.awaiting = null;
+    botPlay(room, now);
+    return;
+  }
+  const rp = room.players[p.id];
+  // Uzilgan o'yinchi faqat navbatni o'tkazib yuboradi, pul/yurish qarorlarini o'zi qabul qilmaydi (#8)
+  if (rp && !rp.connected) {
+    addLog(g, "work", `⏱ ${p.name}: aloqa uzildi — navbat o'tkazib yuborildi`, "bad");
+    room.pending = null;
+    room.awaiting = null;
+    finishTurn(room, now);
+    return;
+  }
   addLog(g, "work", `⏱ ${p.name}: vaqt tugadi — avtomatik harakat`, "bad");
   if (!room.pending) {
     room.awaiting = null;
@@ -546,3 +587,25 @@ export function publicState(room: OnlineRoom, forToken?: string) {
       : null,
   };
 }
+
+/** O'yin tugaganda natijani saqlash (#5) */
+export function recordGameResult(room: OnlineRoom, now = Date.now()): void {
+  if (!room.game || room.phase !== "finished") return;
+  const g = room.game;
+  room.results.push({
+    finishedAt: now,
+    winnerId: room.winnerId,
+    players: g.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      isBot: p.isBot,
+      cash: p.cash,
+      escaped: p.escaped,
+      bankrupt: p.bankrupt,
+    })),
+  });
+  // faqat so'nggi 10 o'yinni saqlaymiz
+  if (room.results.length > 10) room.results = room.results.slice(-10);
+}
+
+export { addLog };

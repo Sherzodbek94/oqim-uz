@@ -11,7 +11,7 @@ const BULLETS = [
   "Soliq auditi katakchasidan ehtiyot bo'ling (naqdning 10%i)",
 ];
 
-/** §8 Fast Track — gold-tinted band, star bullets, dreams strip parallax. */
+/** §8 Erkinlik yo'li — gold-tinted band, star bullets, dreams strip parallax. */
 export default function FastTrackSection() {
   const imgRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({

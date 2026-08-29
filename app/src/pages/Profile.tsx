@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import {
@@ -14,34 +14,18 @@ import {
   Lock,
   Award,
   Bot,
-  Shield,
   type LucideIcon,
 } from "lucide-react";
 import { uz } from "@/lib/uz";
-import { cn, sanitizeInput } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { formatUZSCompact } from "@/lib/format";
-import {
-  adminBan,
-  adminListUsers,
-  fetchCurrentUser,
-  getAuthUser,
-  login,
-  logout,
-  register,
-  syncCloudProfile,
-  updateStoredUser,
-  type AuthUser,
-  type AdminUser,
-} from "@/lib/auth";
 import {
   clearProfile,
   computeAchievements,
   computeBotRivalry,
   computeStats,
-  getFullProfile as getLocalProfile,
   isUsta,
   loadProfile,
-  mergeProfile as mergeLocalProfile,
   type GameRecord,
 } from "@/lib/profile";
 import { PERSONALITY_LABELS } from "@/lib/game/data";
@@ -79,314 +63,11 @@ function resultOf(g: GameRecord): { emoji: string; label: string } {
   return { emoji: "💸", label: uz.profile.resultLoss };
 }
 
-/** Auth kartochkasi — kirish / ro'yxatdan o'tish / sinxronlash. */
-function AuthCard({ onUserChange }: { onUserChange: (u: AuthUser | null) => void }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    fetchCurrentUser().then((u) => {
-      setUser(u);
-      setChecking(false);
-      onUserChange(u);
-    });
-  }, [onUserChange]);
-
-  const validate = (): string | null => {
-    if (!email.trim()) return uz.auth.emailRequired;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return uz.auth.invalidEmail;
-    if (!password) return uz.auth.passwordRequired;
-    if (password.length < 6) return uz.auth.passwordMin;
-    if (mode === "register" && name.trim().length < 2) return uz.auth.nameRequired;
-    return null;
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setMessage(null);
-    const v = validate();
-    if (v) return setError(v);
-    setLoading(true);
-    const cleanName = sanitizeInput(name, 32);
-    const cleanEmail = email.trim().toLowerCase();
-    const res = mode === "login" ? await login(cleanEmail, password) : await register(cleanEmail, password, cleanName);
-    setLoading(false);
-    if (!res.ok) {
-      setError(res.error || (mode === "login" ? uz.auth.loginError : uz.auth.registerError));
-      return;
-    }
-    if (res.user) {
-      setUser(res.user);
-      onUserChange(res.user);
-      setMessage(mode === "login" ? uz.auth.loggedInAs(res.user.name) : "Ro'yxatdan o'tdingiz");
-      // Bulutdan kelgan profilni mahalliy bilan birlashtirish
-      mergeLocalProfile(res.user.profile as { games: GameRecord[]; lessons: string[] });
-    }
-  };
-
-  const onLogout = () => {
-    logout();
-    setUser(null);
-    onUserChange(null);
-    setEmail("");
-    setPassword("");
-    setName("");
-  };
-
-  const onSync = async () => {
-    setError(null);
-    setMessage(null);
-    setLoading(true);
-    const ok = await syncCloudProfile(getLocalProfile());
-    setLoading(false);
-    if (ok) setMessage(uz.auth.syncSuccess);
-    else setError(uz.auth.syncError);
-  };
-
-  const onMerge = async () => {
-    setError(null);
-    setMessage(null);
-    setLoading(true);
-    const u = await fetchCurrentUser();
-    setLoading(false);
-    if (u) {
-      mergeLocalProfile(u.profile as { games: GameRecord[]; lessons: string[] });
-      updateStoredUser(u);
-      setUser(u);
-      onUserChange(u);
-      setMessage(uz.auth.mergeSuccess);
-    } else {
-      setError(uz.auth.syncError);
-    }
-  };
-
-  if (checking) {
-    return (
-      <div className="card mt-6 p-6 text-center">
-        <p className="text-ink-600">{uz.auth.subtitle}</p>
-      </div>
-    );
-  }
-
-  if (user) {
-    return (
-      <motion.div
-        className="card mt-6 !p-6"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: EASE }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="font-display text-lg font-bold text-ink-900">{uz.auth.loggedInAs(user.name)}</p>
-            <p className="text-body-sm text-ink-500">{user.email}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={onSync} disabled={loading} className="btn-primary">
-              {uz.auth.syncButton}
-            </button>
-            <button onClick={onMerge} disabled={loading} className="btn-secondary">
-              {uz.auth.mergeButton}
-            </button>
-            <button onClick={onLogout} className="btn-ghost text-clay-500">
-              {uz.auth.logoutButton}
-            </button>
-          </div>
-        </div>
-        {message && <p className="mt-3 text-body-sm text-emerald-700">{message}</p>}
-        {error && <p className="mt-3 text-body-sm text-clay-600">{error}</p>}
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div
-      className="card mt-6 !p-6"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: EASE }}
-    >
-      <h2 className="text-h3 font-bold">{uz.auth.title}</h2>
-      <p className="mt-1 text-body-sm text-ink-600">{uz.auth.subtitle}</p>
-
-      <div className="mt-4 inline-flex rounded-xl bg-sand-100 p-1">
-        <button
-          onClick={() => setMode("login")}
-          className={cn(
-            "rounded-lg px-4 py-1.5 text-body-sm font-semibold transition-colors",
-            mode === "login" ? "bg-emerald-700 text-white" : "text-ink-600 hover:bg-sand-200"
-          )}
-        >
-          {uz.auth.loginTab}
-        </button>
-        <button
-          onClick={() => setMode("register")}
-          className={cn(
-            "rounded-lg px-4 py-1.5 text-body-sm font-semibold transition-colors",
-            mode === "register" ? "bg-emerald-700 text-white" : "text-ink-600 hover:bg-sand-200"
-          )}
-        >
-          {uz.auth.registerTab}
-        </button>
-      </div>
-
-      <form onSubmit={onSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
-        <label className="block sm:col-span-2">
-          <span className="text-body-sm font-medium text-ink-700">{uz.auth.email}</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-sand-200 bg-white px-4 py-2.5 text-ink-900 outline-none focus:border-emerald-600"
-            required
-          />
-        </label>
-        <label className="block">
-          <span className="text-body-sm font-medium text-ink-700">{uz.auth.password}</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-sand-200 bg-white px-4 py-2.5 text-ink-900 outline-none focus:border-emerald-600"
-            required
-            minLength={6}
-          />
-        </label>
-        {mode === "register" && (
-          <label className="block">
-            <span className="text-body-sm font-medium text-ink-700">{uz.auth.name}</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-sand-200 bg-white px-4 py-2.5 text-ink-900 outline-none focus:border-emerald-600"
-              required
-              minLength={2}
-            />
-          </label>
-        )}
-        <div className="sm:col-span-2">
-          <button type="submit" disabled={loading} className="btn-primary w-full sm:w-auto">
-            {loading ? "..." : mode === "login" ? uz.auth.loginButton : uz.auth.registerButton}
-          </button>
-        </div>
-      </form>
-      {error && <p className="mt-3 text-body-sm text-clay-600">{error}</p>}
-      {message && <p className="mt-3 text-body-sm text-emerald-700">{message}</p>}
-    </motion.div>
-  );
-}
-
-/** Admin paneli — foydalanuvchilarni ko'rish va bloklash. */
-function AdminPanel() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const load = async () => {
-    setLoading(true);
-    const list = await adminListUsers();
-    setUsers(list);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const toggleBan = async (email: string, banned: boolean) => {
-    setMessage(null);
-    const res = await adminBan(email, banned);
-    if (res.ok) {
-      setMessage(banned ? `${email} bloklandi` : `${email} blokdan chiqarildi`);
-      load();
-    } else {
-      setMessage(res.error || "Xato");
-    }
-  };
-
-  return (
-    <motion.section
-      className="mt-10"
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.24, ease: EASE }}
-    >
-      <h2 className="text-h2 flex items-center gap-2">
-        <Shield className="h-6 w-6 text-emerald-700" /> Admin panel
-      </h2>
-      <p className="mt-1 text-body-sm text-ink-600">Test foydalanuvchilarni boshqarish</p>
-
-      {message && <p className="mt-3 text-body-sm text-emerald-700">{message}</p>}
-
-      <div className="mt-4 overflow-x-auto rounded-3xl border border-sand-200 bg-white shadow-card">
-        <table className="w-full min-w-[400px] text-left text-body-sm">
-          <thead>
-            <tr className="border-b border-sand-200 text-caption text-ink-400">
-              <th className="px-5 py-3 font-medium">Email</th>
-              <th className="px-5 py-3 font-medium">Ism</th>
-              <th className="px-5 py-3 font-medium">Rol</th>
-              <th className="px-5 py-3 font-medium">Holat</th>
-              <th className="px-5 py-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.email} className="border-b border-sand-100 last:border-0">
-                <td className="px-5 py-3 text-ink-900">{u.email}</td>
-                <td className="px-5 py-3 text-ink-600">{u.name}</td>
-                <td className="px-5 py-3 text-ink-600">{u.role}</td>
-                <td className="px-5 py-3">
-                  {u.banned ? (
-                    <span className="chip bg-clay-100 text-clay-600">Bloklangan</span>
-                  ) : (
-                    <span className="chip bg-emerald-100 text-emerald-700">Faol</span>
-                  )}
-                </td>
-                <td className="px-5 py-3">
-                  <button
-                    onClick={() => toggleBan(u.email, !u.banned)}
-                    disabled={u.role === "admin"}
-                    className={cn(
-                      "text-xs font-semibold",
-                      u.role === "admin" ? "text-ink-300" : u.banned ? "text-emerald-700" : "text-clay-600"
-                    )}
-                  >
-                    {u.banned ? "Blokdan chiqarish" : "Bloklash"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <button onClick={load} disabled={loading} className="btn-secondary mt-4">
-        {loading ? "Yuklanmoqda..." : "Yangilash"}
-      </button>
-    </motion.section>
-  );
-}
-
 /** /profil — o'yin tarixi, umumiy statistika va yutuqlar (C2). */
 export default function Profile() {
   const [games, setGames] = useState<GameRecord[]>(() => loadProfile().games);
   const [lessons, setLessons] = useState<string[]>(() => loadProfile().lessons);
   const [confirming, setConfirming] = useState(false);
-  const [, setAuthUser] = useState<AuthUser | null>(null);
-
-  const refreshLocal = () => {
-    const p = loadProfile();
-    setGames(p.games);
-    setLessons(p.lessons);
-  };
 
   const stats = useMemo(() => computeStats(games), [games]);
   const achievements = useMemo(() => computeAchievements(games), [games]);
@@ -396,13 +77,9 @@ export default function Profile() {
 
   const onClear = () => {
     clearProfile();
-    refreshLocal();
+    setGames([]);
+    setLessons([]);
     setConfirming(false);
-  };
-
-  const onAuthChange = (u: AuthUser | null) => {
-    setAuthUser(u);
-    refreshLocal();
   };
 
   const statCards = [
@@ -431,8 +108,6 @@ export default function Profile() {
         <h1 className="mt-4 text-display-lg">{uz.profile.title}</h1>
         <p className="mt-2 text-ink-600">{uz.profile.sub}</p>
       </motion.div>
-
-      <AuthCard onUserChange={onAuthChange} />
 
       {games.length === 0 ? (
         <motion.div
@@ -621,9 +296,6 @@ export default function Profile() {
               })}
             </div>
           </motion.section>
-
-          {/* Admin panel faqat adminlar uchun */}
-          {getAuthUser()?.role === "admin" && <AdminPanel />}
 
           {/* 4. Ma'lumotlarni tozalash */}
           <motion.section

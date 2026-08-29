@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { Info, MousePointerClick } from "lucide-react";
-import CashflowGauge from "@/components/CashflowGauge";
+import OqimGauge from "@/components/OqimGauge";
 import MoneyDisplay from "@/components/MoneyDisplay";
 import { formatUZS } from "@/lib/format";
 import { ANNOTATIONS, STATEMENT, type ZoneId } from "./data";
@@ -167,7 +167,7 @@ export default function StatementSection() {
                 <Zone id="gauge" active={activeZone} onHover={setActiveZone} className="p-2">
                   <div className="flex flex-col items-center gap-1">
                     <Pin n={6} />
-                    <CashflowGauge passiveIncome={passive} expenses={STATEMENT.expensesTotal} size={110} />
+                    <OqimGauge passiveIncome={passive} expenses={STATEMENT.expensesTotal} size={110} />
                   </div>
                 </Zone>
               </div>

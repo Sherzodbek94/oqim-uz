@@ -22,6 +22,8 @@ export interface User {
 
 export interface AuthEnv extends RateLimitEnv, AuditEnv {
   JWT_SECRET: string;
+  /** Vergul bilan ajratilgan admin email ro'yxati (kichik harfda solishtiriladi) */
+  ADMIN_EMAILS?: string;
 }
 
 const USER_PREFIX = "user:";
@@ -80,6 +82,18 @@ interface JwtPayload {
   exp: number;
 }
 
+/** Constant-time string taqqoslash (timing hujumlariga qarshi). */
+function timingSafeEqual(a: string, b: string): boolean {
+  const ab = encode(a);
+  const bb = encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) {
+    diff |= ab[i] ^ bb[i];
+  }
+  return diff === 0;
+}
+
 async function signJwt(payload: JwtPayload, secret: string): Promise<string> {
   const header = { alg: "HS256", typ: "JWT" };
   const head = b64encode(encode(JSON.stringify(header)));
@@ -88,12 +102,12 @@ async function signJwt(payload: JwtPayload, secret: string): Promise<string> {
   return `${head}.${body}.${sig}`;
 }
 
-async function verifyJwt(token: string, secret: string): Promise<JwtPayload | null> {
+export async function verifyJwt(token: string, secret: string): Promise<JwtPayload | null> {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   const [head, body, sig] = parts;
   const expectedSig = b64encode(await hmac(encode(secret), `${head}.${body}`));
-  if (sig !== expectedSig) return null;
+  if (!timingSafeEqual(sig, expectedSig)) return null;
   try {
     const decoded = new TextDecoder().decode(b64decode(body));
     const payload = JSON.parse(decoded) as JwtPayload;
@@ -130,6 +144,15 @@ function sanitizeName(name: string): string {
     .replace(/&/g, "&amp;")
     .slice(0, MAX_NAME_LEN)
     .trim();
+}
+
+/** Email ADMIN_EMAILS ro'yxatida bormi (vergul bilan ajratilgan, kichik harfda). */
+function isAdminEmail(env: AuthEnv, email: string): boolean {
+  const list = (env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase());
 }
 
 function validateInput(email: string, password: string, name?: string): string | null {
@@ -222,15 +245,13 @@ export async function register(
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const hash = await pbkdf2(password, salt.buffer);
 
-  // Birinchi ro'yxatdan o'tgan foydalanuvchi admin bo'ladi
-  const isFirstUser = (await env.OQIM_USERS.list({ prefix: USER_PREFIX })).keys.length === 0;
-
+  // Admin faqat ADMIN_EMAILS ro'yxati orqali beriladi — avtomatik admin yo'q
   const user: User = {
     email,
     name,
     passwordHash: b64encode(hash),
     salt: b64encode(salt.buffer),
-    role: isFirstUser ? "admin" : "user",
+    role: isAdminEmail(env, email) ? "admin" : "user",
     banned: false,
     profile: { games: [], lessons: [] },
     createdAt: Date.now(),
@@ -280,6 +301,13 @@ export async function login(
   if (b64encode(hash) !== user.passwordHash) {
     await logAudit(env, request, { type: "login", email, success: false, error: "password" });
     return json({ ok: false, error: "Email yoki parol noto'g'ri" }, 401, origin);
+  }
+
+  // Admin rolini ADMIN_EMAILS bilan sinxronlash
+  if (isAdminEmail(env, email) && user.role !== "admin") {
+    user.role = "admin";
+    user.updatedAt = Date.now();
+    await putUser(env, user);
   }
 
   await logAudit(env, request, { type: "login", email, success: true });
@@ -384,4 +412,27 @@ export async function adminListUsers(
     }
   }
   return json({ ok: true, users: users.sort((a, b) => b.createdAt - a.createdAt) }, 200, origin);
+}
+
+/* ---------------- Onlayn o'yin natijalari ---------------- */
+
+export interface OnlineGameEntry {
+  date: string; // ISO sana
+  won: boolean;
+  playersCount: number;
+  online: true;
+}
+
+/** Tugagan onlayn o'yin natijasini foydalanuvchi profiliga qo'shadi (GameRoom chaqiradi). */
+export async function recordOnlineGameResult(env: AuthEnv, email: string, entry: OnlineGameEntry): Promise<void> {
+  try {
+    const user = await getUser(env, email);
+    if (!user) return;
+    user.profile.games.push(entry);
+    if (user.profile.games.length > 5000) user.profile.games = user.profile.games.slice(-5000);
+    user.updatedAt = Date.now();
+    await putUser(env, user);
+  } catch {
+    /* natija saqlanmasa o'yin jarayoni buzilmasin */
+  }
 }

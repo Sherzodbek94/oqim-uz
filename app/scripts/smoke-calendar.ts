@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — oy kalendari (30 katak) smoke test.
+ * OQIM — oy kalendari (30 katak) smoke test.
  * Run: ./node_modules/.bin/esbuild scripts/smoke-calendar.ts --bundle --platform=node --alias:@=./src --outfile=/tmp/smoke-calendar.mjs && node /tmp/smoke-calendar.mjs
  */
 import {
@@ -93,7 +93,7 @@ function playerFor(quadrant: Quadrant = "E"): Player {
   // token fan-out uchun markazlar mavjud va noyob
   const centers = new Set(rects.map((r) => `${Math.round(r.cx)},${Math.round(r.cy)}`));
   check("30 ta noyob katak markazi (fan-out bazasi)", centers.size === 30);
-  // Fast Track o'zgarishsiz: 5×5 → 16 katak, burchaklar 0/4/8/12
+  // Erkinlik yo'li o'zgarishsiz: 5×5 → 16 katak, burchaklar 0/4/8/12
   const ft = perimeterLayout(5, 5);
   const ftCorners = ft.map((r, i) => (r.corner ? i : -1)).filter((i) => i >= 0);
   check("FT 16 katak, burchaklar 0/4/8/12", ft.length === 16 && JSON.stringify(ftCorners) === JSON.stringify([0, 4, 8, 12]), ftCorners);
@@ -196,7 +196,7 @@ function playerFor(quadrant: Quadrant = "E"): Player {
   check("uy xarajati naqd yechildi", p.cash === before - e2.amount);
 }
 
-/* ---------- 7. Escape / Fast Track o'zgarishsiz ---------- */
+/* ---------- 7. Escape / Erkinlik yo'li o'zgarishsiz ---------- */
 {
   const p = playerFor("E");
   check("escape shartlari saqlangan (dastlab chiqib bo'lmaydi)", !canEscape(p));

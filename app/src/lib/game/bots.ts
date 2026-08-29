@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — bot AI (game.md §8).
+ * OQIM — bot AI (game.md §8).
  * Personalities map to visible behavior:
  *  - Ehtiyotkor (cautious): declines deals ≥50% of cash, never takes loans
  *  - Muvozanat (balanced): buys what it can afford, sensible

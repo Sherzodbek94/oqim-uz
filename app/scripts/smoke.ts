@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — Stage A engine smoke test.
+ * OQIM — Stage A engine smoke test.
  * Run: ./node_modules/.bin/esbuild scripts/smoke.ts --bundle --platform=node --alias:@=./src --outfile=/tmp/smoke.mjs && node /tmp/smoke.mjs
  */
 import {

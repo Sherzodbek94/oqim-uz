@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Calculator, Timer, Users } from "lucide-react";
-import CashflowGauge from "@/components/CashflowGauge";
+import OqimGauge from "@/components/OqimGauge";
 import { EASE, SectionHead, Term } from "./ui";
 
 const FORMULA = ["PASSIV", "DAROMAD", "≥", "OYLIK", "XARAJATLAR"];
@@ -68,7 +68,7 @@ export default function Goal() {
             ))}
           </div>
           <div className="mt-6 flex justify-center">
-            <CashflowGauge passiveIncome={inView ? 5_500_000 : 0} expenses={5_500_000} size={140} />
+            <OqimGauge passiveIncome={inView ? 5_500_000 : 0} expenses={5_500_000} size={140} />
           </div>
           <p className="mt-4 text-body-sm text-ink-400">Bu shart bajarilganda g'alaba yaqin.</p>
         </motion.div>

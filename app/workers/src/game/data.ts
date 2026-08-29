@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — card decks & static data (game.md §2, §5, §7).
+ * OQIM — card decks & static data (game.md §2, §5, §7).
  * All figures in UZS. game.md is the source of truth.
  */
 import type {
@@ -2656,7 +2656,7 @@ export const DOODAD_CARDS: DoodadCard[] = [
   },
 ];
 
-/* ---------------- Fast Track bizneslari (game.md §5) ---------------- */
+/* ---------------- Erkinlik yo'li bizneslari (game.md §5) ---------------- */
 
 export const FT_DEALS: FTDeal[] = [
   { id: "silkroad", title: "Ipak yo'li logistika markazi", price: 5_000_000_000, cashflow: 80_000_000 },

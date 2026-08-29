@@ -3,6 +3,7 @@
  * WebSocket Hibernation API + alarm asosidagi navbat taymeri.
  */
 import {
+  addLog,
   createRoom,
   handleAction,
   joinRoom,
@@ -11,6 +12,7 @@ import {
   playerByToken,
   publicState,
   startGame,
+  transferHost,
   type ClientAction,
   type OnlineRoom,
 } from "./game/online";
@@ -27,6 +29,7 @@ type ClientMsg =
   | { t: "join"; name: string; token?: string }
   | { t: "start" }
   | { t: "action"; action: ClientAction }
+  | { t: "chat"; text: string }
   | { t: "ping" };
 
 export class GameRoom {
@@ -93,9 +96,15 @@ export class GameRoom {
     const room = await this.load();
 
     // Xona holati (lobby) — HTTP
-    if (request.method === "GET" && !request.headers.get("Upgrade")) {
+    if (request.method === "GET" && /\/api\/rooms\/[A-Z2-9]{6}$/.test(url.pathname) && !request.headers.get("Upgrade")) {
       if (!room) return Response.json({ ok: false, error: "Xona topilmadi" }, { status: 404 });
       return Response.json({ ok: true, state: publicState(room) });
+    }
+
+    // O'yin natijalari — HTTP
+    if (request.method === "GET" && /\/api\/rooms\/[A-Z2-9]{6}\/results$/.test(url.pathname)) {
+      if (!room) return Response.json({ ok: false, error: "Xona topilmadi" }, { status: 404 });
+      return Response.json({ ok: true, results: room.results });
     }
 
     // WebSocket upgrade
@@ -122,6 +131,15 @@ export class GameRoom {
     const now = Date.now();
 
     if (msg.t === "ping") return this.send(ws, { t: "pong" });
+
+    if (msg.t === "chat") {
+      const meta = ws.deserializeAttachment() as AttachMeta | null;
+      const player = meta ? playerByToken(room, meta.token) : undefined;
+      if (player && msg.text.trim()) {
+        this.broadcast({ t: "chat", playerId: player.id, text: msg.text.trim().slice(0, 200), at: Date.now() });
+      }
+      return;
+    }
 
     if (msg.t === "join") {
       // Reconnect yoki yangi o'yinchi
@@ -175,6 +193,10 @@ export class GameRoom {
       });
       if (!stillOnline) {
         player.connected = false;
+        if (player.token === room.hostToken) {
+          const t = transferHost(room, player.token);
+          if (t.ok && room.game) addLog(room.game, "crown", `👑 Xost chiqib ketdi — yangi xost: ${playerByToken(room, t.newHostToken!)?.name}`, "gold");
+        }
         await this.afterChange();
       }
     }

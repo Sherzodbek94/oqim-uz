@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Lock, LockOpen, ArrowRight, Star } from "lucide-react";
-import CashflowGauge from "@/components/CashflowGauge";
+import OqimGauge from "@/components/OqimGauge";
 import { uz } from "@/lib/uz";
 import { formatUZSCompact } from "@/lib/format";
 
@@ -90,7 +90,7 @@ export default function Rings({ onToast }: { onToast: (msg: string) => void }) {
         </motion.div>
 
         <div ref={wrapRef} className="relative mt-12 flex flex-col items-center gap-8 lg:flex-row lg:justify-center lg:gap-4">
-          {/* Ring A — Rat Race */}
+          {/* Ring A — Kundalik aylana */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -136,7 +136,7 @@ export default function Rings({ onToast }: { onToast: (msg: string) => void }) {
             <ArrowRight className="h-10 w-10" />
           </motion.div>
 
-          {/* Ring B — Fast Track */}
+          {/* Ring B — Erkinlik yo'li */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -207,7 +207,7 @@ export default function Rings({ onToast }: { onToast: (msg: string) => void }) {
         {/* Escape condition scrubber */}
         <div className="mx-auto mt-10 max-w-xl">
           <div className="card flex flex-col items-center gap-6 !p-6 md:flex-row">
-            <CashflowGauge passiveIncome={passive} expenses={expenses} caption={uz.home.rings.exitCondition} />
+            <OqimGauge passiveIncome={passive} expenses={expenses} caption={uz.home.rings.exitCondition} />
             <div className="w-full flex-1">
               <div className="flex items-center justify-between text-body-sm">
                 <span className="font-medium text-ink-900">{uz.home.rings.yourPassive}</span>

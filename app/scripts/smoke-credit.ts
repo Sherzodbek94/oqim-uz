@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — fix-6 smoke: kredit reytingi, garov, penya, ishsizlik, kvadrant, doodad krediti.
+ * OQIM — fix-6 smoke: kredit reytingi, garov, penya, ishsizlik, kvadrant, doodad krediti.
  * Run: ./node_modules/.bin/esbuild scripts/smoke-credit.ts --bundle --platform=node --alias:@=./src --outfile=/tmp/smoke-credit.mjs && node /tmp/smoke-credit.mjs
  */
 import {

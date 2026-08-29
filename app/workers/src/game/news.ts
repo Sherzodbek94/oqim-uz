@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — Bozor yangiliklari lentasi (market news ticker).
+ * OQIM — Bozor yangiliklari lentasi (market news ticker).
  * Every NEWS_EVERY_TURNS turns a new headline is drawn; while active, the
  * matching asset class income gets a +10%/−10% modifier (see engine).
  */

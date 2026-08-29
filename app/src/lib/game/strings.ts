@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — game-page Uzbek strings (game.md).
+ * OQIM — game-page Uzbek strings (game.md).
  * Game-scope dictionary (shared uz.ts stays untouched).
  */
 export const g = {
@@ -155,7 +155,7 @@ export const g = {
   },
   quadrant: {
     title: "Siz qaysi kvadrantdanasiz?",
-    sub: "Kiyosaki kvadrantini aniqlash uchun 3 ta savolga javob bering",
+    sub: "Moliyaviy kvadrantingizni aniqlash uchun 3 ta savolga javob bering",
     result: (name: string) => `Sizning kvadrantingiz: ${name}`,
     override: "Qo'lda o'zgartirish:",
     offQuadrant: "Kvadrantingizdan tashqaridagi qahramon",
@@ -166,10 +166,10 @@ export const g = {
       I: "I — Investor",
     } as Record<string, string>,
     desc: {
-      E: "Siz xavfsizlikni qadrlaysiz: barqaror maosh — asosiy daromad manbangiz. Kiyosaki deydi: «E kvadranti xavfsizlik so'raydi». Maoshga tayanish qulay, lekin vaqtingizni sotib olasiz — passiv daromad sizni erkin qiladi.",
-      S: "Siz o'z ishingizni o'zingiz qilasiz: mutaxassis yoki kichik ustaxona egasi. Kiyosaki deydi: «S kvadranti mukammallikni so'raydi». Lekin siz ishlamasangiz, daromad to'xtaydi — tizim qurishni o'rganing.",
-      B: "Siz biznes egasisiz: boshqalar sizning tizimingizda ishlaydi. Kiyosaki deydi: «B kvadranti jamoa quradi». Sizning vazifangiz — tizim sizsiz ham ishlashini ta'minlash.",
-      I: "Siz investorsiz: pulingiz siz uchun ishlaydi. Kiyosaki deydi: «I kvadranti — pul ishlaydigan joy». Aktivlar haqidagi bilimingiz — eng katta kapitallingiz.",
+      E: "Siz xavfsizlikni qadrlaysiz: barqaror maosh — asosiy daromad manbangiz. E kvadranti xavfsizlik va barqarorlikni so'raydi. Maoshga tayanish qulay, lekin vaqtingizni sotib olasiz — passiv daromad sizni erkin qiladi.",
+      S: "Siz o'z ishingizni o'zingiz qilasiz: mutaxassis yoki kichik ustaxona egasi. S kvadranti mahorat va mukammallikni so'raydi. Lekin siz ishlamasangiz, daromad to'xtaydi — tizim qurishni o'rganing.",
+      B: "Siz biznes egasisiz: boshqalar sizning tizimingizda ishlaydi. B kvadranti jamoa va tizim qurishni so'raydi. Sizning vazifangiz — tizim sizsiz ham ishlashini ta'minlash.",
+      I: "Siz investorsiz: pulingiz siz uchun ishlaydi. I kvadranti — pul ishlaydigan joy. Aktivlar haqidagi bilimingiz — eng katta kapitallingiz.",
     } as Record<string, string>,
     questions: [
       {

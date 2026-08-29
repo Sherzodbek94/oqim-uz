@@ -215,7 +215,7 @@ function mk(): Player {
   store[SAVE_KEY] = JSON.stringify(legacy);
   const loaded = loadSave();
   check("P4: eski saqlanma yuklandi", loaded !== null);
-  check("P4: versiya 18 ga ko'tarildi (fix-17: v19)", loaded?.version === 19, loaded?.version);
+  check("P4: versiya 20 ga ko'tarildi (fix-18: v20)", loaded?.version === 20, loaded?.version);
   const lp = loaded!.players[0];
   check("P4: children2 tiklandi (2 bola)", Array.isArray(lp.children2) && lp.children2.length === 2, lp.children2?.length);
   // yoshlar 0–6 tekis: 2 bola → 0 va 6 yosh → bornMonth 100 va 28

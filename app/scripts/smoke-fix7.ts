@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — fix-7 smoke test:
+ * OQIM — fix-7 smoke test:
  *  Stage A: A1 avans/payday 30+70, A2 0-xarajat eksployti, A3 bozor indekslari,
  *  A4 istalgan payt sotish, A5 kredit boshqaruvi, A6 doodad kechiktirish,
  *  A7 lifestyle inflation + erkinlik ×1,2.

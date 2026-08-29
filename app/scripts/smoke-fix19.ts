@@ -62,6 +62,7 @@ const solo = createRoom(makeRoomCode(), { timerSec: 60, bots: 0 }, "Yolgiz", "to
 check("1 o'yinchi + 0 bot — start rad", !startGame(solo, "tok-solo").ok);
 // 4 kishilik xonada bot qo'shilmaydi (to'la), start OK
 check("xost start qildi", startGame(room, "host-token").ok);
+room.players.forEach((p) => (p.connected = true));
 check("faza playing", room.phase === "playing");
 check("o'yin holati yaratildi (klassik)", !!room.game && room.game.boardMode === "classic");
 check("to'la xonada bot qo'shilmadi", room.players.length === 4);
@@ -70,6 +71,7 @@ check("startdan keyin join rad", !joinRoom(room, "Kechikkan", "tok-late").ok);
 // Bot to'ldirish alohida tekshiruvi
 const broom = createRoom(makeRoomCode(), { timerSec: 60, bots: 2 }, "Xost", "b-host");
 check("botli xona start", startGame(broom, "b-host").ok);
+broom.players.forEach((p) => (p.connected = true));
 check("2 bot qo'shildi (jami 3)", broom.players.length === 3 && broom.players.filter((p) => p.isBot).length === 2);
 
 /* N4 — navbat va zar (deterministik: doim 1 katak) */
@@ -94,7 +96,9 @@ check("bitim sotib olindi", handleAction(broom, "b-host", { kind: "buy" }).ok);
 check("aktiv qo'shildi: " + cardTitle, g.players[0].assets.length === assetsBefore + 1);
 check("naqd yoki kredit hisoblandi", g.players[0].cash !== cashBefore || g.players[0].loans.length > 0);
 check("pending tozalandi", broom.pending === null);
-// Navbat botga o'tdi va bot sinxron o'ynab, yana navbat qaytishi kerak (2 bot, keyin xost)
+// Navbat botga o'tdi; botlar kichik kechikish bilan o'ynaydi, testda onTimeout chaqiramiz
+onTimeout(broom); // bot 1
+onTimeout(broom); // bot 2
 check("botlar navbatini o'ynadi — navbat yana xostda", g.current === 0 && broom.awaiting === 0);
 check("har bir o'yinchi 1 katak yurgan (rand=0)", g.players[1].position === 1 && g.players[2].position === 1);
 check("bot ham doodad katakda biror harakat qildi (log)", g.log.some((l) => l.text.includes("Bot")));

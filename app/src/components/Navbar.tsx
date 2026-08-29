@@ -5,7 +5,7 @@ import { Menu, X, Play, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uz } from "@/lib/uz";
 import { OLD_SAVE_KEY, SAVE_KEY } from "@/lib/game/types";
-import AuthButton from "@/components/AuthButton";
+import ModeSelector from "./ModeSelector";
 
 /**
  * Navbar (design.md §9.1) — home + rules pages only.
@@ -35,6 +35,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [modeOpen, setModeOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -115,11 +116,10 @@ export default function Navbar() {
               {uz.nav.resume}
             </Link>
           )}
-          <AuthButton />
-          <Link to="/game" className="btn-primary !px-5 !py-2.5">
+          <button onClick={() => setModeOpen(true)} className="btn-primary !px-5 !py-2.5">
             <Play className="h-4 w-4" />
             {uz.nav.play}
-          </Link>
+          </button>
         </div>
 
         {/* Mobile hamburger */}
@@ -180,15 +180,12 @@ export default function Navbar() {
                 initial={{ y: 24, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.25, duration: 0.3 }}
-                className="space-y-3 pt-4"
+                className="pt-4"
               >
-                <div className="flex justify-center">
-                  <AuthButton />
-                </div>
-                <Link to="/game" className="btn-primary w-full">
+                <button onClick={() => { setOpen(false); setModeOpen(true); }} className="btn-primary w-full">
                   <Play className="h-4 w-4" />
                   {uz.nav.play}
-                </Link>
+                </button>
                 {saved && (
                   <Link to="/game" className="chip mt-4 bg-emerald-100 text-emerald-700 normal-case tracking-normal">
                     <span className="relative flex h-2 w-2">
@@ -203,6 +200,7 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+      <ModeSelector open={modeOpen} onClose={() => setModeOpen(false)} />
     </motion.header>
   );
 }

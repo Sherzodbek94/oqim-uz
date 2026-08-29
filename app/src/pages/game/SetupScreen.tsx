@@ -1,6 +1,6 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — SETUP screen (game.md §2).
- * 4 steps inside one tall card: Kvadrant (Kiyosaki questionnaire), Qahramon
+ * OQIM — SETUP screen (game.md §2).
+ * 4 steps inside one tall card: Kvadrant (moliyaviy kvadrant so'rovnomasi), Qahramon
  * (3 hero cards flip-pick OR custom character form), Raqiblar (0–3 bots with
  * random heroes), Orzu (dream pick).
  * Steps slide-x 300ms.
@@ -450,6 +450,29 @@ export default function SetupScreen({ onComplete }: { onComplete: (r: SetupResul
     </div>
   );
 
+  const quickStart = () => {
+    const randHero = shuffle(HEROES)[0];
+    const randProf = heroToProfession(randHero);
+    const randDream = DREAMS[Math.floor(Math.random() * DREAMS.length)];
+    const randQuadrant = QUADRANTS[Math.floor(Math.random() * QUADRANTS.length)];
+    const botHero = shuffle(HEROES.filter((h) => h.id !== randHero.id))[0];
+    const botProf = heroToProfession(botHero);
+    const botName = shuffle(BOT_NAMES)[0];
+    onComplete({
+      playerName: name.trim() || "O'yinchi",
+      profession: randProf,
+      heroId: randHero.id,
+      customField: null,
+      quadrant: randQuadrant,
+      bots: [{ name: botName, profession: botProf, personality: "balanced", heroId: botHero.id }],
+      dream: randDream,
+      difficulty: professionDifficulty(randProf),
+      difficultyManual: false,
+      boardMode: "classic",
+      mode: "classic",
+    });
+  };
+
   const finish = () => {
     if (!canFinish || !canNext1 || !canNext0) return;
     if (mode === "hero" && pickedEntry) {
@@ -501,6 +524,13 @@ export default function SetupScreen({ onComplete }: { onComplete: (r: SetupResul
       />
       <div className="relative w-full max-w-[720px]">
         <h1 className="text-center text-display-lg">{g.setup.title}</h1>
+
+        <div className="mt-4 flex justify-center">
+          <button onClick={quickStart} className="btn-secondary">
+            <Play className="h-4 w-4" />
+            ⚡ Tez boshlash
+          </button>
+        </div>
 
         {/* stepper */}
         <div className="mt-4 flex items-center justify-center gap-2">

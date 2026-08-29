@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — full-screen overlays & ceremonies (game.md §1, §3.4, §5, §6).
+ * OQIM — full-screen overlays & ceremonies (game.md §1, §3.4, §5, §6).
  * Continue-or-new modal, escape ceremony, win/end screen, bankruptcy flow,
  * settings drawer.
  */

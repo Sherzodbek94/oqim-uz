@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
-import CashflowGauge from "@/components/CashflowGauge";
+import OqimGauge from "@/components/OqimGauge";
 import { uz } from "@/lib/uz";
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -89,7 +89,7 @@ export default function HowItWorks() {
     <ProfessionsFan key="v0" active={stepIdx === 0} />,
     <MiniRing key="v1" progress={Math.min(0.999, Math.max(0, (progress - 1 / 3) * 3))} />,
     <div key="v2" ref={gaugeRef} className="flex h-40 items-center justify-center">
-      <CashflowGauge passiveIncome={gaugeVal} expenses={8_000_000} size={140} />
+      <OqimGauge passiveIncome={gaugeVal} expenses={8_000_000} size={140} />
     </div>,
   ];
 

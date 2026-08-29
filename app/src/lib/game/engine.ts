@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — game engine (pure logic, no UI).
+ * OQIM — game engine (pure logic, no UI).
  * Functions mutate a draft Player/GameState — the controller clones state first.
  */
 import type {
@@ -300,7 +300,7 @@ export function makePlayer(
     dreamId: string;
     heroId?: string | null;
     customField?: ProfessionField | null;
-    /** Kiyosaki kvadranti (default "E") */
+    /** Moliyaviy kvadrant (default "E") */
     quadrant?: Quadrant;
     /** boshlang'ich kredit reytingi (default: qarzli o'z personaj 600, boshqalar 650) */
     creditScore?: number;
@@ -948,7 +948,7 @@ export function passiveIncome(p: Player, opts?: FinanceOpts): number {
     if (opts?.forPayday && p.freezeBusinessTurns > 0 && a.kind === "business") return sum;
     return sum + assetCashflow(p, a, opts?.news);
   }, 0);
-  // birja dividendlari ham passiv daromad (Rat Race'dan chiqishga hisoblanadi)
+  // birja dividendlari ham passiv daromad (Asosiy aylanadan chiqishga hisoblanadi)
   const dividends = opts?.exchange ? portfolioDividends(p, opts.exchange) : 0;
   // S/B kvadrant: mijozlar to'lovlari ham passiv daromad
   const total = assetsSum + dividends + clientIncome(p);
@@ -1050,14 +1050,14 @@ export function escapePassiveTarget(p: Player): number {
  * Bosqichli erkinlik tizimi (Xavfsizlik → Mustaqillik → Erkinlik):
  *  1 🛡 Moliyaviy xavfsizlik — naqd ≥ 3× oylik xarajatlar
  *  2 ⚖️ Mustaqillik — passiv daromad ≥ oylik xarajatlar (xarajatlar > 0)
- *  3 🚀 Erkinlik (Fast Track sharti) — passiv ≥ 1,2 × xarajatlar 2 ketma-ket oy
+ *  3 🚀 Erkinlik (Erkinlik yo'li sharti) — passiv ≥ 1,2 × xarajatlar 2 ketma-ket oy
  *     kunida (escapeStreak ≥ 2) + kamida 2 aktiv + qarz yuki ≤ 50%
  */
 /**
  * Bosqichli erkinlik tizimi (Xavfsizlik → Mustaqillik → Erkinlik):
  *  1 🛡 Moliyaviy xavfsizlik — naqd ≥ 3× oylik xarajatlar
  *  2 ⚖️ Mustaqillik — passiv daromad ≥ oylik xarajatlar (xarajatlar > 0)
- *  3 🚀 Erkinlik (Fast Track sharti) — passiv ≥ 1,2 × xarajatlar + kamida
+ *  3 🚀 Erkinlik (Erkinlik yo'li sharti) — passiv ≥ 1,2 × xarajatlar + kamida
  *     2 aktiv + qarz yuki ≤ 50% + (2 ketma-ket oy kuni streak YOKI
  *     zaxira yo'li: naqd zaxira ≥ 3× oylik xarajat — B6)
  */
@@ -2506,7 +2506,7 @@ export function completeMonth(s: GameState, rand: () => number = Math.random): M
   return { deferred, indexed, risk };
 }
 
-/** Rat Race katakchasi indeksini oy kuniga o'girish: 0 → 1-kun ... 29 → 30-kun. */
+/** Asosiy doska katak indeksini oy kuniga o'girish: 0 → 1-kun ... 29 → 30-kun. */
 export function dayOfMonth(position: number): number {
   return (position % RAT_CELLS.length) + 1;
 }
@@ -2837,7 +2837,7 @@ export function tickTurn(p: Player) {
   }
 }
 
-/* ---------------- Fast Track (game.md §5) ---------------- */
+/* ---------------- Erkinlik yo'li (game.md §5) ---------------- */
 
 export function applyFTPayday(p: Player, month = 0): number {
   const amount = monthlyCashflow(p) * FT_PAYDAY_MULT;
@@ -2904,7 +2904,7 @@ export function buyDream(p: Player, dream: Dream): boolean {
   return true;
 }
 
-/** FT win check (b): additional Fast Track cashflow ≥ 50 mln/oy. */
+/** FT win check (b): qo'shimcha Erkinlik yo'li naqd oqimi ≥ 50 mln/oy. */
 export function ftCashflowWin(p: Player): boolean {
   return p.ftCashflow >= FT_WIN_CASHFLOW;
 }

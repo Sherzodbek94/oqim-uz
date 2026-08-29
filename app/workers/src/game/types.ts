@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — game engine types (game.md).
+ * OQIM — game engine types (game.md).
  * All money values are in UZS (so'm), plain integers.
  */
 
@@ -48,7 +48,7 @@ export interface PendingChildEvent {
   stage: "kg" | "school";
 }
 
-/** Kiyosaki kvadranti: E — yollanma xodim, S — o'z ishini o'zi qiluvchi, B — biznes egasi, I — investor. */
+/** Moliyaviy kvadrant: E — yollanma xodim, S — o'z ishini o'zi qiluvchi, B — biznes egasi, I — investor. */
 export type Quadrant = "E" | "S" | "B" | "I";
 
 /** Profession field — used by kasbga mos hodisalar (profession-tagged events). */
@@ -240,7 +240,7 @@ export interface Player {
   heroId: string | null;
   /** o'z personaj kasbi nomidan aniqlangan maydon (kasbga mos hodisalar uchun) */
   customField: ProfessionField | null;
-  /** Kiyosaki kvadranti (so'rovnoma orqali aniqlanadi) */
+  /** Moliyaviy kvadrant (so'rovnoma orqali aniqlanadi) */
   quadrant: Quadrant;
   /** kredit reytingi (300–850) */
   creditScore: number;
@@ -253,9 +253,9 @@ export interface Player {
   /** resolved avatar image path */
   avatar: string;
   colorIndex: 0 | 1 | 2 | 3;
-  /** Rat Race cell index (0..29) — oy kalendari: position+1 = oy kuni */
+  /** Asosiy doska katak indeksi (0..29) — oy kalendari: position+1 = oy kuni */
   position: number;
-  /** Fast Track cell index (0..15) */
+  /** Erkinlik yo'li katak indeksi (0..15) */
   ftPosition: number;
   cash: number;
   salary: number;
@@ -315,7 +315,7 @@ export interface Player {
   deferredDoodads: DeferredDoodad[];
   /** jami kechiktirishlar soni (limit: MAX_DOODAD_DEFERS) */
   deferCount: number;
-  /** ketma-ket oy kunlari soni: passiv daromad ≥ xarajatlar (Fast Track sharti) */
+  /** ketma-ket oy kunlari soni: passiv daromad ≥ xarajatlar (Erkinlik yo'li sharti) */
   escapeStreak: number;
   /** bilim darajasi 1–5 (B3): ta'lim hodisalari va bitimlar orqali o'sadi */
   knowledge: number;
@@ -715,7 +715,7 @@ export interface Dream {
   desc: string;
   price: number;
   stripX: number; // crop offset into dreams-strip.png (0..4)
-  /** oylik saqlash xarajati (Fast Track oy kunida yechiladi) */
+  /** oylik saqlash xarajati (Erkinlik yo'li oy kunida yechiladi) */
   upkeep: number;
   /** orzu + biznes: oylik daromad (butik-mehmonxona) */
   income?: number;
@@ -792,7 +792,7 @@ export const RAT_CELLS: CellType[] = [
   "downsized", // 29 Ishsizlik
 ];
 
-/** game.md §5 — 16 Fast Track cells. Index 0 doubles as the lap start (payday). */
+/** game.md §5 — 16 ta Erkinlik yo'li katakchasi. Index 0 doubles as the lap start (payday). */
 export const FT_CELLS: FTCellType[] = [
   "bonus", // 0 Naqd bonus (lap start)
   "business",
@@ -874,7 +874,7 @@ export const FT_CELL_CAPTIONS: Record<FTCellType, string> = {
   audit: "Audit",
 };
 
-/** Fast Track katakchalari uchun to'liq tooltip nomlari. */
+/** Erkinlik yo'li katakchalari uchun to'liq tooltip nomlari. */
 export const FT_CELL_FULL: Record<FTCellType, string> = {
   bonus: "Naqd bonus — aylana boshi",
   business: "Yirik biznes bitimi",
@@ -893,9 +893,9 @@ export const PROFILE_KEY = "oqim-profile-v1";
 /** Orzu g'alabasi: sotib olingach shuncha FT navbat (oy) ushlab turish kerak (C3). */
 export const DREAM_HOLD_MONTHS = 3;
 
-/** Fast Track win threshold: additional FT cashflow (game.md §5). */
+/** Erkinlik yo'li g'alaba chegarasi: additional FT cashflow (game.md §5). */
 export const FT_WIN_CASHFLOW = 50_000_000;
-/** Fast Track payday multiplier (classic Cashflow rule). */
+/** Erkinlik yo'li payday ko'paytiruvchisi (klassik naqd oqim qoidasi). */
 export const FT_PAYDAY_MULT = 100;
 /**
  * Child monthly cost (game.md §3.3).
@@ -931,7 +931,7 @@ export const MORTGAGE_RATE_YEAR = 0.22;
 export const MORTGAGE_MONTHS = 180;
 /** Meros kelib chiqqan/eski qarzlar uchun standart oylik stavka (18%/yil). */
 export const DEFAULT_LOAN_MONTHLY_RATE = 0.015;
-/** Fast Track shartlari (bosqichli erkinlik tizimi). */
+/** Erkinlik yo'li shartlari (bosqichli erkinlik tizimi). */
 export const ESCAPE_STREAK_NEEDED = 2;
 /** fix-13c (Q1): Tez rejim — erkinlik uchun 1 oy streak kifoya. */
 export const TEZ_STREAK_NEEDED = 1;
@@ -1026,7 +1026,7 @@ export const DOODAD_CREDIT_MONTHS = 12;
 export const UNEMPLOYED_MONTHS = 2;
 
 /* ---------------- Oy kalendari (30 katak = 30 kun) ---------------- */
-/** Rat Race doskasi perimetri: 9 keng × 8 baland (burchaklar 0, 8, 15, 23). */
+/** Asosiy doska perimetri: 9 keng × 8 baland (burchaklar 0, 8, 15, 23). */
 export const RAT_BOARD_COLS = 9;
 export const RAT_BOARD_ROWS = 8;
 /** Avans katakchasi indeksi (oy o'rtasi, burchak). */

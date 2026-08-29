@@ -17,7 +17,7 @@ export const APP_CHANGELOG: ChangelogEntry[] = [
   { v: 3, points: ["Dam olish kuni va Hayotiy hodisalar kolodasi", "Kasbga mos hodisalar", "Kredit takliflari"] },
   { v: 4, points: ["Qahramonlar va qobiliyatlar", "O'z personaj", "Fond birjasi", "Dilemma hodisalar"] },
   { v: 5, points: ["Annuitet kreditlar (amortizatsiya)", "Bosqichli Erkinlik yo'li", "Qarz yuki ko'rsatkichi"] },
-  { v: 6, points: ["Kredit reytingi va garov", "Kiyosaki kvadrantlari", "30 kunlik kalendar doska", "Avans katagi"] },
+  { v: 6, points: ["Kredit reytingi va garov", "Moliyaviy kvadrantlar", "30 kunlik kalendar doska", "Avans katagi"] },
   { v: 7, points: ["OQIM rebrending", "Profil sahifasi va yutuqlar", "Kvadrant progressiyasi, mijozlar, bilim darajasi", "Bozor qiymati bo'yicha sotish"] },
   { v: 8, points: ["Xarajat validatsiyasi yumshatildi", "Kundalik aylana / Erkinlik yo'li atamalari", "Yangi hero rasmi"] },
   { v: 9, points: ["Premium doska dizayni", "Bilim olish markazi", "Mijoz topish markazi"] },

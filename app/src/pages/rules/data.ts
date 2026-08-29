@@ -466,7 +466,7 @@ export const GLOSSARY: GlossaryTerm[] = [
   },
   {
     id: "naqd-oqim",
-    term: "Naqd oqim (cashflow)",
+    term: "Naqd oqim",
     icon: ArrowLeftRight,
     body: "Oylik daromad minus oylik xarajatlar. Oy kun kataklarida aynan shu summa balansingizga tushadi.",
     example: "Misol: 10,87 mln − 5,5 mln = +5,37 mln/oy oqim.",

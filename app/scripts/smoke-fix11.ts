@@ -22,7 +22,7 @@
  *  6) Manba-qulf: Game.tsx mutate() stateRef'ni SINXRON yangilashi kerak
  *     (regressiya bo'lsa FAIL).
  *
- * Run: ./node_modules/.bin/esbuild scripts/smoke-fix11.ts --bundle --platform=node --alias:@=./src --outfile=/tmp/smoke-fix11.mjs && node /tmp/smoke-fix11.mjs
+ * Run: ./node_modules/.bin/esbuild scripts/smoke-fix11.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/smoke-fix11.mjs && node /tmp/smoke-fix11.mjs
  */
 import { readFileSync } from "node:fs";
 import {

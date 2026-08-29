@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — Stage C smoke test: annuitet kredit tizimi + bosqichli erkinlik.
+ * OQIM — Stage C smoke test: annuitet kredit tizimi + bosqichli erkinlik.
  * Run: ./node_modules/.bin/esbuild scripts/smoke-loans.ts --bundle --platform=node --alias:@=./src --outfile=/tmp/smoke-loans.mjs && node /tmp/smoke-loans.mjs
  */
 import {

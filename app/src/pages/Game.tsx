@@ -1,6 +1,6 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — /game route (game.md).
- * Four screen states in one route: SETUP → RAT RACE → FAST TRACK → END.
+ * OQIM — /game route (game.md).
+ * Four screen states in one route: SETUP → ASOSIY → ERKINLIK → END.
  * Owns the turn state machine, bot runner, autosave and all overlays.
  */
 import { useEffect, useRef, useState } from "react";
@@ -591,35 +591,36 @@ export default function Game() {
             if (pl.isBot || st.spectating) botTradeExchange(pl, st);
           }
         });
-        pushToast(
+        // Payday natijalarini bitta jamlanma toastga yig'ish (#10)
+        const summaryLines: string[] = [];
+        const hasBadEvent =
+          deferredReturns.length > 0 ||
+          riskEvents.length > 0 ||
+          closedNotes.some((n) => n.startsWith("⚠️")) ||
+          amount < 0;
+        summaryLines.push(
           amount >= 0
             ? fast
               ? g.ft.payday("+" + formatUZSCompact(amount))
               : g.payday.toast("+" + formatUZSCompact(amount))
-            : g.payday.negative("−" + formatUZSCompact(-amount)),
-          amount >= 0 ? (fast ? "gold" : "good") : "bad"
+            : g.payday.negative("−" + formatUZSCompact(-amount))
         );
-        if (!fast) pushToast(g.calendar.monthEnded, "gold");
-        if (avansNote) pushToast(avansNote, "neutral");
-        for (const dr of deferredReturns) {
-          pushToast(`${dr.playerName}: ${g.toasts.deferReturned(formatUZSCompact(dr.amount))}`, "bad");
-        }
-        for (const ix of indexedList) {
-          pushToast(g.toasts.salaryIndexed(ix.playerName, formatUZSCompact(ix.newSalary)), "good");
-        }
-        // fix-13c (Q3): aktiv risklari toastlari
+        if (!fast) summaryLines.push(g.calendar.monthEnded);
+        if (avansNote) summaryLines.push(avansNote);
+        for (const dr of deferredReturns) summaryLines.push(`${dr.playerName}: ${g.toasts.deferReturned(formatUZSCompact(dr.amount))}`);
+        for (const ix of indexedList) summaryLines.push(g.toasts.salaryIndexed(ix.playerName, formatUZSCompact(ix.newSalary)));
         for (const rv of riskEvents) {
-          pushToast(
+          summaryLines.push(
             rv.kind === "yomon"
               ? `⚠️ ${rv.playerName} — ${rv.assetTitle}: bu oy tushum bo'lmadi (${rv.reason})`
-              : `🚨 ${rv.playerName} — ${rv.assetTitle}: inqiroz! Daromad 3 oyga yarmiga tushdi`,
-            "bad"
+              : `🚨 ${rv.playerName} — ${rv.assetTitle}: inqiroz! Daromad 3 oyga yarmiga tushdi`
           );
         }
         for (const note of closedNotes) {
           if (note.startsWith("📊") || note.startsWith("💼")) continue; // faqat jurnalga
-          pushToast(note, note.startsWith("⚠️") ? "bad" : "gold");
+          summaryLines.push(note);
         }
+        pushToast(summaryLines.join(" • "), hasBadEvent ? "bad" : fast ? "gold" : "good");
         // fix-13b (M1): Moliyaviy ustoz — oy kuni + oy yakuni darslari
         if (!fast) {
           const wasPenya = closedNotes.some((n) => n.startsWith("⚠️"));
@@ -631,7 +632,7 @@ export default function Game() {
     setTimeout(() => setBubble(null), 900);
   };
 
-  /** fix-16: Hayotiy hodisa (12%) — Oy kun / payday tugunidan keyin (Rat Race). false = bekor qilindi. */
+  /** fix-16: Hayotiy hodisa (12%) — Oy kun / payday tugunidan keyin (asosiy aylanada). false = bekor qilindi. */
   const maybeLifeEvent = async (gen: number, p0: Player): Promise<boolean> => {
     const s0 = stateRef.current!;
     if (Math.random() < LIFE_EVENT_CHANCE) {
@@ -712,7 +713,7 @@ export default function Game() {
       st.phase = "resolving";
     });
 
-    // Hayotiy hodisa: 12% chance after each Oy kun (Rat Race only)
+    // Hayotiy hodisa: 12% chance after each Oy kun (asosiy aylanada)
     if (!fast && hitPayday) {
       if (!(await maybeLifeEvent(gen, p0))) return false;
     }
@@ -783,14 +784,8 @@ export default function Game() {
           break;
         }
         case "opportunity": {
-          // fix-16: yo'l xaritasi xavfi — riskli = katta bitim, safe = kichik bitim (tanlovsiz)
-          if (land?.risk === "risky") {
-            handlers.onPickDeal("big");
-          } else if (land?.risk === "safe") {
-            handlers.onPickDeal("small");
-          } else {
-            setModal({ kind: "deal-pick" });
-          }
+          // fix-16 + #13: o'yinchi o'zi katta/kichik bitimni tanlaydi (avtomatik emas)
+          setModal({ kind: "deal-pick" });
           await waitForUser();
           break;
         }

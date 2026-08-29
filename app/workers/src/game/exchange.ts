@@ -1,5 +1,5 @@
 /**
- * OQIM (avvalgi Cashflow UZ) — Fond birjasi (securities exchange).
+ * OQIM — Fond birjasi (securities exchange).
  * 8 ta qimmatli qog'oz, jonli narxlar (har oy kunida tebranadi), dividendlar,
  * 0.5% komissiya bilan savdo, bozor hodisalari integratsiyasi va diversifikatsiya bonusi.
  */
@@ -218,7 +218,7 @@ export function hasDiversificationBonus(p: Player): boolean {
 /**
  * Oylik dividend daromadi: Σ qty × joriy narx × dividendYield × boost,
  * ≥4 sektor ushlab turilsa +10% diversifikatsiya bonusi.
- * Passiv daromadga qo'shiladi (Rat Race'dan chiqish hisobida qatnashadi).
+ * Passiv daromadga qo'shiladi (Asosiy aylanadan chiqish hisobida qatnashadi).
  */
 export function portfolioDividends(p: Player, ex: ExchangeState): number {
   let sum = 0;

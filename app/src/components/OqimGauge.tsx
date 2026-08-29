@@ -2,12 +2,12 @@ import { useEffect, useId, useState } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * CashflowGauge / ProgressRing (design.md §9.8)
+ * OqimGauge / ProgressRing (design.md §9.8)
  * SVG ring: track sand-200; progress = share of expenses covered by passive income.
  * <100% -> clay→gold gradient stroke; >=100% -> emerald gradient + celebratory pulse.
  * Center: % in money-lg + caption.
  */
-export default function CashflowGauge({
+export default function OqimGauge({
   passiveIncome,
   expenses,
   size = 120,
