@@ -395,7 +395,7 @@ export default function Online() {
                       style={{ background: `${CELL_COLORS[cell]}18` }}
                       title={CELL_CAPTIONS[cell]}
                     >
-                      <span className="text-[10px] leading-tight text-ink-600 sm:text-xs">{i === 0 ? "💰 Oy kun" : CELL_CAPTIONS[cell]}</span>
+                      <span className="text-xs leading-tight text-ink-600 sm:text-sm">{i === 0 ? "💰 Oy kun" : CELL_CAPTIONS[cell]}</span>
                       <span className="mt-0.5 flex gap-0.5">
                         {here.map((p) => (
                           <span
