@@ -29,14 +29,15 @@ export default function OqimGauge({
   const [animated, setAnimated] = useState(0);
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
     if (reduced) {
-      setAnimated(pct);
-      return;
+      // schedule the single update outside the effect body to avoid a cascading render
+      raf = requestAnimationFrame(() => setAnimated(pct));
+      return () => cancelAnimationFrame(raf);
     }
     const start = performance.now();
     const from = animated;
     const dur = 900;
-    let raf = 0;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / dur);
       const eased = 1 - Math.pow(1 - t, 4);

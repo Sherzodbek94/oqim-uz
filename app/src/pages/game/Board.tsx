@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * OQIM — perimeter board (Monopoly-style).
  * Asosiy doska: 30 katak on a 9×8 rectangular perimeter (2×(9+8)−4), corners at

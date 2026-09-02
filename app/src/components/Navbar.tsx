@@ -46,9 +46,15 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => setSaved(hasSave()), [location.pathname]);
-
+  // Sync "resume" chip with localStorage save state; re-check after navigation.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSaved(hasSave());
+  }, [location.pathname]);
+
+  // Close mobile drawer when the route changes.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false);
   }, [location.pathname]);
 

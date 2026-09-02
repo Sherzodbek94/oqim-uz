@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CELLS, type CellExample, type CellLegend } from "./data";
 import { EASE, SectionHead } from "./ui";
@@ -56,11 +56,7 @@ function LegendCard({
   onDeactivate: () => void;
 }) {
   // pick a stable random example per activation cycle
-  const example = useMemo(
-    () => cell.examples[Math.floor(Math.random() * cell.examples.length)],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [active]
-  );
+  const [example] = useState(() => cell.examples[Math.floor(Math.random() * cell.examples.length)]);
 
   return (
     <motion.div

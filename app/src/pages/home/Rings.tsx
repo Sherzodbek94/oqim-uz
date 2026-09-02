@@ -59,11 +59,14 @@ export default function Rings({ onToast }: { onToast: (msg: string) => void }) {
 
   useEffect(() => {
     if (!escaped && passive >= expenses) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEscaped(true);
       setBurst((b) => b + 1);
       onToast(uz.home.rings.congrats);
     }
-    if (escaped && passive < expenses) setEscaped(false);
+    if (escaped && passive < expenses) {
+      setEscaped(false);
+    }
   }, [passive, escaped, onToast]);
 
   const C = 210; // svg half

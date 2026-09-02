@@ -114,7 +114,10 @@ export default function PathBoard({
   /** Pastdan yuqoriga: 0-qatlam eng pastda, 40-qatlam (cho'qqi) eng yuqorida. */
   const nodeY = (layer: number): number => totalH - (layer * ROW_H + ROW_H / 2 + 28);
 
-  const humanPos: PathPos = path?.positions[human.id] ?? { layer: -1, node: 0 };
+  const humanPos = useMemo<PathPos>(
+    () => path?.positions[human.id] ?? { layer: -1, node: 0 },
+    [path, human.id]
+  );
   const fogLimit = path ? visibleUntilLayer(humanPos, human.knowledge) : -1;
   const humanZone = quadrantLevel(human); // 0..3 — kvadrant progressiyasi (vizual qulf)
   const reachable = useMemo(() => {

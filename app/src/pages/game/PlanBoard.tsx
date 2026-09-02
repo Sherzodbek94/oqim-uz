@@ -76,6 +76,7 @@ export default function PlanBoard({
         if (i < wStart && committed[i]?.tile) base[i] = { tile: committed[i].tile, done: true };
       }
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft(base);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current.id, state.month, weekIdx, isExecuting]);

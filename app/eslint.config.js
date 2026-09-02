@@ -20,4 +20,12 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // scripts/ — Node smoke testlari, React emas: useXxx o'yin dvigateli funksiyalari hook sifatida noto'g'ri aniqlanadi
+    files: ['scripts/**/*.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

@@ -275,7 +275,7 @@ function doRoll(room: OnlineRoom, now: number): void {
       const res = applyPayday(p, g.news, g.exchange, g.month);
       const mres = completeMonth(g);
       addLog(g, "coins", `${p.name}: Oy kuni ${res.amount >= 0 ? "+" : "−"}${Math.abs(res.amount).toLocaleString("uz-UZ")} so'm`, res.amount >= 0 ? "good" : "bad");
-      for (const n of res.notes.filter((n) => /^[🎉⚠️]/u.test(n))) addLog(g, "coins", `${p.name}: ${n}`, n.startsWith("⚠️") ? "bad" : "gold");
+      for (const n of res.notes.filter((n) => n.startsWith("🎉") || n.startsWith("⚠️"))) addLog(g, "coins", `${p.name}: ${n}`, n.startsWith("⚠️") ? "bad" : "gold");
       for (const dr of mres.deferred) addLog(g, "coins", `${dr.playerName}: kechiktirilgan xarajat qaytdi`, "bad");
     }
   }
@@ -631,7 +631,6 @@ export interface LeaderboardEntry {
 
 const LEADERBOARD_PREFIX = "leaderboard:entry:";
 const LEADERBOARD_MAX_AGE_SECONDS = 90 * 24 * 60 * 60; // 90 kun
-const LEADERBOARD_MAX_ENTRIES = 100;
 
 /** Bitta tugagan o'yinni global leaderboard ga yozadi. */
 export async function recordGlobalResult(env: LeaderboardEnv, room: OnlineRoom, now = Date.now()): Promise<void> {

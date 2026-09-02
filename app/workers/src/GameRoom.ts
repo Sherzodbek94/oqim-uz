@@ -5,7 +5,6 @@
 import {
   addLog,
   createRoom,
-  getLeaderboard,
   handleAction,
   joinRoom,
   makeToken,

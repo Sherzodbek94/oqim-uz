@@ -231,7 +231,7 @@ check("SMALL_DEALS + BIG_DEALS bo'sh emas (opportunity)", BIG_DEALS.length > 0);
 /* ---------- 6. Manba-qulf: mutate() stateRef'ni sinxron yangilashi shart ---------- */
 {
   const src = readFileSync("src/pages/Game.tsx", "utf8"); // repo rootdan ishga tushiriladi
-  const mutateBody = src.match(/const mutate = \(fn: \(s: GameState\) => void\) => \{[\s\S]*?\n  \};/);
+  const mutateBody = src.match(/const mutate = \(fn: \(s: GameState\) => void\) => \{[\s\S]*?\n {2}\};/);
   check("mutate() topildi", !!mutateBody);
   if (mutateBody) {
     const body = mutateBody[0];

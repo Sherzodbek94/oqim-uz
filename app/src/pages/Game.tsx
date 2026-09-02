@@ -183,8 +183,14 @@ function pick<T>(arr: T[]): T {
 
 export default function Game() {
   const navigate = useNavigate();
-  const [entry, setEntry] = useState<Entry>("loading");
-  const [pendingSave, setPendingSave] = useState<GameState | null>(null);
+  const [entry, setEntry] = useState<Entry>(() => {
+    const save = loadSave();
+    return save && save.phase !== "game-over" && save.screen !== "end" ? "choice" : "setup";
+  });
+  const [pendingSave, setPendingSave] = useState<GameState | null>(() => {
+    const save = loadSave();
+    return save && save.phase !== "game-over" && save.screen !== "end" ? save : null;
+  });
   const [state, setState] = useState<GameState | null>(null);
   const stateRef = useRef<GameState | null>(null);
 
@@ -287,16 +293,7 @@ export default function Game() {
   }, [settings]);
 
   /* ---------- entry: save detection ---------- */
-
-  useEffect(() => {
-    const save = loadSave();
-    if (save && save.phase !== "game-over" && save.screen !== "end") {
-      setPendingSave(save);
-      setEntry("choice");
-    } else {
-      setEntry("setup");
-    }
-  }, []);
+  // entry/pendingSave are initialized lazily from loadSave() above.
 
   /* autosave after every resolved turn (game.md §1) */
   useEffect(() => {
@@ -307,6 +304,7 @@ export default function Game() {
   useEffect(() => {
     if (!state) return;
     if (state.phase === "moving" || state.phase === "rolling") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- tokenlar pozitsiyasi state'dan hosila bo'ladi; idle fazada bir martalik sinxronizatsiya
     setDisplayCells((dc) => {
       const next = { ...dc };
       for (const p of state.players) next[p.id] = p.escaped ? p.ftPosition : p.position;
@@ -522,7 +520,9 @@ export default function Game() {
         const paydayRes = fast ? null : applyPayday(probe, curNews, curExchange, stateRef.current!.month);
         const amount = fast ? applyFTPayday(probe, stateRef.current!.month) : paydayRes!.amount;
         // logga yoziladigan eslatmalar: 🎉 kredit yopildi, 📊 reyting, ⚠️ penya, 💼 ishsizlik
-        const closedNotes = (paydayRes?.notes ?? []).filter((n) => /^[🎉📊⚠️💼]/u.test(n));
+        const closedNotes = (paydayRes?.notes ?? []).filter((n) =>
+          ["🎉", "📊", "⚠️", "💼"].some((icon) => n.startsWith(icon))
+        );
         // avans olingan oyda maosh 70% ga qisqaradi (A1)
         const avansNote = (paydayRes?.notes ?? []).find((n) => n.startsWith("Ish haqi (avans ayirilgan)"));
         let deferredReturns: { playerName: string; amount: number }[] = [];
@@ -635,6 +635,7 @@ export default function Game() {
   /** fix-16: Hayotiy hodisa (12%) — Oy kun / payday tugunidan keyin (asosiy aylanada). false = bekor qilindi. */
   const maybeLifeEvent = async (gen: number, p0: Player): Promise<boolean> => {
     const s0 = stateRef.current!;
+    // eslint-disable-next-line react-hooks/purity -- render emas: navbat oqimidagi async hodisa
     if (Math.random() < LIFE_EVENT_CHANCE) {
 
       if (gen !== genRef.current) return false;
@@ -1853,7 +1854,7 @@ export default function Game() {
         );
         return;
       }
-      let sideToasts: string[] = [];
+      const sideToasts: string[] = [];
       let advFired = false;
       mutate((st) => {
         const pl = st.players[st.current];
@@ -2291,6 +2292,7 @@ export default function Game() {
     let res: ReturnType<typeof useKnowledgeAction> | null = null;
     mutate((st) => {
       const pl = st.players.find((x) => !x.isBot) ?? st.players[st.current];
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- bu React hook emas, o'yin dvigateli funksiyasi (engine.ts)
       res = useKnowledgeAction(st, pl.id, actionId);
     });
     if (res) {
@@ -2318,6 +2320,7 @@ export default function Game() {
     let res: ReturnType<typeof useClientAction> | null = null;
     mutate((st) => {
       const pl = st.players.find((x) => !x.isBot) ?? st.players[st.current];
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- bu React hook emas, o'yin dvigateli funksiyasi (engine.ts)
       res = useClientAction(st, pl.id, actionId);
       const r = res as ReturnType<typeof useClientAction> | null;
       if (r?.ok && r.added.length > 0) {

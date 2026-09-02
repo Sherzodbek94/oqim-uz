@@ -80,6 +80,7 @@ export default function HowItWorks() {
   const gaugeInView = useInView(gaugeRef, { once: true, margin: "-20% 0px" });
   const [gaugeVal, setGaugeVal] = useState(2_720_000); // 34% of 8 mln
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (gaugeInView) setGaugeVal(8_000_000);
   }, [gaugeInView]);
 

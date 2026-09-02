@@ -24,7 +24,7 @@ import {
 } from "@/lib/game/engine";
 import { loadSave } from "@/lib/game/save";
 import { buildRecord, computeAchievements, computeBotRivalry, isUsta, type GameRecord } from "@/lib/profile";
-import { PROFESSIONS, RAT_CELLS } from "@/lib/game/data";
+import { PROFESSIONS } from "@/lib/game/data";
 import { SAVE_KEY, TEZ_CASH_MULT, type Asset, type GameState, type Player } from "@/lib/game/types";
 
 let failures = 0;

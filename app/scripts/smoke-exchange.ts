@@ -34,7 +34,7 @@ import {
 import { botTradeExchange } from "../src/lib/game/bots";
 import { EVENT_CARDS } from "../src/lib/game/data";
 import { heroById, heroToProfession } from "../src/lib/game/heroes";
-import type { EventCard, GameState, Player } from "../src/lib/game/types";
+import type { EventCard, Player } from "../src/lib/game/types";
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: unknown) {

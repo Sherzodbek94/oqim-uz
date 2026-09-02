@@ -591,8 +591,8 @@ function useCountdown(deadline: number | null, active: boolean): number | null {
   const [left, setLeft] = useState<number | null>(null);
   useEffect(() => {
     if (!deadline || !active) {
-      setLeft(null);
-      return;
+      const t = setTimeout(() => setLeft(null), 0);
+      return () => clearTimeout(t);
     }
     const tick = () => setLeft(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
     tick();

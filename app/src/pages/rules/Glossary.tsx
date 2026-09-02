@@ -20,6 +20,7 @@ export default function Glossary() {
     const el = document.getElementById(hash);
     if (el) {
       autoOpened.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenId(hash);
       const t = setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 400);
       return () => clearTimeout(t);

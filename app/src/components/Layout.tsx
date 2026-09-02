@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Outlet } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
@@ -30,11 +30,9 @@ export default function Layout() {
  * oqim-last-version APP_VERSION dan kichik bo'lsa chiqadi, yopilgach yoziladi.
  */
 function WhatsNewPanel() {
-  const [entry, setEntry] = useState<ChangelogEntry | null>(null);
-
-  useEffect(() => {
-    setEntry(whatsNewFor(readLastVersion()));
-  }, []);
+  const [entry, setEntry] = useState<ChangelogEntry | null>(() =>
+    whatsNewFor(readLastVersion())
+  );
 
   const close = () => {
     markVersionSeen();

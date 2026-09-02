@@ -36,13 +36,12 @@ export default function MoneyDisplay({
     const from = prevRef.current;
     const to = value;
     prevRef.current = value;
-    if (from === to) {
-      setDisplay(to);
-      return;
-    }
+    cancelAnimationFrame(rafRef.current);
+    if (from === to) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setDisplay(to);
-      return;
+      // schedule the single update outside the effect body to avoid a cascading render
+      rafRef.current = requestAnimationFrame(() => setDisplay(to));
+      return () => cancelAnimationFrame(rafRef.current);
     }
     const start = performance.now();
     const dur = 700;

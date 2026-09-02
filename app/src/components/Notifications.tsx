@@ -42,6 +42,7 @@ export default function NotificationsCenter({ items }: { items: NotificationItem
     if (latestId !== prevLatestRef.current) {
       prevLatestRef.current = latestId;
       if (!open) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setShake(true);
         const t = setTimeout(() => setShake(false), 600);
         return () => clearTimeout(t);
