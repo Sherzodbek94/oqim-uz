@@ -69,7 +69,10 @@
 
 @media (min-width: 1024px) {
   .game-board {
-    max-width: min(100%, calc(100dvh - 205px));
+    /* The board fills the space left by the report panel, while the viewport
+       height keeps the complete square readable without page overflow. */
+    width: min(100%, calc(100dvh - 116px));
+    max-width: 920px;
     margin-inline: auto;
   }
 }
