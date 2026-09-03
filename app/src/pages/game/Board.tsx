@@ -213,7 +213,7 @@ export default function Board({
 
   return (
     <div
-      className="rounded-[28px] p-2 sm:p-2.5"
+      className="game-board rounded-[28px] p-2 sm:p-2.5"
       style={{
         background: "linear-gradient(150deg, #2E7D5F 0%, #24604A 45%, #1B4636 100%)",
         boxShadow: "0 3px 6px rgba(30,45,42,.08), 0 20px 48px rgba(30,45,42,.18)",
