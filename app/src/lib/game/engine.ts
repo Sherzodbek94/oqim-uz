@@ -356,7 +356,28 @@ export function makePlayer(
           }
     ),
     installments: [],
-    assets: [],
+    assets:
+      (opts.quadrant ?? "E") === "B"
+        ? [
+            {
+              id: `business-${id}`,
+              title: "Mavjud kichik biznes",
+              kind: "business",
+              icon: "Store",
+              price: 200_000_000,
+              paid: 70_000_000,
+              monthlyRevenue: 30_000_000,
+              monthlyOperatingCosts: 16_000_000,
+              monthlyCashflow: 14_000_000,
+              employees: 3,
+              tag: "savdo",
+              resalePercent: 70,
+              liquidity: 3,
+              buyIndex: 1,
+              riskLevel: 2,
+            },
+          ]
+        : [],
     portfolio: [],
     dividendBoost: null,
     charityTurns: 0,
@@ -384,7 +405,10 @@ export function makePlayer(
     escapeStreak: 0,
     knowledge: KNOWLEDGE_MIN,
     knowledgeFromDeals: [],
-    clients: [],
+    clients:
+      (opts.quadrant ?? "E") === "B"
+        ? [{ id: `client-${id}`, name: "Mahalliy doimiy mijoz", monthlyFee: 1_800_000, loyalty: 4 }]
+        : [],
     hasManager: false,
     knowledgeActions: {},
     clientActions: {},
