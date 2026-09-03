@@ -1918,9 +1918,10 @@ function eventGateOk(c: EventCard, p: Player): boolean {
 export function eligibleEvents(p: Player, recent: string[]): EventCard[] {
   const pool = EVENT_CARDS.filter((c) => !recent.includes(c.id) && eventGateOk(c, p));
   if (pool.length > 0) return pool;
-  // fallback: cooldownsiz, lekin qattiq gate'lar saqlanadi
+  // Fallback ham kvadrant gate'larini buzmasin: faqat umumiy hodisalar qaytadi.
   const gated = EVENT_CARDS.filter((c) => eventGateOk(c, p));
-  return gated.length > 0 ? gated : EVENT_CARDS;
+  const universal = gated.filter((c) => !c.requiresQuadrant && !c.requiresQuadrants);
+  return universal.length > 0 ? universal : gated;
 }
 
 export function applyEvent(p: Player, card: EventCard, s?: GameState): string {
@@ -2235,7 +2236,10 @@ export function eligibleLifeEvents(p: Player): LifeEventCard[] {
       (!c.requiresQuadrant || c.requiresQuadrant === p.quadrant) &&
       !(p.unemployedMonths > 0 && c.effect.type === "salary-pct")
   );
-  return pool.length > 0 ? pool : LIFE_EVENTS;
+  const universal = LIFE_EVENTS.filter(
+    (c) => !c.requiresQuadrant && !(p.unemployedMonths > 0 && c.effect.type === "salary-pct")
+  );
+  return pool.length > 0 ? pool : universal;
 }
 
 export function applyLifeEvent(p: Player, card: LifeEventCard): string {
