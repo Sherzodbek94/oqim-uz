@@ -174,6 +174,7 @@ export default function Board({
   botBubble,
   activePlayerId,
   dreamGlowCell,
+  highlightCell,
 }: {
   track: "rat" | "fast";
   players: BoardPlayer[];
@@ -182,6 +183,7 @@ export default function Board({
   botBubble?: { playerId: number; icon: "roll" | "coins" | "buy" } | null;
   activePlayerId?: number;
   dreamGlowCell?: number | null;
+  highlightCell?: number | null;
 }) {
   const cells = track === "rat" ? RAT_CELLS : FT_CELLS;
   const fast = track === "fast";
@@ -276,6 +278,7 @@ export default function Board({
             ? FT_CELL_COLORS[cell as FTCellType]
             : CELL_COLORS[cell as CellType];
           const flashing = flashCells.has(i);
+          const highlighted = !fast && highlightCell === i;
           const fill = r.corner ? CORNER_FILL : color;
           return (
             <g key={i}>
@@ -305,6 +308,23 @@ export default function Board({
                   stroke={GOLD}
                   strokeWidth={1.2}
                   opacity={0.55}
+                pointerEvents="none"
+              />
+            )}
+              {highlighted && (
+                <motion.rect
+                  x={r.x + 4}
+                  y={r.y + 4}
+                  width={r.w - 8}
+                  height={r.h - 8}
+                  rx={r.corner ? 18 : 9}
+                  fill="none"
+                  stroke={GOLD}
+                  strokeWidth={5}
+                  initial={{ opacity: 0.2, scale: 0.96 }}
+                  animate={{ opacity: [0.35, 1, 0.35], scale: [0.96, 1, 0.96] }}
+                  transition={{ repeat: Infinity, duration: 0.9, ease: "easeInOut" }}
+                  style={{ transformBox: "view-box", transformOrigin: `${r.cx}px ${r.cy}px` }}
                   pointerEvents="none"
                 />
               )}
@@ -411,7 +431,7 @@ export default function Board({
             return (
               <div
                 key={i}
-                title={full}
+                title={fast ? full : `${full} — ${cell === "payday" ? "Bu yerda daromad olasiz" : cell === "opportunity" ? "Bu yerda aktiv sotib olish mumkin" : cell === "doodad" ? "Bu katak xavfli: kutilmagan xarajat" : cell === "event" ? "Bu yerda muhim qaror bo'lishi mumkin" : ""}`}
                 className="absolute flex cursor-default flex-col items-center"
                 style={{ left: r.cx, top: r.cy, transform: "translate(-50%, -50%)" }}
               >
@@ -479,7 +499,7 @@ export default function Board({
                     <div style={{ transform: "translate(-50%, -50%)" }} className="relative">
                       {/* faol o'yinchi pionkasi: muloyim bobbing */}
                       <motion.span
-                        className="block"
+                        className={cn("block", active && "drop-shadow-[0_0_12px_rgba(217,164,65,0.95)]")}
                         animate={active ? { y: [0, -7, 0] } : { y: 0 }}
                         transition={active ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : { duration: 0.2 }}
                       >
