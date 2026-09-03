@@ -454,7 +454,9 @@ export default function SetupScreen({ onComplete }: { onComplete: (r: SetupResul
     const randHero = shuffle(HEROES)[0];
     const randProf = heroToProfession(randHero);
     const randDream = DREAMS[Math.floor(Math.random() * DREAMS.length)];
-    const randQuadrant = QUADRANTS[Math.floor(Math.random() * QUADRANTS.length)];
+    // Tez boshlash yangi o'yinchini tasodifiy murakkab kvadrant bilan
+    // chalg'itmasligi kerak: avval E kvadrantida asoslarni o'rganadi.
+    const randQuadrant = "E" as const;
     const botHero = shuffle(HEROES.filter((h) => h.id !== randHero.id))[0];
     const botProf = heroToProfession(botHero);
     const botName = shuffle(BOT_NAMES)[0];
@@ -466,8 +468,8 @@ export default function SetupScreen({ onComplete }: { onComplete: (r: SetupResul
       quadrant: randQuadrant,
       bots: [{ name: botName, profession: botProf, personality: "balanced", heroId: botHero.id }],
       dream: randDream,
-      difficulty: professionDifficulty(randProf),
-      difficultyManual: false,
+      difficulty: "easy",
+      difficultyManual: true,
       boardMode: "classic",
       mode: "classic",
     });
@@ -530,6 +532,9 @@ export default function SetupScreen({ onComplete }: { onComplete: (r: SetupResul
             <Play className="h-4 w-4" />
             ⚡ Tez boshlash
           </button>
+          <p className="mt-1 text-center text-[11px] leading-snug text-ink-400">
+            Yangi o'yinchilar uchun: E kvadranti, Oson rejim va qisqa tushuntirish.
+          </p>
         </div>
 
         {/* stepper */}

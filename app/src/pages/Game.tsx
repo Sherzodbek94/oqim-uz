@@ -210,6 +210,7 @@ export default function Game() {
   const [rolling, setRolling] = useState(false);
   const [shake, setShake] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [rollChip, setRollChip] = useState<number | null>(null);
   /** fix-9: Bilim olish / Mijoz topish markazlari */
   const [actionsModal, setActionsModal] = useState<"knowledge" | "clients" | null>(null);
@@ -362,6 +363,7 @@ export default function Game() {
     setState(s);
     setDisplayCells(Object.fromEntries(s.players.map((p) => [p.id, 0])));
     setEntry("playing");
+    setTutorialOpen(true);
     const gen = genRef.current;
     setTimeout(() => {
       if (gen === genRef.current) void beginTurn();
@@ -2431,7 +2433,7 @@ export default function Game() {
     }));
 
   const isHumanTurn = !current.isBot && !s.spectating && !current.bankrupt;
-  const blocked = !!modal || bankModal || bankFinal || escapeOverlay || actionsModal !== null;
+  const blocked = !!modal || bankModal || bankFinal || escapeOverlay || actionsModal !== null || tutorialOpen;
   /** fix-9: header amaliyot tugmalari faolmi (inson navbati, bo'sh fazada) */
   const actionsEnabled = isHumanTurn && (s.phase === "idle" || s.phase === "awaiting-end") && !modal && actionsModal === null;
   const clientsUnlocked = quadrantLevel(human) >= 1;
@@ -2468,6 +2470,13 @@ export default function Game() {
   const humanExpenses = totalExpenses(human);
   const humanCf = monthlyCashflow(human, { news: s.news, exchange: s.exchange });
   const gaugePct = humanExpenses > 0 ? Math.min(100, Math.round((humanPassive / humanExpenses) * 100)) : 100;
+  const strategyHint = human.cash < humanExpenses * 2
+    ? "Avval zaxira yarating: qimmat kreditni shoshilmasdan oling."
+    : humanPassive <= 0
+      ? "Imkoniyat katagida sof oqim beradigan aktivlarni tekshiring."
+      : humanPassive < humanExpenses
+        ? "Maqsad: passiv daromadni oylik xarajatlarga tenglashtirish."
+        : "Barqarorlikni saqlang — passiv daromadingiz xarajatlardan yuqori.";
 
   /* oy kalendari: joriy o'yinchining katakchasi = oy kuni (hop-payti jonlanadi);
      fix-16: yo'l xaritasida kun = qadamlar soni */
@@ -2544,6 +2553,11 @@ export default function Game() {
           <span className="text-[clamp(9px,2.2vw,11px)] font-medium uppercase tracking-[0.04em] text-ink-400">
             {g.turn.discarded(s.discarded)}
           </span>
+        )}
+        {isHumanTurn && !fastTrack && (
+          <p className="max-w-[270px] text-center text-[11px] leading-snug text-ink-400" role="status">
+            💡 {strategyHint}
+          </p>
         )}
       </div>
       {/* (2) joriy o'yinchi chipi — hech qachon zar ustida emas */}
@@ -2797,9 +2811,48 @@ export default function Game() {
         </motion.button>
       )}
 
+      <AnimatePresence>
+        {tutorialOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-ink-900/45 px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tutorial-title"
+          >
+            <motion.div
+              initial={{ y: 18, scale: 0.97 }}
+              animate={{ y: 0, scale: 1 }}
+              className="w-full max-w-md rounded-3xl border border-sand-200 bg-white p-6 shadow-modal"
+            >
+              <div className="mb-4 flex items-center gap-3">
+                <span className="rounded-2xl bg-emerald-100 p-3 text-2xl">🌱</span>
+                <div>
+                  <p className="text-caption font-semibold uppercase tracking-wide text-emerald-700">Boshlang'ich yo'l-yo'riq</p>
+                  <h2 id="tutorial-title" className="font-display text-xl font-bold text-ink-900">Moliyaviy erkinlikka 3 qadam</h2>
+                </div>
+              </div>
+              <div className="space-y-3 text-body-sm text-ink-600">
+                <p><strong className="text-ink-900">1.</strong> Zar tashlang va doskadagi imkoniyatlardan foydalaning.</p>
+                <p><strong className="text-ink-900">2.</strong> Xarajatlardan ko'ra ko'proq daromad yarating, zaxirani saqlang.</p>
+                <p><strong className="text-ink-900">3.</strong> Passiv daromad xarajatlarga tenglashganda kundalik aylanadan chiqasiz.</p>
+              </div>
+              <p className="mt-4 rounded-2xl bg-sand-100 px-4 py-3 text-caption leading-relaxed text-ink-600">
+                Hisobot panelidagi <strong>Oqim ko'rsatkichi</strong> asosiy yo'nalishingizni ko'rsatadi.
+              </p>
+              <button className="btn-primary mt-5 w-full" onClick={() => setTutorialOpen(false)}>
+                Boshlash
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* mobile: statement bottom sheet */}
       <motion.div
-        className="fixed inset-x-0 bottom-16 z-40 flex flex-col overflow-hidden rounded-t-3xl bg-white shadow-modal lg:hidden"
+        className="fixed inset-x-0 bottom-16 z-40 flex flex-col overflow-hidden rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-modal lg:hidden"
         animate={{ height: sheetOpen ? "78vh" : 72 }}
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
         drag="y"
@@ -2852,7 +2905,7 @@ export default function Game() {
       </motion.div>
 
       {/* mobile: sticky action bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center gap-3 border-t border-sand-200 bg-white/85 px-4 backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 flex min-h-16 items-center gap-3 border-t border-sand-200 bg-white/95 px-4 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
         {s.spectating ? (
           <>
             <span className="flex-1 text-center text-body-sm font-medium text-ink-600">

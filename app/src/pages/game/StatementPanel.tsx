@@ -590,6 +590,7 @@ function ReportTab({
 
       <div className="space-y-0.5">
         <SectionHeader title={g.statement.income} tone="good" />
+        <p className="px-3 py-1 text-[11px] leading-snug text-ink-400">{g.statement.incomeHint}</p>
         <Row
           label={
             p.unemployedMonths > 0
