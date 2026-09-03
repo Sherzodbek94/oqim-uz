@@ -1379,6 +1379,7 @@ export default function StatementPanel({
   onHireManager,
   onOpenKnowledge,
   onOfferWork,
+  requestedTab,
 }: {
   state: GameState;
   humanId: number;
@@ -1394,12 +1395,13 @@ export default function StatementPanel({
   onOpenKnowledge?: () => void;
   /** fix-12: mijozga ish taklifi — faqat inson o'yinchiga */
   onOfferWork?: (clientId: string) => void;
+  requestedTab?: "report" | "assets";
 }) {
   const [tab, setTab] = useState<TabId>("report");
   const [peekBot, setPeekBot] = useState<number | null>(null);
   // Forced sale is a view constraint, not an effect-driven state transition.
   // Deriving the active tab avoids a cascading render when the flag changes.
-  const activeTab: TabId = forcedSell ? "assets" : tab;
+  const activeTab: TabId = forcedSell ? "assets" : requestedTab ?? tab;
 
   const human = state.players.find((p) => p.id === humanId) ?? state.players[0];
   const shown = peekBot !== null ? state.players.find((p) => p.id === peekBot) ?? human : human;

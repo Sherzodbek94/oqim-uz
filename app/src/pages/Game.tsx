@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Dices, Gauge, Handshake, HelpCircle, Landmark, Rocket, Settings, TrendingUp, Wallet } from "lucide-react";
+import { BookOpen, Dices, FileText, Gauge, Handshake, HelpCircle, Landmark, PackageOpen, Rocket, Settings, TrendingUp, Wallet } from "lucide-react";
 import Dice from "@/components/Dice";
 import MoneyDisplay from "@/components/MoneyDisplay";
 import { PLAYER_COLORS } from "@/components/PlayerToken";
@@ -210,7 +210,9 @@ export default function Game() {
   const [rolling, setRolling] = useState(false);
   const [shake, setShake] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [mobileStatementTab, setMobileStatementTab] = useState<"report" | "assets">("report");
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [upcomingCell, setUpcomingCell] = useState<number | null>(null);
   const [rollChip, setRollChip] = useState<number | null>(null);
   /** fix-9: Bilim olish / Mijoz topish markazlari */
   const [actionsModal, setActionsModal] = useState<"knowledge" | "clients" | null>(null);
@@ -690,6 +692,10 @@ export default function Game() {
     const size = fast ? FT_CELLS.length : RAT_CELLS.length;
     const from = fast ? p0.ftPosition : p0.position;
     const path = movePath(from, total, size);
+    if (!fast) {
+      setUpcomingCell(path[path.length - 1] ?? null);
+      setTimeout(() => setUpcomingCell(null), Math.max(1800, path.length * 350));
+    }
     mutate((st) => {
       st.phase = "moving";
     });
@@ -824,9 +830,14 @@ export default function Game() {
                 tone: card.effect.type === "cash" && card.effect.amount > 0 ? "good" : "neutral",
               });
             });
-            setModal({ kind: "event", card, result });
+            if (!card.lessonText) {
+              pushToast(`${card.title}: ${result}`, result.startsWith("−") ? "bad" : "neutral");
+            } else {
+              setModal({ kind: "event", card, result });
+              await waitForUser();
+            }
           }
-          await waitForUser();
+          if (card.effect.type === "migration" || card.choices) await waitForUser();
           break;
         }
         case "charity": {
@@ -2476,7 +2487,14 @@ export default function Game() {
       ? "Imkoniyat katagida sof oqim beradigan aktivlarni tekshiring."
       : humanPassive < humanExpenses
         ? "Maqsad: passiv daromadni oylik xarajatlarga tenglashtirish."
-        : "Barqarorlikni saqlang — passiv daromadingiz xarajatlardan yuqori.";
+      : "Barqarorlikni saqlang — passiv daromadingiz xarajatlardan yuqori.";
+  const decisionHint = modal?.kind === "deal"
+    ? human.cash - adjustedDown(human, modal.deal) < humanExpenses * 2
+      ? "Boshlang‘ich to‘lovdan keyin kamida ikki oylik zaxira qoldiring."
+      : "Bitimning oylik oqimi, xavfi va kredit to‘lovini birga solishtiring."
+    : modal?.kind === "doodad"
+      ? "Bu xarajat aktiv emas: kredit tanlovi oylik xarajat va qarz yukini oshiradi."
+      : null;
 
   /* oy kalendari: joriy o'yinchining katakchasi = oy kuni (hop-payti jonlanadi);
      fix-16: yo'l xaritasida kun = qadamlar soni */
@@ -2776,6 +2794,7 @@ export default function Game() {
                 botBubble={bubble}
                 activePlayerId={current.id}
                 dreamGlowCell={fastTrack ? 2 : null}
+                highlightCell={upcomingCell}
               />
             )}
           </motion.div>
@@ -2831,13 +2850,18 @@ export default function Game() {
                 <span className="rounded-2xl bg-emerald-100 p-3 text-2xl">🌱</span>
                 <div>
                   <p className="text-caption font-semibold uppercase tracking-wide text-emerald-700">Boshlang'ich yo'l-yo'riq</p>
-                  <h2 id="tutorial-title" className="font-display text-xl font-bold text-ink-900">Moliyaviy erkinlikka 3 qadam</h2>
+                  <h2 id="tutorial-title" className="font-display text-xl font-bold text-ink-900">Moliyaviy erkinlikka ilk qadamlar</h2>
                 </div>
               </div>
               <div className="space-y-3 text-body-sm text-ink-600">
-                <p><strong className="text-ink-900">1.</strong> Aktiv — pul olib keladigan narsa; zar tashlab, imkoniyatlarni toping.</p>
-                <p><strong className="text-ink-900">2.</strong> Passiv daromad — siz ishlamasangiz ham keladigan pul. Zaxirani saqlang.</p>
-                <p><strong className="text-ink-900">3.</strong> Sof oqim = daromad − xarajat. Passiv daromad xarajatlarga tenglashganda erkinlikka chiqasiz.</p>
+                <p className="font-semibold text-ink-900">Sizning birinchi maqsadingiz:</p>
+                <p><strong className="text-ink-900">1.</strong> Naqd pulni saqlab qolish.</p>
+                <p><strong className="text-ink-900">2.</strong> Birinchi aktivni sotib olish.</p>
+                <p><strong className="text-ink-900">3.</strong> Passiv daromadni xarajatlarga tenglashtirish.</p>
+                <p><strong className="text-ink-900">4.</strong> Qarzni nazorat qilish.</p>
+                <div className="mt-3 rounded-2xl bg-sky-50 px-4 py-3 text-caption leading-relaxed text-sky-800">
+                  <strong>Mini-dars:</strong> aktiv pul olib keladi; passiv daromad ishlamasangiz ham keladi; sof oqim — jami daromad minus jami xarajat.
+                </div>
               </div>
               <p className="mt-4 rounded-2xl bg-sand-100 px-4 py-3 text-caption leading-relaxed text-ink-600">
                 Hisobot panelidagi <strong>Oqim ko'rsatkichi</strong> asosiy yo'nalishingizni ko'rsatadi.
@@ -2899,6 +2923,7 @@ export default function Game() {
               onHireManager={onHireManager}
               onOfferWork={onOfferWork}
               onOpenKnowledge={actionsEnabled ? () => setActionsModal("knowledge") : undefined}
+              requestedTab={mobileStatementTab}
             />
           </div>
         )}
@@ -2929,6 +2954,22 @@ export default function Game() {
               <Wallet className="h-4 w-4 text-emerald-600" />
               <MoneyDisplay value={human.cash} size="sm" showCoin={false} />
             </span>
+            <button
+              className="rounded-xl border border-sand-200 bg-white p-2 text-ink-600 shadow-card"
+              title="Hisobot"
+              aria-label="Hisobotni ochish"
+              onClick={() => { setMobileStatementTab("report"); setSheetOpen(true); }}
+            >
+              <FileText className="h-4 w-4" />
+            </button>
+            <button
+              className="rounded-xl border border-sand-200 bg-white p-2 text-ink-600 shadow-card"
+              title="Aktivlar"
+              aria-label="Aktivlarni ochish"
+              onClick={() => { setMobileStatementTab("assets"); setSheetOpen(true); }}
+            >
+              <PackageOpen className="h-4 w-4" />
+            </button>
             <div className="flex-1">{actionButton && <div className="[&>button]:w-full">{actionButton}</div>}</div>
           </>
         )}
@@ -2997,7 +3038,7 @@ export default function Game() {
       </div>
 
       {/* card modals */}
-      <CardModals modal={modal} player={current} state={s} handlers={handlers} />
+      <CardModals modal={modal} player={current} state={s} handlers={handlers} decisionHint={decisionHint} />
 
       {/* fix-9: Bilim olish / Mijoz topish markazlari */}
       <AnimatePresence>

@@ -424,12 +424,14 @@ function DealModal({
   deal,
   player,
   analyst,
+  decisionHint,
   onBuy,
   onPass,
 }: {
   deal: DealCard;
   player: Player;
   analyst?: boolean;
+  decisionHint?: string | null;
   onBuy: (method: BuyMethod) => void;
   onPass: () => void;
 }) {
@@ -482,6 +484,11 @@ function DealModal({
             title={deal.title}
             desc={deal.note}
           />
+          {decisionHint && (
+            <motion.p variants={item} className="mt-2 rounded-xl bg-sky-50 px-3 py-2 text-[11px] leading-snug text-sky-800">
+              🤖 Moliyaviy ustoz: {decisionHint}
+            </motion.p>
+          )}
           <div className="mt-3">
             <FigureRow label={g.deal.price} value={formatUZS(price)} />
             <FigureRow label={g.deal.down} value={formatUZS(down)} tone="info" />
@@ -769,12 +776,14 @@ function CharityModal({
 function DoodadModal({
   card,
   player,
+  decisionHint,
   onPay,
   onDecline,
   onDefer,
 }: {
   card: DoodadCard;
   player: Player;
+  decisionHint?: string | null;
   onPay: (mode: DoodadMode) => void;
   onDecline: () => void;
   onDefer: () => void;
@@ -799,6 +808,11 @@ function DoodadModal({
             title={card.title}
             desc={card.desc}
           />
+          {decisionHint && (
+            <motion.p variants={item} className="mt-2 rounded-xl bg-sky-50 px-3 py-2 text-[11px] leading-snug text-sky-800">
+              🤖 Moliyaviy ustoz: {decisionHint}
+            </motion.p>
+          )}
           <div className="mt-3">
             <FigureRow label={g.deal.price} value={formatUZS(cost)} tone="bad" />
             <FigureRow
@@ -1675,11 +1689,13 @@ export default function CardModals({
   player,
   state,
   handlers,
+  decisionHint,
 }: {
   modal: ModalState | null;
   player: Player;
   state: GameState;
   handlers: ModalHandlers;
+  decisionHint?: string | null;
 }) {
   // birja har doim inson o'yinchi portfeli bilan ishlaydi
   const human = state.players.find((p) => !p.isBot) ?? player;
@@ -1687,7 +1703,7 @@ export default function CardModals({
     <AnimatePresence>
       {modal?.kind === "deal-pick" && <DealPickModal key="dp" onPick={handlers.onPickDeal} />}
       {modal?.kind === "deal" && (
-        <DealModal key={`d-${modal.deal.id}`} deal={modal.deal} player={player} analyst={modal.analyst} onBuy={handlers.onBuyDeal} onPass={handlers.onPassDeal} />
+        <DealModal key={`d-${modal.deal.id}`} deal={modal.deal} player={player} analyst={modal.analyst} decisionHint={decisionHint} onBuy={handlers.onBuyDeal} onPass={handlers.onPassDeal} />
       )}
       {modal?.kind === "market" && (
         <MarketModal key={`m-${modal.card.id}`} card={modal.card} target={modal.target} offer={modal.offer} onSell={handlers.onSellMarket} onClose={handlers.onCloseMarket} />
@@ -1708,7 +1724,7 @@ export default function CardModals({
         <CharityModal key="fch" donation={modal.amount} ft onChoice={handlers.onFTCharity} />
       )}
       {modal?.kind === "doodad" && (
-        <DoodadModal key={`dd-${modal.card.id}`} card={modal.card} player={player} onPay={handlers.onDoodad} onDecline={handlers.onDoodadDecline} onDefer={handlers.onDoodadDefer} />
+        <DoodadModal key={`dd-${modal.card.id}`} card={modal.card} player={player} decisionHint={decisionHint} onPay={handlers.onDoodad} onDecline={handlers.onDoodadDecline} onDefer={handlers.onDoodadDefer} />
       )}
       {modal?.kind === "weekend" && (
         <WeekendModal key={`we-${modal.card.id}`} card={modal.card} player={player} onChoice={handlers.onWeekend} />
