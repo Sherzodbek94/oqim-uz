@@ -44,6 +44,7 @@
   }
   body {
     @apply bg-sand-50 text-ink-600 font-sans antialiased;
+    overflow-x: hidden;
   }
   h1, h2, h3 {
     @apply font-display text-ink-900;
@@ -55,6 +56,21 @@
   .font-money {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Desktop board must fit below the header and above the mobile/action controls.
+   The square SVG keeps its aspect ratio while its width follows the viewport
+   height, preventing the central board from forcing page overflow. */
+.game-board {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .game-board {
+    max-width: min(100%, calc(100dvh - 205px));
+    margin-inline: auto;
   }
 }
 
