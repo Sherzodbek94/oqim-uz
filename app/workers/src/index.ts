@@ -6,10 +6,12 @@
  */
 import { GameRoom } from "./GameRoom";
 import { getLeaderboard, makeRoomCode, makeToken, MAX_PLAYERS, type LeaderboardEnv } from "./game/online";
+import { adminBan, adminListUsers, getMe, login, register, syncProfile, type AuthEnv } from "./auth";
+import { checkRoomsRateLimit } from "./rateLimit";
 
 export { GameRoom };
 
-interface Env extends LeaderboardEnv {
+interface Env extends LeaderboardEnv, AuthEnv {
   GAME_ROOM: DurableObjectNamespace;
 }
 
@@ -39,8 +41,8 @@ const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://oqim-server.yigitcha-9493.workers.dev;",
+    "Content-Security-Policy":
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://oqim-server.yigitcha-9493.workers.dev;",
 };
 
 function baseHeaders(origin: string | null): Record<string, string> {
@@ -66,6 +68,10 @@ export default {
 
     // POST /api/rooms — xona yaratish
     if (request.method === "POST" && url.pathname === "/api/rooms") {
+      const roomLimit = await checkRoomsRateLimit(env, request.headers.get("CF-Connecting-IP") || "unknown");
+      if (!roomLimit.ok) {
+        return json({ ok: false, error: "Juda ko'p xona yaratildi. Iltimos, biroz kuting." }, 429, origin);
+      }
       let body: { name?: string; timerSec?: number; bots?: number };
       try {
         body = await request.json();
@@ -88,6 +94,26 @@ export default {
         if (res.ok) return json({ ok: true, code, hostToken, playerId: 0 }, 200, origin);
       }
       return json({ ok: false, error: "Kod generatsiya qilib bo'lmadi — qayta urining" }, 500, origin);
+    }
+
+    // Auth/profile API — KV binding va JWT_SECRET production secret orqali beriladi.
+    if (request.method === "POST" && ["/api/auth/register", "/api/auth/login", "/api/profile/sync"].includes(url.pathname)) {
+      let body: Record<string, unknown>;
+      try { body = await request.json(); } catch { return json({ ok: false, error: "Noto'g'ri JSON" }, 400, origin); }
+      if (url.pathname === "/api/auth/register") return register(request, env, body as { email?: string; password?: string; name?: string }, origin);
+      if (url.pathname === "/api/auth/login") return login(request, env, body as { email?: string; password?: string }, origin);
+      return syncProfile(env, request.headers.get("Authorization"), body as { profile?: { games?: unknown[]; lessons?: string[] } }, origin);
+    }
+    if (request.method === "GET" && url.pathname === "/api/auth/me") {
+      return getMe(env, request.headers.get("Authorization"), origin);
+    }
+    if (request.method === "GET" && url.pathname === "/api/admin/users") {
+      return adminListUsers(env, request.headers.get("Authorization"), origin);
+    }
+    if (request.method === "POST" && url.pathname === "/api/admin/ban") {
+      let body: Record<string, unknown>;
+      try { body = await request.json(); } catch { return json({ ok: false, error: "Noto'g'ri JSON" }, 400, origin); }
+      return adminBan(env, request.headers.get("Authorization"), body as { email?: string; banned?: boolean }, origin);
     }
 
     // /api/rooms/:code, /api/rooms/:code/ws, /api/rooms/:code/results

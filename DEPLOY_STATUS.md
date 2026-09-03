@@ -14,7 +14,7 @@
 - Health: `GET /api/health` → `{"ok":true,"service":"oqim-server","version":19}`
 - Xona yaratish: `POST /api/rooms` → `{"ok":true,"code":"KVAWP5",...}`
 - Lobby holati: `GET /api/rooms/KVAWP5` → lobby ma'lumotlari qaytdi
-- Auth register: `POST /api/auth/register` → token + user qaytdi
+- Auth endpointlari Worker routeriga qo‘shildi; ishlashi uchun `OQIM_USERS` KV binding va `JWT_SECRET` secret production’da sozlanishi shart.
 
 ## Nima o'zgartirildi
 
@@ -22,6 +22,8 @@
    - `new_classes` → `new_sqlite_classes` (Cloudflare bepul tarifi talabi)
 2. `app/package-lock.json` va `app/workers/package-lock.json` qayta yaratildi (eski `npm.mirrors.msh.team` mirror ishlolmagan edi).
 3. `wrangler pages deploy` endi `--branch=main` bilan ishga tushiriladi va `https://oqim.pages.dev` doim yangilanadi.
+
+4. Auth, admin va profil API route’lari Worker routeriga ulandi; deploydan oldin KV namespace binding va secret sozlanadi.
 
 ## Foydalanish
 
