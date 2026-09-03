@@ -546,6 +546,10 @@ function ReportTab({
   const salary = effectiveSalary(p);
   const passiveExcludingInvestments = Math.max(0, passive - dividends);
   const totalIncome = salary + passive + p.ftCashflow;
+  const businessAssets = p.assets.filter((a) => a.kind === "business");
+  const businessRevenue = businessAssets.reduce((sum, a) => sum + (a.monthlyRevenue ?? a.monthlyCashflow), 0);
+  const businessCosts = businessAssets.reduce((sum, a) => sum + (a.monthlyOperatingCosts ?? 0), 0);
+  const businessNet = businessAssets.reduce((sum, a) => sum + assetCashflow(p, a, news), 0);
   const loadPct = Math.round(debtLoad(p, { news, exchange }) * 100);
   const clientsIncome = clientIncome(p);
   return (
@@ -563,6 +567,28 @@ function ReportTab({
           </div>
         </div>
       </div>
+      {businessAssets.length > 0 && (
+        <div className="rounded-2xl border border-gold-200 bg-gold-50/70 p-3" aria-label={g.statement.businessSummary}>
+          <div className="flex items-center justify-between">
+            <p className="text-caption font-semibold uppercase tracking-wide text-gold-700">{g.statement.businessSummary}</p>
+            <span className="chip bg-white/70 text-gold-700">{businessAssets.length} ta biznes</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-snug text-ink-500">{g.statement.businessHint}</p>
+          <div className="mt-2 space-y-0.5">
+            <Row label={g.statement.businessRevenue} value={businessRevenue} tone="good" />
+            <Row label={g.statement.businessCosts} value={businessCosts} tone="bad" />
+            <Row label={g.statement.businessNet} value={businessNet} tone={businessNet >= 0 ? "good" : "bad"} bold />
+          </div>
+          <div className="mt-2 space-y-1 border-t border-gold-200/70 pt-2">
+            {businessAssets.map((a) => (
+              <div key={a.id} className="flex items-center justify-between text-[11px] text-ink-600">
+                <span>{a.title}{a.employees ? ` · ${a.employees} xodim` : ""}</span>
+                <span className="font-semibold">{formatUZSCompact(assetCashflow(p, a, news))}/oy</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {!p.escaped && <FreedomPath p={p} news={news} exchange={exchange} mode={mode} />}
       {!p.escaped && <QuadrantPath p={p} onOpenKnowledge={readOnly ? undefined : onOpenKnowledge} />}
       <div className="rounded-xl bg-emerald-50 px-3 py-2" title={ability.desc}>
