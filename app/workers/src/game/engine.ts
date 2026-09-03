@@ -948,7 +948,7 @@ export function passiveIncome(p: Player, opts?: FinanceOpts): number {
     if (opts?.forPayday && p.freezeBusinessTurns > 0 && a.kind === "business") return sum;
     return sum + assetCashflow(p, a, opts?.news);
   }, 0);
-  // birja dividendlari ham passiv daromad (asosiy aylanadan chiqishga hisoblanadi)
+  // birja dividendlari ham passiv daromad (Asosiy aylanadan chiqishga hisoblanadi)
   const dividends = opts?.exchange ? portfolioDividends(p, opts.exchange) : 0;
   // S/B kvadrant: mijozlar to'lovlari ham passiv daromad
   const total = assetsSum + dividends + clientIncome(p);

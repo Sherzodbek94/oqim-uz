@@ -1354,11 +1354,9 @@ export default function StatementPanel({
 }) {
   const [tab, setTab] = useState<TabId>("report");
   const [peekBot, setPeekBot] = useState<number | null>(null);
-  const prevForced = useRef(forcedSell);
-  useEffect(() => {
-    if (forcedSell && !prevForced.current) setTab("assets");
-    prevForced.current = forcedSell;
-  }, [forcedSell]);
+  // Forced sale is a view constraint, not an effect-driven state transition.
+  // Deriving the active tab avoids a cascading render when the flag changes.
+  const activeTab: TabId = forcedSell ? "assets" : tab;
 
   const human = state.players.find((p) => p.id === humanId) ?? state.players[0];
   const shown = peekBot !== null ? state.players.find((p) => p.id === peekBot) ?? human : human;
@@ -1405,10 +1403,10 @@ export default function StatementPanel({
             onClick={() => setTab(t.id)}
             className={cn(
               "relative flex-1 rounded-full py-1.5 text-sm font-medium transition-colors",
-              tab === t.id ? "text-ink-900" : "text-ink-400 hover:text-ink-600"
+              activeTab === t.id ? "text-ink-900" : "text-ink-400 hover:text-ink-600"
             )}
           >
-            {tab === t.id && (
+            {activeTab === t.id && (
               <motion.span
                 layoutId="stmt-tab"
                 className="absolute inset-0 rounded-full bg-white shadow-card"
@@ -1421,7 +1419,7 @@ export default function StatementPanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
-        {tab === "report" && (
+        {activeTab === "report" && (
           <>
             {shown.escaped && dream && (
               <div className="mb-3 rounded-xl bg-gold-100 p-3">
@@ -1451,7 +1449,7 @@ export default function StatementPanel({
             />
           </>
         )}
-        {tab === "assets" && (
+        {activeTab === "assets" && (
           <AssetsTab
             p={shown}
             state={state}
@@ -1464,9 +1462,9 @@ export default function StatementPanel({
             readOnly={peekBot !== null}
           />
         )}
-        {tab === "portfolio" && <PortfolioTab p={shown} exchange={state.exchange} />}
-        {tab === "lessons" && <LessonsTab p={shown} />}
-        {tab === "log" && <LogTab state={state} />}
+        {activeTab === "portfolio" && <PortfolioTab p={shown} exchange={state.exchange} />}
+        {activeTab === "lessons" && <LessonsTab p={shown} />}
+        {activeTab === "log" && <LogTab state={state} />}
       </div>
     </div>
   );

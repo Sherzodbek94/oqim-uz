@@ -76,12 +76,30 @@ wrangler pages deploy dist --project-name=oqim
 > O'rnatilmagan bo'lsa placeholder `https://oqim-server.your-account.workers.dev` ishlatiladi
 > va onlayn sahifa "Serverga ulanib bo'lmadi" deb ko'rsatadi (lokal o'yin /game buzilmaydi).
 
-## 5. CORS
+## 5. Production secrets va KV
 
-Worker barcha domenlardan so'rovlarni qabul qiladi (`Access-Control-Allow-Origin: *`).
-Istasangiz, `workers/src/index.ts` dagi `CORS` konstantasini faqat o'z Pages domeningiz bilan cheklang.
+Auth/profile endpointlari ishlashi uchun Cloudflare Dashboard yoki Wrangler orqali quyidagilarni sozlang:
 
-## 6. Lokal sinov (ixtiyoriy)
+```bash
+wrangler kv namespace create OQIM_USERS
+wrangler secret put JWT_SECRET
+```
+
+Chiqqan KV namespace ID’ni `wrangler.toml` dagi `[[kv_namespaces]]` binding’iga kiriting:
+
+```toml
+[[kv_namespaces]]
+binding = "OQIM_USERS"
+id = "YOUR_KV_NAMESPACE_ID"
+```
+
+`JWT_SECRET` kamida 32 bayt tasodifiy qiymat bo‘lsin. Uni repository’ga yozmang.
+
+## 6. CORS
+
+Worker faqat `oqim.pages.dev`, uning preview subdomenlari va lokal development originlarini qabul qiladi. Production domeni o‘zgarsa, `workers/src/index.ts` dagi allowlistni yangilang.
+
+## 7. Lokal sinov (ixtiyoriy)
 
 ```bash
 cd workers
@@ -90,7 +108,7 @@ wrangler dev          # http://localhost:8787 da server
 VITE_OQIM_SERVER=http://localhost:8787 npm run dev
 ```
 
-## 7. Arxitektura eslatmasi
+## 8. Arxitektura eslatmasi
 
 - `POST /api/rooms` — xona yaratadi, 6 belgili kod qaytaradi (Durable Object `idFromName(code)`).
 - `GET /api/rooms/:code` — lobby holati (JSON).

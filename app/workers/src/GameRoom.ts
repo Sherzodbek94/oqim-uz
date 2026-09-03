@@ -34,6 +34,22 @@ type ClientMsg =
   | { t: "chat"; text: string }
   | { t: "ping" };
 
+function isClientMsg(value: unknown): value is ClientMsg {
+  if (!value || typeof value !== "object") return false;
+  const msg = value as Record<string, unknown>;
+  if (msg.t === "ping" || msg.t === "start") return true;
+  if (msg.t === "join") return typeof msg.name === "string" && msg.name.length <= 64 && (msg.token === undefined || typeof msg.token === "string");
+  if (msg.t === "chat") return typeof msg.text === "string" && msg.text.length <= 1000;
+  if (msg.t === "action" && msg.action && typeof msg.action === "object") {
+    const action = msg.action as Record<string, unknown>;
+    if (["roll", "buy", "pass"].includes(String(action.kind))) return Object.keys(action).length <= 2;
+    if (action.kind === "deal-size") return action.size === "small" || action.size === "big";
+    if (action.kind === "sell") return typeof action.assetId === "string" && action.assetId.length <= 128;
+    if (action.kind === "charity") return typeof action.accept === "boolean";
+  }
+  return false;
+}
+
 export class GameRoom {
   private room: OnlineRoom | null = null;
 
@@ -124,7 +140,9 @@ export class GameRoom {
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     let msg: ClientMsg;
     try {
-      msg = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message));
+      const parsed: unknown = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message));
+      if (!isClientMsg(parsed)) return this.send(ws, { t: "error", error: "Xabar formati noto'g'ri" });
+      msg = parsed;
     } catch {
       return this.send(ws, { t: "error", error: "Noto'g'ri JSON" });
     }
@@ -224,4 +242,3 @@ export class GameRoom {
     }
   }
 }
-
