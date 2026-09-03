@@ -210,6 +210,7 @@ export default function Game() {
   const [rolling, setRolling] = useState(false);
   const [shake, setShake] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [rollChip, setRollChip] = useState<number | null>(null);
   /** fix-9: Bilim olish / Mijoz topish markazlari */
   const [actionsModal, setActionsModal] = useState<"knowledge" | "clients" | null>(null);
@@ -362,6 +363,7 @@ export default function Game() {
     setState(s);
     setDisplayCells(Object.fromEntries(s.players.map((p) => [p.id, 0])));
     setEntry("playing");
+    setTutorialOpen(true);
     const gen = genRef.current;
     setTimeout(() => {
       if (gen === genRef.current) void beginTurn();
@@ -2431,7 +2433,7 @@ export default function Game() {
     }));
 
   const isHumanTurn = !current.isBot && !s.spectating && !current.bankrupt;
-  const blocked = !!modal || bankModal || bankFinal || escapeOverlay || actionsModal !== null;
+  const blocked = !!modal || bankModal || bankFinal || escapeOverlay || actionsModal !== null || tutorialOpen;
   /** fix-9: header amaliyot tugmalari faolmi (inson navbati, bo'sh fazada) */
   const actionsEnabled = isHumanTurn && (s.phase === "idle" || s.phase === "awaiting-end") && !modal && actionsModal === null;
   const clientsUnlocked = quadrantLevel(human) >= 1;
@@ -2468,6 +2470,13 @@ export default function Game() {
   const humanExpenses = totalExpenses(human);
   const humanCf = monthlyCashflow(human, { news: s.news, exchange: s.exchange });
   const gaugePct = humanExpenses > 0 ? Math.min(100, Math.round((humanPassive / humanExpenses) * 100)) : 100;
+  const strategyHint = human.cash < humanExpenses * 2
+    ? "Avval zaxira yarating: qimmat kreditni shoshilmasdan oling."
+    : humanPassive <= 0
+      ? "Imkoniyat katagida sof oqim beradigan aktivlarni tekshiring."
+      : humanPassive < humanExpenses
+        ? "Maqsad: passiv daromadni oylik xarajatlarga tenglashtirish."
+        : "Barqarorlikni saqlang — passiv daromadingiz xarajatlardan yuqori.";
 
   /* oy kalendari: joriy o'yinchining katakchasi = oy kuni (hop-payti jonlanadi);
      fix-16: yo'l xaritasida kun = qadamlar soni */
@@ -2512,500 +2521,164 @@ export default function Game() {
             values={s.dice}
             rolling={rolling}
             size={46}
-            playerColor={PLAYER_COLORS[current.colorIndex]}
-          />
-        </div>
-      )}
-      {/* zar natijasi — balandligi band qilingan qator (absolute emas, layout siljimaydi) */}
-      <div className="flex h-5 items-center justify-center">
-        <AnimatePresence>
-          {rollChip !== null && (
-            <motion.span
-              initial={{ opacity: 0, y: 6, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="rounded-full bg-ink-900 px-2.5 py-0.5 text-[clamp(10px,2.4vw,12px)] font-bold text-white shadow-card"
-            >
-              +{rollChip}
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </div>
-      {/* (1b) harakat tugmasi — zar ostida; navbat izohlari tugma tagida */}
-      <div className="flex flex-col items-center gap-1">
-        {(canRoll || canEnd || canPickPath) ? (
-          actionButton
-        ) : (
-          isHumanTurn && s.phase === "idle" && (
-            <p className="text-caption normal-case text-ink-400">{g.turn.rollHint}</p>
-          )
-        )}
-        {s.discarded > 0 && (
-          <span className="text-[clamp(9px,2.2vw,11px)] font-medium uppercase tracking-[0.04em] text-ink-400">
-            {g.turn.discarded(s.discarded)}
-          </span>
-        )}
-      </div>
-      {/* (2) joriy o'yinchi chipi — hech qachon zar ustida emas */}
-      <span
-        className="chip text-white max-[399px]:hidden"
-        style={{ backgroundColor: PLAYER_COLORS[current.colorIndex] }}
-      >
-        {current.name}
-      </span>
-      {/* (3) kun pillari — bitta gorizontal qator (wrap mumkin) */}
-      {!fastTrack && (
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
-          <span className="chip bg-sand-100 text-ink-600 !text-[clamp(9px,2.4vw,11px)]">
-            📅 {g.calendar.day(calDay)}
-          </span>
-          <motion.span
-            key={calDay}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className="chip bg-sand-100 text-ink-500 max-[399px]:hidden !text-[clamp(9px,2.4vw,11px)]"
-          >
-            {calDay <= avansDay
-              ? g.calendar.toAvans(avansDay - calDay)
-              : g.calendar.toPayday(RAT_CELLS.length - calDay)}
-          </motion.span>
-        </div>
-      )}
-      {/* FT: orzu chipi + progress (kichik ekranda yashirin — zar/tugma o'rin qoladi) */}
-      {fastTrack && currentDream && (
-        <span className="chip bg-gold-100 text-gold-600 max-[399px]:hidden">
-          <Rocket className="h-3.5 w-3.5" />
-          {current.dreamBought
-            ? `${currentDream.title} · ${g.ft.dreamHoldProgress(current.dreamHeldMonths, DREAM_HOLD_MONTHS)}`
-            : `${currentDream.title} · ${formatUZSCompact(currentDream.price)}`}
-        </span>
-      )}
-      {fastTrack && currentDream && !current.dreamBought && (
-        <div className="w-40 max-w-full max-[399px]:hidden">
-          <p className="text-caption text-ink-400">{g.statement.gaugeFT}</p>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-sand-200">
-            <motion.div
-              className="h-full rounded-full bg-gradient-gold"
-              animate={{ width: `${Math.min(100, (current.cash / currentDream.price) * 100)}%` }}
-              transition={{ duration: 0.9 }}
-            />
-          </div>
-        </div>
-      )}
-      {fastTrack && current.dreamBought && (
-        <div className="w-40 max-w-full max-[399px]:hidden">
-          <p className="text-caption text-ink-400">
-            {g.ft.dreamHoldProgress(current.dreamHeldMonths, DREAM_HOLD_MONTHS)}
-          </p>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-sand-200">
-            <motion.div
-              className="h-full rounded-full bg-gradient-gold"
-              animate={{ width: `${Math.min(100, (current.dreamHeldMonths / DREAM_HOLD_MONTHS) * 100)}%` }}
-              transition={{ duration: 0.9 }}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="min-h-[100dvh] bg-sand-50">
-      {/* top bar (game.md §1 GameShell) */}
-      <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-sand-200 bg-white px-4 lg:px-6">
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/oqim-logo.png" alt="OQIM" className="h-7 w-7 rounded" />
-          <span className="font-display text-base font-bold text-ink-900">
-            OQ<span className="text-emerald-600">IM</span>
-          </span>
-        </Link>
-        {/* fix-10 (F4): mobil sig'ishi uchun status-chiplar faqat md+ da (aylana/oy hub va panelda bor) */}
-        <div className="hidden items-center gap-2 md:flex">
-          <span className="chip bg-sand-100 text-ink-600">{g.shell.round(s.round)}</span>
-          <span className="chip bg-gold-100 text-gold-600">{g.calendar.month(s.month)}</span>
-          {/* fix-15 (P2): qiyinlik darajasi chipi */}
-          <span
-            className={cn(
-              "chip",
-              human.difficulty === "easy"
-                ? "bg-emerald-100 text-emerald-700"
-                : human.difficulty === "hard"
-                  ? "bg-clay-100 text-clay-600"
-                  : "bg-sand-100 text-ink-600"
+            p…16078 tokens truncated…o : n}</span>
+                    </button>
+                  ))}
+                </div>
+                {botCount > 0 ? (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <AnimatePresence initial={false}>
+                      {shownBots.map((b, i) => (
+                        <motion.div
+                          key={b.name}
+                          initial={{ scale: 0.6, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.6, opacity: 0 }}
+                          transition={{ delay: i * 0.1, type: "spring", stiffness: 320, damping: 22 }}
+                          className="card-game-piece !p-4 text-center"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-[3px] bg-gold-500" />
+                          <img src={b.profession.avatar} alt="" className="mx-auto h-14 w-14 rounded-full object-cover shadow-token" />
+                          <p className="mt-2 flex items-center justify-center gap-1 font-semibold text-ink-900">
+                            <Bot className="h-3.5 w-3.5 text-ink-400" />
+                            {b.name}
+                          </p>
+                          <p className="text-caption normal-case text-ink-400">{b.profession.name}</p>
+                          <p className="mt-1 text-[10px] leading-tight text-emerald-700">
+                            {HEROES.find((h) => h.id === b.heroId)?.ability.name}
+                          </p>
+                          <button
+                            className={cn("chip mt-2", PERSONALITY_CLASS[b.personality])}
+                            onClick={() => cyclePersonality(i)}
+                          >
+                            {PERSONALITY_LABELS[b.personality]}
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="mt-5 rounded-2xl border border-dashed border-sand-300 bg-sand-100/60 p-6 text-center">
+                    <p className="text-body-sm font-semibold text-ink-700">{g.setup.solo}</p>
+                    <p className="mt-1 text-caption text-ink-400">
+                      Faqat siz va sizning moliyaviy rejalaringiz — raqibsiz to'liq o'yin.
+                    </p>
+                  </div>
+                )}
+                <div className="mt-6 flex items-center justify-between">
+                  <button className="btn-ghost" onClick={() => setStep(1)}>
+                    <ArrowLeft className="h-4 w-4" />
+                    {g.setup.back}
+                  </button>
+                  <button className="btn-primary" onClick={() => setStep(3)}>
+                    {g.setup.next}
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </motion.div>
             )}
-          >
-            {g.difficulty[human.difficulty]}
-          </span>
-          {s.mode === "tez" && (
-            <span className="chip bg-amber-100 text-amber-700">⚡ Tez</span>
-          )}
-          <span
-            className={cn(
-              "chip",
-              fastTrack ? "bg-gold-100 text-gold-600" : "bg-emerald-100 text-emerald-700"
+
+            {/* STEP 3 — Orzu */}
+            {step === 3 && (
+              <motion.div
+                key="s3"
+                initial={{ x: 60, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -60, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <h3 className="text-h3">{g.setup.yourDream}</h3>
+                <div className="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+                  {DREAMS.map((d) => {
+                    const selected = dreamId === d.id;
+                    return (
+                      <motion.button
+                        key={d.id}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setDreamId(d.id)}
+                        className={cn(
+                          "relative w-44 shrink-0 snap-center overflow-hidden rounded-2xl border bg-gold-100 text-left shadow-card transition-all",
+                          selected ? "border-gold-500 ring-4 ring-gold-500/50" : "border-sand-200 hover:-translate-y-1 hover:shadow-lift"
+                        )}
+                      >
+                        <div
+                          className="h-24 w-full"
+                          style={{
+                            backgroundImage: "url(/dreams-strip.png)",
+                            backgroundSize: "500% 100%",
+                            backgroundPosition: `${(d.stripX / 4) * 100}% 50%`,
+                          }}
+                        />
+                        <div className="p-3">
+                          <p className="text-body-sm font-semibold text-ink-900">{d.title}</p>
+                          <p className="mt-0.5 line-clamp-3 min-h-[3.6em] text-[11px] leading-snug text-ink-500">{d.desc}</p>
+                          <p className="text-money-sm text-gold-600">{formatUZSCompact(d.price)}</p>
+                        </div>
+                        {selected && (
+                          <motion.span
+                            initial={{ scale: 0, rotate: -20 }}
+                            animate={{ scale: 1, rotate: -8 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                            className="absolute right-2 top-2 rounded-lg bg-gold-500 px-2 py-1 text-[10px] font-bold tracking-wide text-ink-900 shadow-token"
+                          >
+                            {g.setup.dreamStamp}
+                          </motion.span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                {/* fix-16 (X2): O'yin uslubi tanlovi */}
+                <h3 className="text-h3 mt-6">{g.setup.boardModeTitle}</h3>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(
+                    [
+                      { key: "classic" as BoardMode, title: g.setup.boardClassic, desc: g.setup.boardClassicDesc, badge: null as string | null },
+                      { key: "path" as BoardMode, title: g.setup.boardPath, desc: g.setup.boardPathDesc, badge: null as string | null },
+                      { key: "plan" as BoardMode, title: g.setup.boardPlan, desc: g.setup.boardPlanDesc, badge: g.setup.badgeNew },
+                    ]
+                  ).map((opt) => {
+                    const selected = boardMode === opt.key;
+                    return (
+                      <motion.button
+                        key={opt.key}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setBoardMode(opt.key)}
+                        className={cn(
+                          "relative min-h-[72px] rounded-2xl border bg-white p-3 text-left shadow-card transition-all",
+                          selected ? "border-emerald-600 ring-4 ring-emerald-100" : "border-sand-200 hover:-translate-y-0.5 hover:shadow-lift"
+                        )}
+                      >
+                        {opt.badge && (
+                          <span className="absolute right-2 top-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
+                            {opt.badge}
+                          </span>
+                        )}
+                        <p className="text-body-sm font-semibold text-ink-900">{opt.title}</p>
+                        <p className="mt-1 text-[11px] leading-snug text-ink-500">{opt.desc}</p>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                  <button className="btn-ghost" onClick={() => setStep(2)}>
+                    <ArrowLeft className="h-4 w-4" />
+                    {g.setup.back}
+                  </button>
+                  <button
+                    className={cn("btn-primary", !canFinish && "cursor-not-allowed !bg-none !bg-sand-200 !text-ink-400 !shadow-none")}
+                    disabled={!canFinish}
+                    onClick={finish}
+                  >
+                    <Play className="h-4 w-4" />
+                    {g.setup.start}
+                  </button>
+                </div>
+              </motion.div>
             )}
-          >
-            {fastTrack && <Rocket className="h-3.5 w-3.5" />}
-            {fastTrack ? g.shell.fastTrack : g.shell.ratRace}
-          </span>
+          </AnimatePresence>
         </div>
-        <div className="flex items-center gap-1">
-          {/* fix-10 (F2): Bildirishnomalar markazi 🔔 */}
-          <NotificationsCenter items={s.notifications} />
-          <button
-            className={cn("btn-ghost !p-2", !(isHumanTurn && (s.phase === "idle" || s.phase === "awaiting-end") && !modal) && "opacity-40")}
-            onClick={() => {
-              if (isHumanTurn && (s.phase === "idle" || s.phase === "awaiting-end") && !modal) {
-                setModal({ kind: "exchange" });
-              }
-            }}
-            aria-label={g.exchange.title}
-            title={g.exchange.title}
-          >
-            <TrendingUp className="h-5 w-5" />
-          </button>
-          <button
-            className={cn("btn-ghost !p-2", !(isHumanTurn && (s.phase === "idle" || s.phase === "awaiting-end") && !modal) && "opacity-40")}
-            onClick={() => {
-              if (isHumanTurn && (s.phase === "idle" || s.phase === "awaiting-end") && !modal) {
-                setModal({ kind: "loan-offers" });
-              }
-            }}
-            aria-label={g.loans.offers}
-            title={g.loans.offers}
-          >
-            <Landmark className="h-5 w-5" />
-          </button>
-          <button
-            className={cn("btn-ghost !p-2", !actionsEnabled && "opacity-40")}
-            onClick={() => {
-              if (actionsEnabled) setActionsModal("knowledge");
-            }}
-            aria-label={`📚 ${g.shell.knowledge}`}
-            title={`📚 ${g.actions.knowledgeTitle}`}
-          >
-            <BookOpen className="h-5 w-5" />
-          </button>
-          <button
-            className={cn("btn-ghost !p-2", (!actionsEnabled || !clientsUnlocked) && "opacity-40")}
-            onClick={() => {
-              if (actionsEnabled && clientsUnlocked) setActionsModal("clients");
-            }}
-            aria-label={`🤝 ${g.shell.clients}`}
-            title={clientsUnlocked ? `🤝 ${g.actions.clientsTitle}` : `🔒 ${g.actions.clientsLocked}`}
-          >
-            <Handshake className="h-5 w-5" />
-          </button>
-          <a href="/rules" target="_blank" rel="noreferrer" className="btn-ghost !p-2" aria-label={g.shell.rules}>
-            <HelpCircle className="h-5 w-5" />
-          </a>
-          <button className="btn-ghost !p-2" onClick={() => setSettingsOpen(true)} aria-label={g.shell.settings}>
-            <Settings className="h-5 w-5" />
-          </button>
-        </div>
-      </header>
-
-      {/* turn banner */}
-      <AnimatePresence>
-        {banner && (
-          <motion.div
-            initial={{ y: -48, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -48, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="fixed inset-x-0 top-16 z-40 flex justify-center px-4"
-          >
-            <span className="rounded-full px-4 py-1.5 text-sm font-semibold text-white shadow-card" style={{ backgroundColor: banner.color }}>
-              {banner.text}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mx-auto max-w-[1440px] lg:grid lg:grid-cols-[1fr_400px]">
-        {/* board zone */}
-        <motion.main
-          className="p-4 pb-48 lg:p-6 lg:pb-6"
-          animate={shake ? { x: [0, 2, -2, 0] } : { x: 0 }}
-          transition={{ duration: 0.14 }}
-        >
-          <motion.div
-            key={fastTrack ? "ft" : "rat"}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {planMode ? (
-              <>
-                <PlanBoard
-                  state={s}
-                  canPlan={canPlanBoard}
-                  canAvans={canPlanAvans}
-                  avansHint={planAvansHint}
-                  onAvans={doPlanAvans}
-                  onExecute={(days) => void doPlanExecute(days)}
-                />
-                <div className="mt-4 flex justify-center">{hubNode}</div>
-              </>
-            ) : pathMode ? (
-              <>
-                <PathBoard state={s} canPick={canPickPath} onPick={(l, n) => void doPathPick(l, n)} />
-                <div className="mt-4 flex justify-center">{hubNode}</div>
-              </>
-            ) : (
-              <Board
-                track={fastTrack ? "fast" : "rat"}
-                players={boardPlayers}
-                flashCells={flashCells}
-                hub={hubNode}
-                botBubble={bubble}
-                activePlayerId={current.id}
-                dreamGlowCell={fastTrack ? 2 : null}
-              />
-            )}
-          </motion.div>
-        </motion.main>
-
-        {/* statement sidebar (desktop) */}
-        <aside className="sticky top-14 hidden h-[calc(100dvh-56px)] border-l border-sand-200 lg:block">
-          <StatementPanel
-            state={s}
-            humanId={human.id}
-            forcedSell={forcedSellMode}
-            onForcedSell={onForcedSell}
-            onPayoff={onPayoff}
-            onPayoffInstallment={onPayoffInstallment}
-            onSellAsset={onSellAsset}
-            onPartialPay={onPartialPay}
-            onHireManager={onHireManager}
-            onOfferWork={onOfferWork}
-            onOpenKnowledge={actionsEnabled ? () => setActionsModal("knowledge") : undefined}
-          />
-        </aside>
       </div>
-
-      {/* forced-sell emergency loan shortcut */}
-      {forcedSellMode && !current.usedEmergencyLoan && (
-        <motion.button
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="btn-danger fixed bottom-40 right-4 z-40 lg:bottom-8"
-          onClick={onBankruptcyLoan}
-        >
-          {g.bankruptcy.emergencyLoan}
-        </motion.button>
-      )}
-
-      {/* mobile: statement bottom sheet */}
-      <motion.div
-        className="fixed inset-x-0 bottom-16 z-40 flex flex-col overflow-hidden rounded-t-3xl bg-white shadow-modal lg:hidden"
-        animate={{ height: sheetOpen ? "78vh" : 72 }}
-        transition={{ type: "spring", stiffness: 320, damping: 34 }}
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={0.15}
-        onDragEnd={(_, info) => {
-          if (info.offset.y < -40 || info.velocity.y < -300) setSheetOpen(true);
-          else if (info.offset.y > 40 || info.velocity.y > 300) setSheetOpen(false);
-        }}
-      >
-        <button className="flex shrink-0 flex-col items-center pt-2" onClick={() => setSheetOpen((v) => !v)}>
-          <span className="h-1.5 w-10 rounded-full bg-sand-200" />
-          {!sheetOpen && (
-            <span className="flex w-full items-center justify-between px-4 py-2">
-              <span className="flex items-center gap-1.5 text-body-sm text-ink-600">
-                <Wallet className="h-4 w-4 text-emerald-600" />
-                <MoneyDisplay value={human.cash} size="sm" showCoin={false} />
-              </span>
-              <span className="text-money-sm text-ink-600">
-                {g.statement.cashflowTitle}:{" "}
-                <span className={humanCf >= 0 ? "text-emerald-600" : "text-clay-500"}>
-                  {humanCf >= 0 ? "+" : "−"}
-                  {formatUZSCompact(Math.abs(humanCf))}
-                </span>
-              </span>
-              <span className="chip bg-emerald-100 text-emerald-700">
-                <Gauge className="h-3.5 w-3.5" />
-                {gaugePct}%
-              </span>
-            </span>
-          )}
-        </button>
-        {sheetOpen && (
-          <div className="min-h-0 flex-1">
-            <StatementPanel
-              state={s}
-              humanId={human.id}
-              forcedSell={forcedSellMode}
-              onForcedSell={onForcedSell}
-              onPayoff={onPayoff}
-              onPayoffInstallment={onPayoffInstallment}
-              onSellAsset={onSellAsset}
-              onPartialPay={onPartialPay}
-              onHireManager={onHireManager}
-              onOfferWork={onOfferWork}
-              onOpenKnowledge={actionsEnabled ? () => setActionsModal("knowledge") : undefined}
-            />
-          </div>
-        )}
-      </motion.div>
-
-      {/* mobile: sticky action bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center gap-3 border-t border-sand-200 bg-white/85 px-4 backdrop-blur lg:hidden">
-        {s.spectating ? (
-          <>
-            <span className="flex-1 text-center text-body-sm font-medium text-ink-600">
-              {g.turn.watching}
-            </span>
-            <button
-              className="chip bg-sand-100 text-ink-600"
-              onClick={() =>
-                setSettings((st) => ({
-                  ...st,
-                  speed: st.speed === "fast" ? "slow" : st.speed === "slow" ? "normal" : "fast",
-                }))
-              }
-            >
-              {settings.speed === "slow" ? g.shell.slow : settings.speed === "fast" ? g.shell.fast : g.shell.normal}
-            </button>
-          </>
-        ) : (
-          <>
-            <span className="flex items-center gap-1.5 rounded-full bg-sand-100 px-3 py-1.5">
-              <Wallet className="h-4 w-4 text-emerald-600" />
-              <MoneyDisplay value={human.cash} size="sm" showCoin={false} />
-            </span>
-            <div className="flex-1">{actionButton && <div className="[&>button]:w-full">{actionButton}</div>}</div>
-          </>
-        )}
-      </div>
-
-      {/* fix-13b (M1): Moliyaviy ustoz kartasi — pastki chap burchak, navbat bilan */}
-      <AnimatePresence>
-        {mentorCard && (
-          <motion.div
-            key={mentorCard.id}
-            initial={{ opacity: 0, x: -48, y: 16 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            exit={{ opacity: 0, x: -32 }}
-            transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="fixed bottom-40 left-4 z-[84] w-[min(320px,calc(100vw-2rem))] lg:bottom-8"
-          >
-            <div className="overflow-hidden rounded-2xl border border-gold-500/40 bg-white shadow-lift">
-              <div className="flex items-center gap-2 bg-gold-100 px-4 py-2">
-                <span className="text-base">🎓</span>
-                <span className="text-caption font-semibold uppercase tracking-wide text-gold-600">
-                  {g.mentor.cardTitle}
-                </span>
-              </div>
-              <div className="px-4 py-3">
-                <p className="font-display text-sm font-semibold text-ink-900">
-                  {mentorCard.title}
-                </p>
-                <p className="mt-1 text-body-sm text-ink-600">{mentorCard.body}</p>
-                <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-caption normal-case tracking-normal text-emerald-700">
-                  💡 {g.mentor.tipLabel}: {mentorCard.tip}
-                </p>
-                <button
-                  className="btn-primary mt-3 w-full !py-1.5 !text-sm"
-                  onClick={showNextMentor}
-                >
-                  {g.mentor.understood}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* toasts */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-40 z-[85] flex flex-col items-center gap-2 px-4 lg:bottom-8">
-        <AnimatePresence>
-          {toasts.map((t) => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.25 }}
-              className={cn(
-                "rounded-full px-4 py-2 text-body-sm font-medium text-white shadow-card",
-                t.tone === "good" && "bg-emerald-600",
-                t.tone === "bad" && "bg-clay-500",
-                t.tone === "gold" && "bg-gold-500 !text-ink-900",
-                t.tone === "neutral" && "bg-ink-900"
-              )}
-            >
-              {t.text}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* card modals */}
-      <CardModals modal={modal} player={current} state={s} handlers={handlers} />
-
-      {/* fix-9: Bilim olish / Mijoz topish markazlari */}
-      <AnimatePresence>
-        {actionsModal === "knowledge" && (
-          <KnowledgeCenterModal
-            key="knowledge"
-            state={s}
-            player={human}
-            onUse={onUseKnowledgeAction}
-            onClose={() => setActionsModal(null)}
-          />
-        )}
-        {actionsModal === "clients" && (
-          <ClientsCenterModal
-            key="clients"
-            state={s}
-            player={human}
-            onUse={onUseClientAction}
-            onClose={() => setActionsModal(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* overlays */}
-      <AnimatePresence>
-        {escapeOverlay && <EscapeCeremony key="escape" onGo={onEscapeGo} />}
-        {bankModal && (
-          <BankruptcyModal
-            key="bank"
-            state={s}
-            player={current}
-            onSell={onBankruptcySellMode}
-            onLoan={onBankruptcyLoan}
-            onQarz={onBankruptcyQarz}
-          />
-        )}
-        {bankFinal && (
-          <BankruptFinalModal
-            key="bankfinal"
-            player={current}
-            canSpectate={activePlayers(s).length > 0}
-            onSpectate={onSpectate}
-            onNewGame={resetToSetup}
-          />
-        )}
-      </AnimatePresence>
-
-      <SettingsDrawer
-        open={settingsOpen}
-        settings={settings}
-        onSettings={setSettings}
-        onSaveExit={() => {
-          saveGame(s);
-          navigate("/");
-        }}
-        onRestart={() => {
-          setSettingsOpen(false);
-          resetToSetup();
-        }}
-        onClose={() => setSettingsOpen(false)}
-      />
     </div>
   );
 }
