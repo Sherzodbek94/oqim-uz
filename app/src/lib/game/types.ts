@@ -206,6 +206,12 @@ export interface Asset {
   price: number;
   paid: number;
   monthlyCashflow: number;
+  /** biznes uchun yalpi oylik tushum — hisobot va biznes hodisalari uchun */
+  monthlyRevenue?: number;
+  /** biznesning operatsion xarajatlari (maosh, ijara, marketing va ta'minot) */
+  monthlyOperatingCosts?: number;
+  /** biznesdagi faol xodimlar soni */
+  employees?: number;
   /** >0 means still under construction — no cashflow yet (game.md §7.2) */
   constructionLeft?: number;
   /** optional content tag copied from the deal (onlayn/chorva/dala/avto/qurilish/restoran/xizmat/savdo/talim) */

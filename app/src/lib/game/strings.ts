@@ -532,6 +532,11 @@ export const g = {
     passiveSummary: "Passiv daromad",
     investmentSummary: "Investitsiya daromadi",
     netCashflow: "Sof naqd oqim",
+    businessSummary: "Biznes boshqaruvi",
+    businessRevenue: "Biznes tushumi",
+    businessCosts: "Operatsion xarajat",
+    businessNet: "Biznes sof oqimi",
+    businessHint: "Tushumdan xodim, ijara, ta'minot va marketing xarajatlari ayriladi.",
     salaryRow: "Ish haqi",
     salaryByQuadrant: {
       E: "Maosh",
