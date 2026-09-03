@@ -2835,9 +2835,9 @@ export default function Game() {
                 </div>
               </div>
               <div className="space-y-3 text-body-sm text-ink-600">
-                <p><strong className="text-ink-900">1.</strong> Zar tashlang va doskadagi imkoniyatlardan foydalaning.</p>
-                <p><strong className="text-ink-900">2.</strong> Xarajatlardan ko'ra ko'proq daromad yarating, zaxirani saqlang.</p>
-                <p><strong className="text-ink-900">3.</strong> Passiv daromad xarajatlarga tenglashganda kundalik aylanadan chiqasiz.</p>
+                <p><strong className="text-ink-900">1.</strong> Aktiv — pul olib keladigan narsa; zar tashlab, imkoniyatlarni toping.</p>
+                <p><strong className="text-ink-900">2.</strong> Passiv daromad — siz ishlamasangiz ham keladigan pul. Zaxirani saqlang.</p>
+                <p><strong className="text-ink-900">3.</strong> Sof oqim = daromad − xarajat. Passiv daromad xarajatlarga tenglashganda erkinlikka chiqasiz.</p>
               </div>
               <p className="mt-4 rounded-2xl bg-sand-100 px-4 py-3 text-caption leading-relaxed text-ink-600">
                 Hisobot panelidagi <strong>Oqim ko'rsatkichi</strong> asosiy yo'nalishingizni ko'rsatadi.
