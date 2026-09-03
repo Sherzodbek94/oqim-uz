@@ -358,7 +358,7 @@ export const g = {
   },
   event: {
     title: "Hodisa",
-    ok: "Tushunarli",
+    ok: "Davom etish",
     accept: "Qabul qilish",
     decline: "Rad etish",
   },
@@ -391,7 +391,7 @@ export const g = {
   },
   lifeEvent: {
     title: "Hayotiy hodisa",
-    ok: "Tushunarli",
+    ok: "Davom etish",
   },
   hero: {
     badge: "Qahramon",
@@ -528,6 +528,10 @@ export const g = {
     tabLog: "Jurnal",
     tabLessons: "Darslar",
     income: "Daromad",
+    salarySummary: "Maosh",
+    passiveSummary: "Passiv daromad",
+    investmentSummary: "Investitsiya daromadi",
+    netCashflow: "Sof naqd oqim",
     salaryRow: "Ish haqi",
     salaryByQuadrant: {
       E: "Maosh",
