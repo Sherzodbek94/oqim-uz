@@ -69,7 +69,9 @@
 
 @media (min-width: 1024px) {
   .game-board {
-    max-width: min(100%, calc(100dvh - 205px));
+    /* Header and page padding remain visible while the board gets the
+       largest readable square that the current viewport can support. */
+    max-width: min(100%, calc(100dvh - 145px));
     margin-inline: auto;
   }
 }

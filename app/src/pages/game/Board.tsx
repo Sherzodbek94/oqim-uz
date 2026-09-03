@@ -549,9 +549,9 @@ export default function Board({
 
       {/* hub content (real CSS pixels, centered) — fix-10: positioning wrapper alohida,
           chunki framer-motion inline transform Tailwind translate'ni ezardi (hub o'ngga siljardi) */}
-      <div className="absolute left-1/2 top-1/2 w-[52%] max-w-[340px] -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute left-1/2 top-1/2 w-[62%] max-w-[420px] -translate-x-1/2 -translate-y-1/2">
         <motion.div
-          className="flex flex-col items-center justify-center text-center"
+          className="flex flex-col items-center justify-center rounded-[26px] border border-white/70 bg-white/85 px-3 py-3 text-center shadow-[0_10px_30px_rgba(30,45,42,.14)] backdrop-blur-sm sm:px-5 sm:py-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
