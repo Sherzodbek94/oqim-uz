@@ -2755,10 +2755,10 @@ export default function Game() {
         )}
       </AnimatePresence>
 
-      <div className="mx-auto max-w-[1440px] lg:grid lg:grid-cols-[1fr_400px]">
+      <div className="mx-auto max-w-[1440px] lg:grid lg:min-w-0 lg:grid-cols-[minmax(0,1fr)_400px]">
         {/* board zone */}
         <motion.main
-          className="p-4 pb-48 lg:p-6 lg:pb-6"
+          className="min-w-0 overflow-x-hidden p-4 pb-48 lg:p-6 lg:pb-6"
           animate={shake ? { x: [0, 2, -2, 0] } : { x: 0 }}
           transition={{ duration: 0.14 }}
         >
