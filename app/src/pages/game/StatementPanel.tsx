@@ -543,10 +543,26 @@ function ReportTab({
   const cf = monthlyCashflow(p, { news, exchange });
   const ability = abilityOf(p);
   const dividends = portfolioDividends(p, exchange);
+  const salary = effectiveSalary(p);
+  const passiveExcludingInvestments = Math.max(0, passive - dividends);
+  const totalIncome = salary + passive + p.ftCashflow;
   const loadPct = Math.round(debtLoad(p, { news, exchange }) * 100);
   const clientsIncome = clientIncome(p);
   return (
     <div className="space-y-3">
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3" aria-label="Asosiy moliyaviy ko'rsatkichlar">
+        <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-emerald-700">Asosiy ko'rsatkichlar</p>
+        <div className="space-y-0.5">
+          <Row label={g.statement.salarySummary} value={salary} tone="good" />
+          <Row label={g.statement.passiveSummary} value={passiveExcludingInvestments} tone="good" />
+          <Row label={g.statement.investmentSummary} value={dividends} tone="info" />
+          <Row label={g.statement.totalIncome} value={totalIncome} tone="good" bold />
+          <Row label={g.statement.totalExpenses} value={expenses} tone="bad" bold />
+          <div className={cn("rounded-xl", cf >= 0 ? "bg-white/70" : "bg-clay-50")}>
+            <Row label={g.statement.netCashflow} value={cf} tone={cf >= 0 ? "good" : "bad"} bold />
+          </div>
+        </div>
+      </div>
       {!p.escaped && <FreedomPath p={p} news={news} exchange={exchange} mode={mode} />}
       {!p.escaped && <QuadrantPath p={p} onOpenKnowledge={readOnly ? undefined : onOpenKnowledge} />}
       <div className="rounded-xl bg-emerald-50 px-3 py-2" title={ability.desc}>
@@ -632,7 +648,7 @@ function ReportTab({
             tone="good"
           />
         )}
-        <Row label={g.statement.totalIncome} value={effectiveSalary(p) + passive + p.ftCashflow} tone="good" bold />
+        <Row label={g.statement.totalIncome} value={totalIncome} tone="good" bold />
       </div>
 
       <div className="space-y-0.5">
