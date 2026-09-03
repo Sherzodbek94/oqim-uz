@@ -257,7 +257,7 @@ export const g = {
     yourTurn: "Sening navbating",
     botTurn: (name: string) => `${name} o'ynamoqda`,
     roll: "Zar tashlash",
-    endTurn: "Navbatni yakunlash",
+    endTurn: "Davom etish",
     skipped: (name: string) => `${name} navbatni o'tkazib yubordi`,
     watching: "Kuzatilmoqda...",
     rollHint: "Zar tashlash uchun bosing",
@@ -533,12 +533,13 @@ export const g = {
       E: "Maosh",
       S: "Shaxsiy daromad",
       B: "Biznesdan oylik",
-      I: "Investitsiya daromadi",
+      I: "Kapitaldan daromad",
     } as Record<string, string>,
     unemployedRow: (n: number) => `Ishsiz — ${n} oy qoldi`,
     /** fix-12: avans endi sof maoshdan hisoblanadi (maosh − kredit to'lovlari) */
     avansHint: "💸 Avans: (maosh − kredit to'lovlari) × 30% — kredit puli avansga kirmaydi",
     totalIncome: "Jami daromad",
+    incomeHint: "Sof oqim = jami daromad − xarajatlar. Maqsad — passiv daromadni xarajatlarga tenglashtirish.",
     expensesTitle: "Xarajatlar",
     taxes: "Soliqlar",
     housing: "Uy-joy",
@@ -788,4 +789,3 @@ export const g = {
     saved: "O'yin saqlandi",
   },
 } as const;
-
