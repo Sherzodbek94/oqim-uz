@@ -210,6 +210,10 @@ export default function Hero({ onToast }: { onToast: (msg: string) => void }) {
             >
               <img
                 src="/hero-board.png"
+                width={1536}
+                height={1024}
+                fetchPriority="high"
+                decoding="async"
                 alt="OQIM o'yin doskasi — Toshkent usti zarlar va tangalar bilan"
                 className="w-full rounded-2xl"
                 draggable={false}

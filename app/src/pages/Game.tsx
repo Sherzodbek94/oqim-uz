@@ -13,6 +13,8 @@ import { PLAYER_COLORS } from "@/components/PlayerToken";
 import { cn } from "@/lib/utils";
 import { formatUZSCompact } from "@/lib/format";
 import { g } from "@/lib/game/strings";
+import { useGamePersistence } from "@/hooks/useGamePersistence";
+import { financeSummary, recordFinanceStats } from "@/lib/game/engine";
 import {
   BIG_DEALS,
   DOODAD_CARDS,
@@ -76,7 +78,6 @@ import {
   managerCost,
   marketOffer,
   maybeAdvanceQuadrant,
-  monthlyCashflow,
   movePath,
   passiveIncome,
   adjustedDown,
@@ -149,7 +150,7 @@ import PlanBoard from "./game/PlanBoard";
 import NotificationsCenter from "@/components/Notifications";
 import StatementPanel from "./game/StatementPanel";
 import SetupScreen, { type SetupResult } from "./game/SetupScreen";
-import CardModals, { type ModalHandlers, type ModalState } from "./game/CardModals";
+import CardModals, { ModalShell, type ModalHandlers, type ModalState } from "./game/CardModals";
 import { ClientsCenterModal, KnowledgeCenterModal } from "./game/ActionsModals";
 import {
   BankruptFinalModal,
@@ -192,6 +193,7 @@ export default function Game() {
     return save && save.phase !== "game-over" && save.screen !== "end" ? save : null;
   });
   const [state, setState] = useState<GameState | null>(null);
+  const persistence = useGamePersistence(state, entry === "playing");
   const stateRef = useRef<GameState | null>(null);
 
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -210,7 +212,7 @@ export default function Game() {
   const [rolling, setRolling] = useState(false);
   const [shake, setShake] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [mobileStatementTab, setMobileStatementTab] = useState<"report" | "assets">("report");
+  const [mobileStatementTab, setMobileStatementTab] = useState<import("./game/StatementPanel").TabId>("report");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [upcomingCell, setUpcomingCell] = useState<number | null>(null);
   const [rollChip, setRollChip] = useState<number | null>(null);
@@ -234,6 +236,7 @@ export default function Game() {
     if (!prev) return;
     const c = structuredClone(prev);
     fn(c);
+    for (const player of c.players) recordFinanceStats(player, {news: c.news, exchange: c.exchange});
     stateRef.current = c;
     setState(c);
   };
@@ -298,16 +301,11 @@ export default function Game() {
   /* ---------- entry: save detection ---------- */
   // entry/pendingSave are initialized lazily from loadSave() above.
 
-  /* autosave after every resolved turn (game.md §1) */
-  useEffect(() => {
-    if (state && entry === "playing" && state.screen !== "end") saveGame(state);
-  }, [state, entry]);
-
   /* sync displayed token cells when idle */
   useEffect(() => {
     if (!state) return;
     if (state.phase === "moving" || state.phase === "rolling") return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- tokenlar pozitsiyasi state'dan hosila bo'ladi; idle fazada bir martalik sinxronizatsiya
+
     setDisplayCells((dc) => {
       const next = { ...dc };
       for (const p of state.players) next[p.id] = p.escaped ? p.ftPosition : p.position;
@@ -639,7 +637,7 @@ export default function Game() {
   /** fix-16: Hayotiy hodisa (12%) — Oy kun / payday tugunidan keyin (asosiy aylanada). false = bekor qilindi. */
   const maybeLifeEvent = async (gen: number, p0: Player): Promise<boolean> => {
     const s0 = stateRef.current!;
-    // eslint-disable-next-line react-hooks/purity -- render emas: navbat oqimidagi async hodisa
+
     if (Math.random() < LIFE_EVENT_CHANCE) {
 
       if (gen !== genRef.current) return false;
@@ -830,12 +828,8 @@ export default function Game() {
                 tone: card.effect.type === "cash" && card.effect.amount > 0 ? "good" : "neutral",
               });
             });
-            if (!card.lessonText) {
-              pushToast(`${card.title}: ${result}`, result.startsWith("−") ? "bad" : "neutral");
-            } else {
-              setModal({ kind: "event", card, result });
-              await waitForUser();
-            }
+            pushToast(`${card.title}: ${result}`, result.startsWith("−") ? "bad" : "neutral");
+            if (card.lessonText) mutate(st => addLog(st, "event", card.lessonText!, "neutral"));
           }
           if (card.effect.type === "migration" || card.choices) await waitForUser();
           break;
@@ -1140,10 +1134,8 @@ export default function Game() {
     if (gen !== genRef.current) return;
     const s2 = stateRef.current;
     if (!s2 || s2.phase === "game-over") return;
-    mutate((st) => {
-      if (st.phase !== "game-over") st.phase = "awaiting-end";
-    });
-    await waitForUser(); // "Navbatni yakunlash" button
+    // The decision already confirmed the action. Ordinary events continue too.
+    await wait(120);
     if (gen !== genRef.current) return;
     await endTurnAndNext(gen);
   };
@@ -1181,10 +1173,8 @@ export default function Game() {
     if (gen !== genRef.current) return;
     const s2 = stateRef.current;
     if (!s2 || s2.phase === "game-over") return;
-    mutate((st) => {
-      if (st.phase !== "game-over") st.phase = "awaiting-end";
-    });
-    await waitForUser(); // "Navbatni yakunlash" button
+    // The decision already confirmed the action. Ordinary events continue too.
+    await wait(120);
     if (gen !== genRef.current) return;
     await endTurnAndNext(gen);
   };
@@ -1291,10 +1281,8 @@ export default function Game() {
     if (gen !== genRef.current) return;
     const s2 = stateRef.current;
     if (!s2 || s2.phase === "game-over") return;
-    mutate((st) => {
-      if (st.phase !== "game-over") st.phase = "awaiting-end";
-    });
-    await waitForUser(); // "Navbatni yakunlash" button
+    // The decision already confirmed the action. Ordinary events continue too.
+    await wait(120);
     if (gen !== genRef.current) return;
     await endTurnAndNext(gen);
   };
@@ -1960,7 +1948,9 @@ export default function Game() {
       });
       if (ch.drawMarket) pendingMarketRef.current = true;
       const full = result2 ? `${ch.resultText} — ${result}; ${result2}` : `${ch.resultText} — ${result}`;
-      setModal({ kind: "event", card: m.card, result: full, lesson: ch.lessonText });
+      pushToast(full);
+      if (ch.lessonText) mutate(st => addLog(st, "event", ch.lessonText, "neutral"));
+      handlers.onEventDone();
     },
     onMigration: (accept) => {
       const m = modal;
@@ -2479,7 +2469,7 @@ export default function Game() {
   const currentDream = DREAMS.find((d) => d.id === current.dreamId);
   const humanPassive = passiveIncome(human, { news: s.news, exchange: s.exchange });
   const humanExpenses = totalExpenses(human);
-  const humanCf = monthlyCashflow(human, { news: s.news, exchange: s.exchange });
+  const humanCf = financeSummary(human, { news: s.news, exchange: s.exchange }).net;
   const gaugePct = humanExpenses > 0 ? Math.min(100, Math.round((humanPassive / humanExpenses) * 100)) : 100;
   const strategyHint = human.cash < humanExpenses * 2
     ? "Avval zaxira yarating: qimmat kreditni shoshilmasdan oling."
@@ -2755,6 +2745,9 @@ export default function Game() {
         )}
       </AnimatePresence>
 
+      {persistence.status === "error" && <div role="alert" className="mx-4 my-2 rounded-xl bg-clay-100 p-3 text-clay-600">
+        O‘yin saqlanmadi. Brauzer xotirasini tekshiring. <button className="underline" onClick={persistence.retry}>Qayta urinish</button>
+      </div>}
       <div className="mx-auto max-w-[1600px] lg:grid lg:min-w-0 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_400px]">
         {/* board zone */}
         <motion.main
@@ -2833,15 +2826,7 @@ export default function Game() {
 
       <AnimatePresence>
         {tutorialOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[90] flex items-center justify-center bg-ink-900/45 px-4"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="tutorial-title"
-          >
+          <ModalShell onClose={() => setTutorialOpen(false)}>
             <motion.div
               initial={{ y: 18, scale: 0.97 }}
               animate={{ y: 0, scale: 1 }}
@@ -2871,7 +2856,7 @@ export default function Game() {
                 Boshlash
               </button>
             </motion.div>
-          </motion.div>
+          </ModalShell>
         )}
       </AnimatePresence>
 
@@ -2888,7 +2873,7 @@ export default function Game() {
           else if (info.offset.y > 40 || info.velocity.y > 300) setSheetOpen(false);
         }}
       >
-        <button className="flex shrink-0 flex-col items-center pt-2" onClick={() => setSheetOpen((v) => !v)}>
+        <button aria-label={sheetOpen ? "Hisobotni yig‘ish" : "Hisobotni ochish"} aria-expanded={sheetOpen} className="flex min-h-11 shrink-0 flex-col items-center pt-2" onClick={() => setSheetOpen((v) => !v)}>
           <span className="h-1.5 w-10 rounded-full bg-sand-200" />
           {!sheetOpen && (
             <span className="flex w-full items-center justify-between px-4 py-2">
@@ -2925,6 +2910,7 @@ export default function Game() {
               onOfferWork={onOfferWork}
               onOpenKnowledge={actionsEnabled ? () => setActionsModal("knowledge") : undefined}
               requestedTab={mobileStatementTab}
+              onTabChange={setMobileStatementTab}
             />
           </div>
         )}
@@ -2951,27 +2937,25 @@ export default function Game() {
           </>
         ) : (
           <>
-            <span className="flex items-center gap-1.5 rounded-full bg-sand-100 px-3 py-1.5">
-              <Wallet className="h-4 w-4 text-emerald-600" />
-              <MoneyDisplay value={human.cash} size="sm" showCoin={false} />
-            </span>
             <button
-              className="rounded-xl border border-sand-200 bg-white p-2 text-ink-600 shadow-card"
+              className="flex min-h-11 min-w-14 shrink-0 flex-col items-center justify-center rounded-xl border border-sand-200 bg-white px-2 text-xs text-ink-600 shadow-card"
               title="Hisobot"
               aria-label="Hisobotni ochish"
               onClick={() => { setMobileStatementTab("report"); setSheetOpen(true); }}
             >
               <FileText className="h-4 w-4" />
+              Hisobot
             </button>
             <button
-              className="rounded-xl border border-sand-200 bg-white p-2 text-ink-600 shadow-card"
+              className="flex min-h-11 min-w-14 shrink-0 flex-col items-center justify-center rounded-xl border border-sand-200 bg-white px-2 text-xs text-ink-600 shadow-card"
               title="Aktivlar"
               aria-label="Aktivlarni ochish"
               onClick={() => { setMobileStatementTab("assets"); setSheetOpen(true); }}
             >
               <PackageOpen className="h-4 w-4" />
+              Aktivlar
             </button>
-            <div className="flex-1">{actionButton && <div className="[&>button]:w-full">{actionButton}</div>}</div>
+            <div className="min-w-0 flex-1">{actionButton && <div className="[&>button]:min-h-11 [&>button]:w-full [&>button]:px-2 [&>button]:text-sm">{actionButton}</div>}</div>
           </>
         )}
       </div>

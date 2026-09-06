@@ -34,7 +34,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <p className="mt-4 max-w-md text-body text-ink-600">
             Iltimos, sahifani yangilang yoki bosh sahifaga qayting.
           </p>
-          {this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <pre className="mt-4 max-w-md overflow-auto rounded-xl bg-sand-100 p-4 text-left text-caption text-ink-500">
               {this.state.error.message}
             </pre>
@@ -46,7 +46,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             >
               Sahifani yangilash
             </button>
-            <Link to="/" className="btn-secondary">
+            <Link to="/" onClick={() => this.setState({hasError: false, error: undefined})} className="btn-secondary">
               Bosh sahifa
             </Link>
           </div>

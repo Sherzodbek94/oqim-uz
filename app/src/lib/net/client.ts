@@ -7,21 +7,28 @@
 
 export const OQIM_SERVER: string =
   (import.meta.env.VITE_OQIM_SERVER as string | undefined)?.replace(/\/$/, "") ||
-  "https://oqim-server.your-account.workers.dev";
+  "https://oqim-server.yigitcha-9493.workers.dev";
 
 const TOKEN_KEY = (code: string) => `oqim-online-token-${code}`;
 const NAME_KEY = "oqim-online-name";
 
 export function savedToken(code: string): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY(code));
+    const raw = localStorage.getItem(TOKEN_KEY(code));
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as { token?: unknown; expiresAt?: unknown };
+    if (typeof saved.token !== "string" || typeof saved.expiresAt !== "number" || saved.expiresAt <= Date.now()) {
+      localStorage.removeItem(TOKEN_KEY(code));
+      return null;
+    }
+    return saved.token;
   } catch {
     return null;
   }
 }
 export function saveToken(code: string, token: string): void {
   try {
-    localStorage.setItem(TOKEN_KEY(code), token);
+    localStorage.setItem(TOKEN_KEY(code), JSON.stringify({token, expiresAt: Date.now() + 24 * 60 * 60 * 1000}));
   } catch {
     /* yopiq rejim */
   }
@@ -215,7 +222,6 @@ export class OnlineClient {
     this.ws = ws;
     ws.onopen = () => {
       this.status = "open";
-      this.retry = 0;
       this.canReconnect = true;
       this.send({ t: "join", name: this.name, token: this.token ?? undefined });
       this.emitStatus();
@@ -232,10 +238,16 @@ export class OnlineClient {
         /* yomon paket */
       }
     };
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      if (this.ws !== ws) return;
       this.status = "closed";
       this.emitStatus();
       if (this.closedByUser) return;
+      if ([1008, 1009].includes(event.code)) {
+        this.canReconnect = false;
+        this.emitStatus();
+        return;
+      }
       if (this.retry < MAX_RETRIES) {
         const delay = Math.min(8000, 500 * 2 ** this.retry++);
         this.retryTimer = setTimeout(() => this.connect(), delay);

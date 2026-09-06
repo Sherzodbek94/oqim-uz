@@ -14,7 +14,7 @@ import type {
   Profession,
   WeekendCard,
 } from "./types";
-import { formatUZSCompact } from "@/lib/format";
+import { formatUZSCompact } from "../format";
 
 /* ---------------- Professions (game.md §2 balance table) ---------------- */
 

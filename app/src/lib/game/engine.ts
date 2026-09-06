@@ -135,7 +135,7 @@ import {
 import type { ExchangeState, BoardMode } from "./types";
 import { generatePath } from "./path";
 import { makePlanState } from "./plan";
-import { formatUZSCompact } from "@/lib/format";
+import { formatUZSCompact } from "../format";
 
 let uid = 1;
 export const nextId = () => uid++;
@@ -976,10 +976,22 @@ export function passiveIncome(p: Player, opts?: FinanceOpts): number {
   const dividends = opts?.exchange ? portfolioDividends(p, opts.exchange) : 0;
   // S/B kvadrant: mijozlar to'lovlari ham passiv daromad
   const total = assetsSum + dividends + clientIncome(p);
-  // C2 profil statistikasi: eng yuqori passiv daromad (FT oqimi bilan) kuzatiladi
-  const withFt = total + p.ftCashflow;
-  if (withFt > p.statMaxPassive) p.statMaxPassive = withFt;
   return total;
+}
+
+/** Read-only report: one equation for every board mode, no payout side effects. */
+export function financeSummary(p: Player, opts?: FinanceOpts) {
+  const salary = effectiveSalary(p);
+  const investments = opts?.exchange ? portfolioDividends(p, opts.exchange) : 0;
+  const passive = passiveIncome(p, opts);
+  const expenses = totalExpenses(p);
+  const totalIncome = salary + passive + p.ftCashflow;
+  return {salary, investments, passive, totalIncome, expenses, net: totalIncome - expenses,
+    debt: p.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0) + p.installments.reduce((sum, item) => sum + (installmentPayoffAmount(p, item.id) ?? 0), 0)};
+}
+
+export function recordFinanceStats(p: Player, opts?: FinanceOpts): void {
+  p.statMaxPassive = Math.max(p.statMaxPassive, passiveIncome(p, opts) + p.ftCashflow);
 }
 
 /** Maosh with the active life-event multiplier applied. Ishsizlikda 0. */
@@ -2853,6 +2865,7 @@ export function forcedSell(s: GameState, p: Player, assetId: string): number {
 /* ---------------- End of own turn upkeep ---------------- */
 
 export function tickTurn(p: Player) {
+  recordFinanceStats(p);
   p.turnsPlayed += 1;
   if (p.charityTurns > 0) p.charityTurns -= 1;
   if (p.charityBlockedTurns > 0) p.charityBlockedTurns -= 1;

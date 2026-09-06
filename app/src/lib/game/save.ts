@@ -164,11 +164,12 @@ export function loadSave(): GameState | null {
   }
 }
 
-export function saveGame(state: GameState): void {
+export function saveGame(state: GameState): boolean {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    return true;
   } catch {
-    /* storage full / unavailable — ignore */
+    return false;
   }
 }
 
