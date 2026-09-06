@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router'
-import Layout from '@/components/Layout'
-import Home from '@/pages/Home'
 import ErrorBoundary from '@/components/ErrorBoundary'
+
+const Layout = lazy(() => import('@/components/Layout'))
+const Home = lazy(() => import('@/pages/Home'))
 
 const Rules = lazy(() => import('@/pages/Rules'))
 const Profile = lazy(() => import('@/pages/Profile'))

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
+import { execFileSync } from 'node:child_process';
 
 async function fixture() {
   const bundled = await build({stdin: {contents: `
@@ -8,8 +9,8 @@ async function fixture() {
     import { PROFESSIONS } from './src/lib/game/data';
     import { SAVE_KEY } from './src/lib/game/types';
     const player = makePlayer(0, 'Audit o‘yinchisi', PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: 'd1', quadrant: 'E'});
-    export default {key: SAVE_KEY, game: makeGame([player])};`, resolveDir: process.cwd()}, bundle: true, platform: 'node', format: 'esm', write: false, alias: {'@': './src'}});
-  return (await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`)).default;
+    console.log(JSON.stringify({key: SAVE_KEY, game: makeGame([player])}));`, resolveDir: process.cwd()}, bundle: true, platform: 'node', format: 'esm', write: false, alias: {'@': './src'}});
+  return JSON.parse(execFileSync(process.execPath, ['--input-type=module'], {input: bundled.outputFiles[0].text, encoding: 'utf8'}));
 }
 
 async function resume(page: Page) {

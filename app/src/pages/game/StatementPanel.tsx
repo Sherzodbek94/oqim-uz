@@ -1429,7 +1429,7 @@ export default function StatementPanel({
   };
 
   const human = state.players.find((p) => p.id === humanId) ?? state.players[0];
-  const shown = peekBot !== null ? state.players.find((p) => p.id === peekBot) ?? human : human;
+  const shown = !forcedSell && peekBot !== null ? state.players.find((p) => p.id === peekBot) ?? human : human;
   const dream = DREAMS.find((d) => d.id === shown.dreamId);
 
   return (
@@ -1460,7 +1460,7 @@ export default function StatementPanel({
             key={p.id}
             p={p}
             active={state.players[state.current]?.id === p.id}
-            onClick={() => setPeekBot(p.id === humanId ? null : p.id)}
+            onClick={() => { if (!forcedSell) setPeekBot(p.id === humanId ? null : p.id); }}
           />
         ))}
       </div>

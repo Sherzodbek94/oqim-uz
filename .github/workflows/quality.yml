@@ -51,6 +51,7 @@ jobs:
       - run: npm run build
       - run: npm run check:game-core
       - run: npm run smoke
+      - run: npm run test:worker
 
   worker:
     runs-on: ubuntu-latest
