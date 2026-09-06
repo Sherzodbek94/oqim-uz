@@ -5,6 +5,8 @@
  * lokal o'yin hech qanday ta'sir ko'rmaydi (bu modul faqat /onlayn sahifada ishlatiladi).
  */
 
+import { requestJson } from './http';
+
 export const OQIM_SERVER: string =
   (import.meta.env.VITE_OQIM_SERVER as string | undefined)?.replace(/\/$/, "") ||
   "https://oqim-server.yigitcha-9493.workers.dev";
@@ -56,19 +58,16 @@ export interface CreateRoomResponse {
 }
 
 export async function createRoom(name: string, timerSec: 60 | 120, bots: number): Promise<CreateRoomResponse> {
-  const res = await fetch(`${OQIM_SERVER}/api/rooms`, {
+  return requestJson<CreateRoomResponse>(`${OQIM_SERVER}/api/rooms`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, timerSec, bots }),
   });
-  return (await res.json()) as CreateRoomResponse;
 }
 
 export async function checkRoom(code: string): Promise<{ ok: boolean; error?: string }> {
-  const res = await fetch(`${OQIM_SERVER}/api/rooms/${code}`, { method: "GET" });
-  if (res.status === 404) return { ok: false, error: "Xona topilmadi — kodni tekshiring" };
-  if (!res.ok) return { ok: false, error: "Serverga ulanib bo'lmadi" };
-  return { ok: true };
+  if (!/^[A-Z2-9]{6}$/.test(code)) return {ok: false, error: 'Xona kodi 6 belgidan iborat bo‘lishi kerak'};
+  return requestJson(`${OQIM_SERVER}/api/rooms/${code}`);
 }
 
 export interface GameResult {
@@ -78,10 +77,7 @@ export interface GameResult {
 }
 
 export async function fetchResults(code: string): Promise<{ ok: boolean; results?: GameResult[]; error?: string }> {
-  const res = await fetch(`${OQIM_SERVER}/api/rooms/${code}/results`, { method: "GET" });
-  if (!res.ok) return { ok: false, error: "Natijalarni olishda xato" };
-  const data = (await res.json()) as { ok: boolean; results?: GameResult[]; error?: string };
-  return data;
+  return requestJson(`${OQIM_SERVER}/api/rooms/${encodeURIComponent(code)}/results`);
 }
 
 export interface LeaderboardEntry {
@@ -97,10 +93,7 @@ export interface LeaderboardEntry {
 }
 
 export async function fetchLeaderboard(): Promise<{ ok: boolean; entries?: LeaderboardEntry[]; error?: string }> {
-  const res = await fetch(`${OQIM_SERVER}/api/leaderboard`, { method: "GET" });
-  if (!res.ok) return { ok: false, error: "Reytingni olishda xato" };
-  const data = (await res.json()) as { ok: boolean; entries?: LeaderboardEntry[]; error?: string };
-  return data;
+  return requestJson(`${OQIM_SERVER}/api/leaderboard`);
 }
 
 export interface PublicState {

@@ -19,6 +19,7 @@ import { QARZ_MIN, QARZ_MONTHS } from "@/lib/game/types";
 import { LESSON_BY_ID, LESSON_CATEGORY_ICON } from "@/lib/game/mentor";
 import type { GameSettings } from "@/lib/game/save";
 import type { GameState, Player } from "@/lib/game/types";
+import { ModalShell } from './CardModals';
 
 const CONFETTI_COLORS = ["#2E7D5F", "#D9A441", "#F4EEE1", "#24604A", "#B98428"];
 
@@ -80,12 +81,7 @@ export function ContinueModal({
   const prof = PROFESSIONS.find((x) => x.id === human.professionId);
   const resumeHero = heroById(human.heroId);
   return (
-    <motion.div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-ink-900/35 px-4 backdrop-blur-sm"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
+    <ModalShell>
       <motion.div
         className="w-full max-w-md rounded-3xl bg-white p-6 shadow-modal"
         initial={{ scale: 0.92, opacity: 0 }}
@@ -117,7 +113,7 @@ export function ContinueModal({
           </button>
         </div>
       </motion.div>
-    </motion.div>
+    </ModalShell>
   );
 }
 
