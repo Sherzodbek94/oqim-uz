@@ -4,6 +4,9 @@
  */
 import { checkAuthRateLimit, type RateLimitEnv } from "./rateLimit";
 import { logAudit, type AuditEnv } from "./audit";
+import { SignJWT, jwtVerify } from "jose";
+import { json } from "./http";
+import { registration, credentials, profileInput, banInput } from "./validation";
 
 export interface User {
   email: string;
@@ -12,6 +15,10 @@ export interface User {
   salt: string; // base64
   role: "user" | "admin";
   banned: boolean;
+  /** Set only by a trusted operator, never by registration or profile sync. */
+  adminGrantedAt?: number;
+  sessionVersion?: number;
+  passwordIterations?: number;
   profile: {
     games: unknown[];
     lessons: string[];
@@ -27,7 +34,7 @@ export interface AuthEnv extends RateLimitEnv, AuditEnv {
 }
 
 const USER_PREFIX = "user:";
-const TOKEN_EXPIRES_MS = 30 * 24 * 60 * 60 * 1000; // 30 kun
+const TOKEN_EXPIRES_SEC = 60 * 60; // qayta kirish: bir soat
 const MAX_EMAIL_LEN = 128;
 const MAX_NAME_LEN = 32;
 const MAX_PASSWORD_LEN = 128;
@@ -58,19 +65,20 @@ function b64decode(s: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-async function pbkdf2(password: string, salt: ArrayBuffer): Promise<ArrayBuffer> {
+async function pbkdf2(password: string, salt: ArrayBuffer, iterations = 600_000): Promise<ArrayBuffer> {
   const key = await crypto.subtle.importKey("raw", encode(password), "PBKDF2", false, ["deriveBits"]);
-  return crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, hash: "SHA-256", iterations: 100_000 },
+  try { return await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, hash: "SHA-256", iterations },
     key,
     256
-  );
-}
-
-async function hmac(key: ArrayBuffer | Uint8Array, data: string): Promise<ArrayBuffer> {
-  const raw = key instanceof ArrayBuffer ? key : (key.buffer as ArrayBuffer);
-  const cryptoKey = await crypto.subtle.importKey("raw", raw, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return crypto.subtle.sign("HMAC", cryptoKey, encode(data));
+  ); } catch (error) {
+    // workerd caps native PBKDF2. Keep the same work factor, never downgrade it.
+    if (!(error instanceof Error) || !/iteration|not supported/i.test(error.message)) throw error;
+    const { pbkdf2Async } = await import("@noble/hashes/pbkdf2.js");
+    const { sha256 } = await import("@noble/hashes/sha2.js");
+    const result = await pbkdf2Async(sha256, encode(password), new Uint8Array(salt), { c: iterations, dkLen: 32 });
+    return result.buffer as ArrayBuffer;
+  }
 }
 
 /* ---------------- JWT (HS256) ---------------- */
@@ -80,6 +88,7 @@ interface JwtPayload {
   name: string;
   iat: number;
   exp: number;
+  ver: number;
 }
 
 /** Constant-time string taqqoslash (timing hujumlariga qarshi). */
@@ -95,24 +104,22 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 async function signJwt(payload: JwtPayload, secret: string): Promise<string> {
-  const header = { alg: "HS256", typ: "JWT" };
-  const head = b64encode(encode(JSON.stringify(header)));
-  const body = b64encode(encode(JSON.stringify(payload)));
-  const sig = b64encode(await hmac(encode(secret), `${head}.${body}`));
-  return `${head}.${body}.${sig}`;
+  if (!secret || encode(secret).byteLength < 32) throw new Error("Auth configuration invalid");
+  return new SignJWT({ ...payload }).setProtectedHeader({alg: "HS256", typ: "JWT"})
+    .setIssuer("oqim-server").setAudience("oqim").sign(encode(secret));
 }
 
 export async function verifyJwt(token: string, secret: string): Promise<JwtPayload | null> {
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [head, body, sig] = parts;
-  const expectedSig = b64encode(await hmac(encode(secret), `${head}.${body}`));
-  if (!timingSafeEqual(sig, expectedSig)) return null;
   try {
-    const decoded = new TextDecoder().decode(b64decode(body));
-    const payload = JSON.parse(decoded) as JwtPayload;
-    if (payload.exp < Date.now()) return null;
-    return payload;
+    if (!secret || encode(secret).byteLength < 32 || token.length > 4096) return null;
+    const { payload } = await jwtVerify(token, encode(secret), {
+      algorithms: ["HS256"], issuer: "oqim-server", audience: "oqim", maxTokenAge: "1h",
+      requiredClaims: ["sub", "iat", "exp", "name", "ver"],
+    });
+    if (typeof payload.sub !== "string" || payload.sub.length > 128 || typeof payload.name !== "string"
+      || !Number.isInteger(payload.ver) || typeof payload.exp !== "number" || typeof payload.iat !== "number"
+      || payload.exp - payload.iat > TOKEN_EXPIRES_SEC) return null;
+    return payload as unknown as JwtPayload;
   } catch {
     return null;
   }
@@ -168,40 +175,6 @@ function validateInput(email: string, password: string, name?: string): string |
   return null;
 }
 
-/* ---------------- Umumiy javoblar ---------------- */
-
-function json(data: unknown, status = 200, origin: string | null = null): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json; charset=utf-8", ...corsHeaders(origin) },
-  });
-}
-
-const ALLOWED_ORIGINS = ["https://oqim.pages.dev", "https://master.oqim.pages.dev", "http://localhost:5173"];
-
-function isAllowedOrigin(origin: string): boolean {
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  try {
-    const url = new URL(origin);
-    return url.hostname.endsWith(".oqim.pages.dev") || url.hostname === "oqim.pages.dev";
-  } catch {
-    return false;
-  }
-}
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const allow = origin && isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization",
-    "Access-Control-Max-Age": "86400",
-    "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-  };
-}
-
 /* ---------------- Tashqi API ---------------- */
 
 export interface AuthResponse {
@@ -218,9 +191,12 @@ function getClientIP(request: Request): string {
 export async function register(
   request: Request,
   env: AuthEnv,
-  body: { email?: string; password?: string; name?: string },
+  input: unknown,
   origin: string | null = null
 ): Promise<Response> {
+  const parsed = registration.safeParse(input);
+  if (!parsed.success) return json({ok: false, error: "Email, ism va kamida 12 belgili parolni tekshiring"}, 400, origin);
+  const body = parsed.data;
   const limit = await checkAuthRateLimit(env, getClientIP(request));
   if (!limit.ok) {
     return json({ ok: false, error: "Juda ko'p urinish. Iltimos, biroz kuting." }, 429, origin);
@@ -245,13 +221,15 @@ export async function register(
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const hash = await pbkdf2(password, salt.buffer);
 
-  // Admin faqat ADMIN_EMAILS ro'yxati orqali beriladi — avtomatik admin yo'q
+  // Registration never grants admin; a trusted operator must provision it.
   const user: User = {
     email,
     name,
     passwordHash: b64encode(hash),
     salt: b64encode(salt.buffer),
-    role: isAdminEmail(env, email) ? "admin" : "user",
+    role: "user",
+    sessionVersion: 0,
+    passwordIterations: 600_000,
     banned: false,
     profile: { games: [], lessons: [] },
     createdAt: Date.now(),
@@ -261,7 +239,7 @@ export async function register(
   await logAudit(env, request, { type: "register", email, success: true });
 
   const token = await signJwt(
-    { sub: email, name, iat: Date.now(), exp: Date.now() + TOKEN_EXPIRES_MS },
+    { sub: email, name, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + TOKEN_EXPIRES_SEC, ver: user.sessionVersion ?? 0 },
     env.JWT_SECRET
   );
 
@@ -271,9 +249,12 @@ export async function register(
 export async function login(
   request: Request,
   env: AuthEnv,
-  body: { email?: string; password?: string },
+  input: unknown,
   origin: string | null = null
 ): Promise<Response> {
+  const parsed = credentials.safeParse(input);
+  if (!parsed.success) return json({ok: false, error: "Email yoki parol noto‘g‘ri"}, 400, origin);
+  const body = parsed.data;
   const limit = await checkAuthRateLimit(env, getClientIP(request));
   if (!limit.ok) {
     return json({ ok: false, error: "Juda ko'p urinish. Iltimos, biroz kuting." }, 429, origin);
@@ -297,22 +278,23 @@ export async function login(
     return json({ ok: false, error: "Akkaunt bloklangan" }, 403, origin);
   }
 
-  const hash = await pbkdf2(password, b64decode(user.salt));
-  if (b64encode(hash) !== user.passwordHash) {
+  const hash = await pbkdf2(password, b64decode(user.salt), user.passwordIterations ?? 100_000);
+  if (!timingSafeEqual(b64encode(hash), user.passwordHash)) {
     await logAudit(env, request, { type: "login", email, success: false, error: "password" });
     return json({ ok: false, error: "Email yoki parol noto'g'ri" }, 401, origin);
   }
 
-  // Admin rolini ADMIN_EMAILS bilan sinxronlash
-  if (isAdminEmail(env, email) && user.role !== "admin") {
-    user.role = "admin";
+  // Legacy hashes are upgraded only after a successful password check.
+  if ((user.passwordIterations ?? 100_000) < 600_000) {
+    user.passwordHash = b64encode(await pbkdf2(password, b64decode(user.salt)));
+    user.passwordIterations = 600_000;
     user.updatedAt = Date.now();
     await putUser(env, user);
   }
 
   await logAudit(env, request, { type: "login", email, success: true });
   const token = await signJwt(
-    { sub: email, name: user.name, iat: Date.now(), exp: Date.now() + TOKEN_EXPIRES_MS },
+    { sub: email, name: user.name, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + TOKEN_EXPIRES_SEC, ver: user.sessionVersion ?? 0 },
     env.JWT_SECRET
   );
 
@@ -328,6 +310,7 @@ export async function getMe(env: AuthEnv, authHeader: string | null, origin: str
   const user = await getUser(env, payload.sub);
   if (!user) return json({ ok: false, error: "Foydalanuvchi topilmadi" }, 404, origin);
   if (user.banned) return json({ ok: false, error: "Akkaunt bloklangan" }, 403, origin);
+  if ((user.sessionVersion ?? 0) !== payload.ver) return json({ok: false, error: "Qayta kiring"}, 401, origin);
 
   return json({ ok: true, user: { email: user.email, name: user.name, role: user.role, profile: user.profile } }, 200, origin);
 }
@@ -335,9 +318,12 @@ export async function getMe(env: AuthEnv, authHeader: string | null, origin: str
 export async function syncProfile(
   env: AuthEnv,
   authHeader: string | null,
-  body: { profile?: Partial<User["profile"]> },
+  input: unknown,
   origin: string | null = null
 ): Promise<Response> {
+  const parsed = profileInput.safeParse(input);
+  if (!parsed.success) return json({ok: false, error: "Profil ma’lumotlari noto‘g‘ri"}, 400, origin);
+  const body = parsed.data;
   if (!authHeader?.startsWith("Bearer ")) return json({ ok: false, error: "Avtorizatsiya kerak" }, 401, origin);
   const token = authHeader.slice(7);
   const payload = await verifyJwt(token, env.JWT_SECRET);
@@ -346,6 +332,7 @@ export async function syncProfile(
   const user = await getUser(env, payload.sub);
   if (!user) return json({ ok: false, error: "Foydalanuvchi topilmadi" }, 404, origin);
   if (user.banned) return json({ ok: false, error: "Akkaunt bloklangan" }, 403, origin);
+  if ((user.sessionVersion ?? 0) !== payload.ver) return json({ok: false, error: "Qayta kiring"}, 401, origin);
 
   if (body.profile) {
     if (Array.isArray(body.profile.games)) user.profile.games = body.profile.games.slice(0, 5000);
@@ -363,16 +350,20 @@ async function getAdminFromToken(env: AuthEnv, authHeader: string | null): Promi
   const payload = await verifyJwt(authHeader.slice(7), env.JWT_SECRET);
   if (!payload) return null;
   const user = await getUser(env, payload.sub);
-  if (!user || user.banned || user.role !== "admin") return null;
+  if (!user || user.banned || user.role !== "admin" || !user.adminGrantedAt
+    || !isAdminEmail(env, user.email) || (user.sessionVersion ?? 0) !== payload.ver) return null;
   return user;
 }
 
 export async function adminBan(
   env: AuthEnv,
   authHeader: string | null,
-  body: { email?: string; banned?: boolean },
+  input: unknown,
   origin: string | null = null
 ): Promise<Response> {
+  const parsed = banInput.safeParse(input);
+  if (!parsed.success) return json({ok: false, error: "Email va bloklash holatini tekshiring"}, 400, origin);
+  const body = parsed.data;
   const admin = await getAdminFromToken(env, authHeader);
   if (!admin) return json({ ok: false, error: "Ruxsat yo'q" }, 403, origin);
 
@@ -384,6 +375,7 @@ export async function adminBan(
   if (user.email === admin.email) return json({ ok: false, error: "O'zingizni bloklay olmaysiz" }, 400, origin);
 
   user.banned = body.banned === true;
+  user.sessionVersion = (user.sessionVersion ?? 0) + 1;
   user.updatedAt = Date.now();
   await putUser(env, user);
   await logAudit(env, null, { type: "ban", admin: admin.email, target: user.email, banned: user.banned });
@@ -394,24 +386,25 @@ export async function adminBan(
 export async function adminListUsers(
   env: AuthEnv,
   authHeader: string | null,
-  origin: string | null = null
+  origin: string | null = null,
+  cursor?: string
 ): Promise<Response> {
   const admin = await getAdminFromToken(env, authHeader);
   if (!admin) return json({ ok: false, error: "Ruxsat yo'q" }, 403, origin);
 
-  const list = await env.OQIM_USERS.list({ prefix: USER_PREFIX });
+  const list = await env.OQIM_USERS.list({ prefix: USER_PREFIX, limit: 50, cursor });
   const users: { email: string; name: string; role: string; banned: boolean; createdAt: number }[] = [];
-  for (const key of list.keys) {
+  await Promise.all(list.keys.map(async (key) => {
     const raw = await env.OQIM_USERS.get(key.name);
-    if (!raw) continue;
+    if (!raw) return;
     try {
       const u = JSON.parse(raw) as User;
       users.push({ email: u.email, name: u.name, role: u.role, banned: u.banned, createdAt: u.createdAt });
     } catch {
       /* ignore */
     }
-  }
-  return json({ ok: true, users: users.sort((a, b) => b.createdAt - a.createdAt) }, 200, origin);
+  }));
+  return json({ ok: true, users: users.sort((a, b) => b.createdAt - a.createdAt), cursor: list.list_complete ? null : list.cursor }, 200, origin);
 }
 
 /* ---------------- Onlayn o'yin natijalari ---------------- */

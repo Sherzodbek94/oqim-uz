@@ -18,6 +18,7 @@ import {
   type LeaderboardEnv,
   type OnlineRoom,
 } from "./game/online";
+import { isAllowedOrigin } from "./http";
 
 interface Env extends LeaderboardEnv {
   GAME_ROOM: DurableObjectNamespace;
@@ -25,6 +26,8 @@ interface Env extends LeaderboardEnv {
 
 interface AttachMeta {
   token: string;
+  windowStart?: number;
+  count?: number;
 }
 
 type ClientMsg =
@@ -98,6 +101,7 @@ export class GameRoom {
     await this.save();
     await this.syncDeadline();
     this.broadcast();
+    if (this.room?.phase === "finished" && !this.room.globalResultRecorded) await this.publishResult();
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -106,9 +110,14 @@ export class GameRoom {
     // Ichki init — Worker yangi xona yaratganda chaqiradi
     if (request.method === "POST" && url.pathname === "/init") {
       const body = (await request.json()) as { code: string; settings: { timerSec: 60 | 120; bots: number }; hostName: string; hostToken: string };
-      this.room = createRoom(body.code, body.settings, body.hostName, body.hostToken);
-      await this.save();
-      return Response.json({ ok: true });
+      const created = await this.ctx.storage.transaction(async tx => {
+        if (await tx.get("room")) return false;
+        const next = createRoom(body.code, body.settings, body.hostName, body.hostToken);
+        await tx.put("room", next);
+        this.room = next;
+        return true;
+      });
+      return Response.json({ ok: created }, {status: created ? 201 : 409});
     }
 
     const room = await this.load();
@@ -131,13 +140,26 @@ export class GameRoom {
     }
     if (!room) return new Response("Xona topilmadi", { status: 404 });
 
+    const origin = request.headers.get("Origin");
+    if (!origin || !isAllowedOrigin(origin)) return new Response("Ruxsat yo‘q", {status: 403});
+    if (this.ctx.getWebSockets().length >= 12) return new Response("Xona ulanish limiti", {status: 429});
+
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
+    server.serializeAttachment({token: "", windowStart: Date.now(), count: 0} satisfies AttachMeta);
     return new Response(null, { status: 101, webSocket: client });
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    if ((typeof message === "string" ? new TextEncoder().encode(message).byteLength : message.byteLength) > 4096) {
+      ws.close(1009, "Xabar juda katta"); return;
+    }
+    const rate = (ws.deserializeAttachment() as AttachMeta | null) ?? {token: ""};
+    if (!rate.windowStart || Date.now() - rate.windowStart >= 10_000) { rate.windowStart = Date.now(); rate.count = 0; }
+    rate.count = (rate.count ?? 0) + 1;
+    ws.serializeAttachment(rate);
+    if (rate.count > 30) { ws.close(1008, "Xabarlar limiti"); return; }
     let msg: ClientMsg;
     try {
       const parsed: unknown = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message));
@@ -175,7 +197,7 @@ export class GameRoom {
       }
       player.connected = true;
       player.name = (msg.name || player.name).slice(0, 16);
-      ws.serializeAttachment({ token: player.token } satisfies AttachMeta);
+      ws.serializeAttachment({ ...rate, token: player.token } satisfies AttachMeta);
       await this.afterChange();
       return;
     }
@@ -195,7 +217,7 @@ export class GameRoom {
       if (!r.ok) return this.send(ws, { t: "error", error: r.error });
       await this.afterChange();
       if (room.phase === "finished") {
-        await recordGlobalResult(this.env, room);
+        await this.publishResult();
         this.broadcast({ t: "end", winnerId: room.winnerId });
       }
       return;
@@ -228,17 +250,29 @@ export class GameRoom {
   /** Navbat taymeri — vaqt tugaganda avtomatik harakat. */
   async alarm(): Promise<void> {
     const room = await this.load();
+    if (room?.phase === "finished") { await this.publishResult(); return; }
     if (!room || room.phase !== "playing") return;
     const now = Date.now();
     if (room.deadline && now >= room.deadline - 250) {
       onTimeout(room, now);
       await this.afterChange();
       if ((room.phase as string) === "finished") {
-        await recordGlobalResult(this.env, room);
+        await this.publishResult();
         this.broadcast({ t: "end", winnerId: room.winnerId });
       }
     } else if (room.deadline) {
       await this.syncDeadline();
+    }
+  }
+
+  private async publishResult(): Promise<void> {
+    if (!this.room) return;
+    try {
+      await recordGlobalResult(this.env, this.room);
+      await this.save();
+    } catch {
+      console.error(JSON.stringify({event: "result_write_failed", code: this.room.code}));
+      await this.ctx.storage.setAlarm(Date.now() + 30_000);
     }
   }
 }

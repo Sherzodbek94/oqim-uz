@@ -62,13 +62,29 @@
 /* Desktop board must fit below the header and above the mobile/action controls.
    The square SVG keeps its aspect ratio while its width follows the viewport
    height, preventing the central board from forcing page overflow. */
-.game-board {
+.board-layout {
+  position: relative;
+  container-type: inline-size;
   width: 100%;
   min-width: 0;
 }
+.game-board { width: 100%; min-width: 0; }
+.board-controls { margin-top: 1rem; }
+.board-cell-caption { display: none; }
+@container (min-width: 600px) {
+  .board-controls {
+    position: absolute;
+    inset: 32% 19% 18%;
+    margin-top: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .board-mobile-status, .board-cell-number { display: none; }
+  .board-cell-caption { display: block; }
+}
 
 @media (min-width: 1024px) {
-  .game-board {
+  .board-layout {
     /* The board fills the space left by the report panel, while the viewport
        height keeps the complete square readable without page overflow. */
     width: min(100%, calc(100dvh - 116px));

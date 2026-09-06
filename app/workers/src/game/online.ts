@@ -46,10 +46,8 @@ export function makeRoomCode(rand: () => number = Math.random): string {
   return s;
 }
 
-export function makeToken(rand: () => number = Math.random): string {
-  let s = "";
-  for (let i = 0; i < 24; i++) s += CODE_ALPHABET[Math.floor(rand() * CODE_ALPHABET.length)].toLowerCase();
-  return s;
+export function makeToken(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
 }
 
 export interface RoomSettings {
@@ -635,13 +633,12 @@ const LEADERBOARD_MAX_AGE_SECONDS = 90 * 24 * 60 * 60; // 90 kun
 /** Bitta tugagan o'yinni global leaderboard ga yozadi. */
 export async function recordGlobalResult(env: LeaderboardEnv, room: OnlineRoom, now = Date.now()): Promise<void> {
   if (!room.game || room.phase !== "finished" || room.globalResultRecorded) return;
-  room.globalResultRecorded = true;
   const winner = room.winnerId !== null ? room.game.players.find((p) => p.id === room.winnerId) ?? null : null;
   const humans = room.players.filter((p) => !p.isBot);
   const entry: LeaderboardEntry = {
-    id: `${room.code}:${now}`,
+    id: `${room.code}:${room.createdAt}`,
     code: room.code,
-    finishedAt: now,
+    finishedAt: room.results.at(-1)?.finishedAt ?? now,
     createdAt: room.createdAt,
     winnerId: room.winnerId,
     winnerName: winner?.name ?? null,
@@ -659,22 +656,24 @@ export async function recordGlobalResult(env: LeaderboardEnv, room: OnlineRoom, 
   await env.OQIM_USERS.put(`${LEADERBOARD_PREFIX}${entry.id}`, JSON.stringify(entry), {
     expirationTtl: LEADERBOARD_MAX_AGE_SECONDS,
   });
+  room.globalResultRecorded = true;
 }
 
 /** Global leaderboard ni o'qiydi (so'nggi o'yinlar birinchi). */
 export async function getLeaderboard(env: LeaderboardEnv, limit = 50): Promise<LeaderboardEntry[]> {
-  const list = await env.OQIM_USERS.list({ prefix: LEADERBOARD_PREFIX });
   const entries: LeaderboardEntry[] = [];
-  for (const key of list.keys) {
-    const raw = await env.OQIM_USERS.get(key.name);
-    if (!raw) continue;
-    try {
-      entries.push(JSON.parse(raw) as LeaderboardEntry);
-    } catch {
-      /* yomon yozuv */
-    }
-  }
-  entries.sort((a, b) => b.finishedAt - a.finishedAt);
+  let cursor: string | undefined;
+  do {
+    const list = await env.OQIM_USERS.list({ prefix: LEADERBOARD_PREFIX, limit: 50, cursor });
+    const page = await Promise.all(list.keys.map(async key => {
+      const raw = await env.OQIM_USERS.get(key.name);
+      try { return raw ? JSON.parse(raw) as LeaderboardEntry : null; } catch { return null; }
+    }));
+    entries.push(...page.filter((entry): entry is LeaderboardEntry => entry !== null));
+    entries.sort((a, b) => b.finishedAt - a.finishedAt);
+    entries.splice(limit);
+    cursor = list.list_complete ? undefined : list.cursor;
+  } while (cursor);
   return entries.slice(0, limit);
 }
 

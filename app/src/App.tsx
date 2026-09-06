@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router'
 import Layout from '@/components/Layout'
 import Home from '@/pages/Home'
-import Game from '@/pages/Game'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
 const Rules = lazy(() => import('@/pages/Rules'))
@@ -10,11 +9,13 @@ const Profile = lazy(() => import('@/pages/Profile'))
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const Online = lazy(() => import('@/pages/Online'))
+const Game = lazy(() => import('@/pages/Game'))
 
 function PageLoader() {
   return (
-    <div className="flex min-h-[50dvh] items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+    <div role="status" className="flex min-h-[50dvh] flex-col items-center justify-center gap-3">
+      <div aria-hidden="true" className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+      <p>Sahifa yuklanmoqda…</p>
     </div>
   )
 }

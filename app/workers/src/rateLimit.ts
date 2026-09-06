@@ -1,61 +1,32 @@
-/**
- * Oddiy KV asosida rate limiting.
- * Har bir IP uchun 15 daqiqalik oynada cheklangan so'rovlar soni.
- * Eslatma: KV eventuali consistency ga ega, shuning juda yuqori yukda
- * aniq emas. Production'da Cloudflare Rate Limiting qoidalari yoki
- * Durable Objects bilan global qat'iy limiter afzal.
- */
-
-export interface RateLimitEnv {
-  OQIM_USERS: KVNamespace;
-}
-
-const WINDOW_MS = 15 * 60 * 1000; // 15 daqiqa
-const MAX_ATTEMPTS = 10; // 15 daqiqada 10 ta auth urinish
-const MAX_ROOMS = 10; // 15 daqiqada 10 ta xona yaratish
-
-async function checkRateLimit(
-  env: RateLimitEnv,
-  k: string,
-  maxAttempts: number,
-  windowMs: number
-): Promise<{ ok: boolean; retryAfter?: number }> {
-  const now = Date.now();
-  const raw = await env.OQIM_USERS.get(k);
-  let data: { count: number; windowStart: number };
-
-  if (raw) {
-    try {
-      data = JSON.parse(raw) as typeof data;
-    } catch {
-      data = { count: 0, windowStart: now };
-    }
-  } else {
-    data = { count: 0, windowStart: now };
+import { HttpError } from "./http";
+export interface RateLimitEnv { OQIM_USERS: KVNamespace; RATE_LIMITER: DurableObjectNamespace; }
+type Limit = {ok: boolean; retryAfter?: number};
+const WINDOW = 15 * 60 * 1000;
+/** One strongly consistent Durable Object per hashed IP and operation. */
+export class RateLimiter {
+  constructor(private ctx: DurableObjectState) {}
+  async fetch(): Promise<Response> {
+    const now = Date.now();
+    const result = await this.ctx.storage.transaction(async tx => {
+      let bucket = await tx.get<{count: number; until: number}>("bucket");
+      if (!bucket || bucket.until <= now) bucket = {count: 0, until: now + WINDOW};
+      if (bucket.count >= 10) return {ok: false, retryAfter: Math.ceil((bucket.until - now) / 1000)};
+      bucket.count++;
+      await tx.put("bucket", bucket);
+      await tx.setAlarm(bucket.until);
+      return {ok: true};
+    });
+    return Response.json(result);
   }
-
-  if (now - data.windowStart > windowMs) {
-    data = { count: 0, windowStart: now };
-  }
-
-  data.count += 1;
-
-  // TTL ni qolgan vaqtga moslashtirish
-  const ttlSeconds = Math.ceil((windowMs - (now - data.windowStart)) / 1000);
-  await env.OQIM_USERS.put(k, JSON.stringify(data), { expirationTtl: Math.max(60, ttlSeconds) });
-
-  if (data.count > maxAttempts) {
-    const retryAfter = Math.ceil((data.windowStart + windowMs - now) / 1000);
-    return { ok: false, retryAfter };
-  }
-
-  return { ok: true };
+  async alarm(): Promise<void> { await this.ctx.storage.delete("bucket"); }
 }
-
-export async function checkAuthRateLimit(env: RateLimitEnv, ip: string): Promise<{ ok: boolean; retryAfter?: number }> {
-  return checkRateLimit(env, `ratelimit:auth:${ip}`, MAX_ATTEMPTS, WINDOW_MS);
+async function check(env: RateLimitEnv, operation: string, ip: string): Promise<Limit> {
+  if (!env.RATE_LIMITER) throw new HttpError(503, "Server himoyasi sozlanmoqda. Keyinroq urinib ko‘ring.");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(operation + ":" + ip));
+  const key = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+  const response = await env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName(key)).fetch("https://limit/check");
+  if (!response.ok) throw new HttpError(503, "So‘rovni tekshirish imkoni bo‘lmadi");
+  return response.json<Limit>();
 }
-
-export async function checkRoomsRateLimit(env: RateLimitEnv, ip: string): Promise<{ ok: boolean; retryAfter?: number }> {
-  return checkRateLimit(env, `ratelimit:rooms:${ip}`, MAX_ROOMS, WINDOW_MS);
-}
+export const checkAuthRateLimit = (env: RateLimitEnv, ip: string) => check(env, "auth", ip);
+export const checkRoomsRateLimit = (env: RateLimitEnv, ip: string) => check(env, "rooms", ip);

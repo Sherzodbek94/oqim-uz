@@ -29,7 +29,7 @@ import {
   type WeekendChoice,
 } from "./engine";
 import { SECURITIES, buySecurity, securityById, sellSecurity } from "./exchange";
-import { formatUZSCompact } from "@/lib/format";
+import { formatUZSCompact } from "../format";
 
 export interface BotDecision {
   buy: boolean;

@@ -57,6 +57,7 @@ import OqimGauge from "@/components/OqimGauge";
 import MoneyDisplay from "@/components/MoneyDisplay";
 import { PLAYER_COLORS } from "@/components/PlayerToken";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { formatDelta, formatUZSCompact, formatUZS } from "@/lib/format";
 import { g } from "@/lib/game/strings";
 import {
@@ -77,7 +78,7 @@ import {
   installmentPayoffAmount,
   loanPayments,
   managerCost,
-  monthlyCashflow,
+  financeSummary,
   passiveIncome,
   quadrantLevel,
   totalAssetMarketValue,
@@ -540,7 +541,8 @@ function ReportTab({
 }) {
   const passive = passiveIncome(p, { news, exchange });
   const expenses = totalExpenses(p);
-  const cf = monthlyCashflow(p, { news, exchange });
+  const summary = financeSummary(p, { news, exchange });
+  const cf = summary.net;
   const ability = abilityOf(p);
   const dividends = portfolioDividends(p, exchange);
   const salary = effectiveSalary(p);
@@ -554,14 +556,27 @@ function ReportTab({
   const clientsIncome = clientIncome(p);
   return (
     <div className="space-y-3">
+      <section aria-label="Asosiy moliyaviy holat" className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+        <h4 className="mb-2 font-semibold text-ink-900">Asosiy</h4>
+        <Row label="Naqd pul" value={p.cash} bold />
+        <Row label="Sof naqd oqim" value={cf} tone={cf >= 0 ? "good" : "bad"} bold />
+        <Row label="Jami xarajat" value={-expenses} tone="bad" />
+        <Row label="Passiv daromad" value={passive + p.ftCashflow} tone="good" />
+        <Row label="Qarz qoldig‘i" value={summary.debt} tone={summary.debt > 0 ? "bad" : "neutral"} />
+        <p className="mt-2 text-sm text-ink-600">Oqim, daromad va xarajat — oyiga.</p>
+      </section>
+      <details className="rounded-2xl border border-sand-200 p-3">
+        <summary className="cursor-pointer py-2 font-semibold text-emerald-700">Batafsil hisobot va maqsadlar</summary>
+        <div className="mt-3 space-y-3">
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3" aria-label="Asosiy moliyaviy ko'rsatkichlar">
         <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-emerald-700">Asosiy ko'rsatkichlar</p>
         <div className="space-y-0.5">
-          <Row label={g.statement.salarySummary} value={salary} tone="good" />
+          <Row label={g.statement.salaryByQuadrant[p.quadrant] ?? g.statement.salarySummary} value={salary} tone="good" />
           <Row label={g.statement.passiveSummary} value={passiveExcludingInvestments} tone="good" />
           <Row label={g.statement.investmentSummary} value={dividends} tone="info" />
+          {p.ftCashflow !== 0 && <Row label="Erkinlik yo‘li daromadi" value={p.ftCashflow} tone="good" />}
           <Row label={g.statement.totalIncome} value={totalIncome} tone="good" bold />
-          <Row label={g.statement.totalExpenses} value={expenses} tone="bad" bold />
+          <Row label={g.statement.totalExpenses} value={-expenses} tone="bad" bold />
           <div className={cn("rounded-xl", cf >= 0 ? "bg-white/70" : "bg-clay-50")}>
             <Row label={g.statement.netCashflow} value={cf} tone={cf >= 0 ? "good" : "bad"} bold />
           </div>
@@ -575,8 +590,9 @@ function ReportTab({
           </div>
           <p className="mt-1 text-[11px] leading-snug text-ink-500">{g.statement.businessHint}</p>
           <div className="mt-2 space-y-0.5">
-            <Row label={g.statement.businessRevenue} value={businessRevenue} tone="good" />
-            <Row label={g.statement.businessCosts} value={businessCosts} tone="bad" />
+            <Row label="Bazaviy tushum" value={businessRevenue} tone="good" />
+            <Row label="Bazaviy operatsion xarajat" value={-businessCosts} tone="bad" />
+            <Row label="Hodisa va bozor ta’siri" value={businessNet - (businessRevenue - businessCosts)} tone="info" />
             <Row label={g.statement.businessNet} value={businessNet} tone={businessNet >= 0 ? "good" : "bad"} bold />
           </div>
           <div className="mt-2 space-y-1 border-t border-gold-200/70 pt-2">
@@ -747,6 +763,8 @@ function ReportTab({
       <p className="text-right text-caption text-ink-400">
         {formatUZS(cf)} {g.statement.perMonth}
       </p>
+        </div>
+      </details>
     </div>
   );
 }
@@ -1365,7 +1383,7 @@ const TABS = [
   { id: "log", label: g.statement.tabLog },
 ] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+export type TabId = (typeof TABS)[number]["id"];
 
 export default function StatementPanel({
   state,
@@ -1380,6 +1398,7 @@ export default function StatementPanel({
   onOpenKnowledge,
   onOfferWork,
   requestedTab,
+  onTabChange,
 }: {
   state: GameState;
   humanId: number;
@@ -1395,13 +1414,19 @@ export default function StatementPanel({
   onOpenKnowledge?: () => void;
   /** fix-12: mijozga ish taklifi — faqat inson o'yinchiga */
   onOfferWork?: (clientId: string) => void;
-  requestedTab?: "report" | "assets";
+  requestedTab?: TabId;
+  onTabChange?: (tab: TabId) => void;
 }) {
   const [tab, setTab] = useState<TabId>("report");
   const [peekBot, setPeekBot] = useState<number | null>(null);
   // Forced sale is a view constraint, not an effect-driven state transition.
   // Deriving the active tab avoids a cascading render when the flag changes.
   const activeTab: TabId = forcedSell ? "assets" : requestedTab ?? tab;
+  const selectTab = (value: string) => {
+    if (forcedSell || !TABS.some(t => t.id === value)) return;
+    setTab(value as TabId);
+    onTabChange?.(value as TabId);
+  };
 
   const human = state.players.find((p) => p.id === humanId) ?? state.players[0];
   const shown = peekBot !== null ? state.players.find((p) => p.id === peekBot) ?? human : human;
@@ -1441,29 +1466,23 @@ export default function StatementPanel({
       </div>
 
       {/* tabs */}
-      <div className="mx-4 mb-3 flex rounded-full bg-sand-100 p-1">
+      <Tabs value={activeTab} onValueChange={selectTab} className="mx-4 mb-3 flex min-h-0 flex-1 flex-col">
+      <TabsList aria-label="Hisobot bo‘limlari" className="h-auto w-full flex-wrap justify-start rounded-xl bg-sand-100 p-1">
         {TABS.map((t) => (
-          <button
+          <TabsTrigger
             key={t.id}
-            onClick={() => setTab(t.id)}
+            value={t.id}
+            disabled={forcedSell && t.id !== "assets"}
             className={cn(
               "relative flex-1 rounded-full py-1.5 text-sm font-medium transition-colors",
               activeTab === t.id ? "text-ink-900" : "text-ink-400 hover:text-ink-600"
             )}
           >
-            {activeTab === t.id && (
-              <motion.span
-                layoutId="stmt-tab"
-                className="absolute inset-0 rounded-full bg-white shadow-card"
-                transition={{ type: "spring", stiffness: 400, damping: 32 }}
-              />
-            )}
             <span className="relative">{t.label}</span>
-          </button>
+          </TabsTrigger>
         ))}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
+      </TabsList>
+      <TabsContent value={activeTab} className="min-h-0 flex-1 overflow-y-auto pb-6">
         {activeTab === "report" && (
           <>
             {shown.escaped && dream && (
@@ -1510,7 +1529,8 @@ export default function StatementPanel({
         {activeTab === "portfolio" && <PortfolioTab p={shown} exchange={state.exchange} />}
         {activeTab === "lessons" && <LessonsTab p={shown} />}
         {activeTab === "log" && <LogTab state={state} />}
-      </div>
+      </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -666,8 +666,10 @@ export default function SetupScreen({ onComplete }: { onComplete: (r: SetupResul
                 exit={{ x: -60, opacity: 0 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               >
-                <label className="block text-caption text-ink-400">{g.setup.yourName}</label>
+                <label htmlFor="player-name" className="block text-caption text-ink-400">{g.setup.yourName}</label>
                 <input
+                  id="player-name"
+                  autoComplete="nickname"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={g.setup.namePlaceholder}

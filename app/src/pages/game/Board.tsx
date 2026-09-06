@@ -81,6 +81,15 @@ const GOLD = "#D9A441";
 const GOLD_DEEP = "#B98428";
 const WARM_BORDER = "#EFE5D0";
 
+function readableCellText(hex: string): string {
+  const rgb = hex.replace("#", "").match(/.{2}/g)!.map((channel) => {
+    const value = parseInt(channel, 16) / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+  return luminance > 0.179 ? "#000000" : "#ffffff";
+}
+
 type Side = "top" | "right" | "bottom" | "left";
 
 export interface CellRect {
@@ -159,13 +168,6 @@ export interface BoardPlayer {
 }
 
 /** Katak nomi uchun shrift o'lchami (1000-space) — uzun nomlar kichikroq. */
-function captionSize(name: string, corner: boolean): number {
-  if (corner) return name.length > 7 ? 17 : 20;
-  if (name.length > 7) return 13.5;
-  if (name.length > 5) return 15.5;
-  return 17.5;
-}
-
 export default function Board({
   track,
   players,
@@ -187,6 +189,10 @@ export default function Board({
 }) {
   const cells = track === "rat" ? RAT_CELLS : FT_CELLS;
   const fast = track === "fast";
+  const [selectedCell, setSelectedCell] = useState<number | null>(null);
+  const active = players.find(p => p.player.id === activePlayerId) ?? players[0];
+  const selected = Math.min(selectedCell ?? active?.cell ?? 0, cells.length - 1);
+  const selectedFull = fast ? FT_CELL_FULL[cells[selected] as FTCellType] : CELL_FULL[cells[selected] as CellType];
   const rects = fast
     ? perimeterLayout(5, 5)
     : perimeterLayout(RAT_BOARD_COLS, RAT_BOARD_ROWS);
@@ -212,6 +218,7 @@ export default function Board({
   }
 
   return (
+    <div className="board-layout">
     <div
       className="game-board rounded-[28px] p-2 sm:p-2.5"
       style={{
@@ -377,7 +384,7 @@ export default function Board({
         className="pointer-events-none absolute inset-x-0 top-[17.8%] flex flex-col items-center"
       >
         <span
-          className="hidden aspect-square w-[clamp(30px,4vw,52px)] sm:block"
+          className="hidden aspect-square w-6 sm:block"
           style={{
             backgroundColor: GOLD,
             WebkitMask: "url(/star-8.svg) center / contain no-repeat",
@@ -389,7 +396,7 @@ export default function Board({
           className="mt-0.5 font-display font-bold leading-none tracking-tight sm:mt-1.5"
           style={{
             color: fast ? GOLD_DEEP : "#24604A",
-            fontSize: "clamp(1rem, 3.6vw, 2.6rem)",
+            fontSize: "clamp(1rem, 3.6vw, 1.75rem)",
           }}
         >
           OQIM
@@ -397,75 +404,42 @@ export default function Board({
         <span
           className="mt-0.5 font-sans font-semibold uppercase sm:mt-1"
           style={{
-            color: fast ? GOLD_DEEP : "#8A9992",
-            fontSize: "clamp(0.42rem, 1vw, 0.72rem)",
-            letterSpacing: "0.32em",
+            color: "#51635D",
+            fontSize: "0.75rem",
+            letterSpacing: "0.08em",
           }}
         >
           {fast ? "ERKINLIK YO'LI" : "KUNDALIK AYLANA"}
         </span>
       </div>
 
+      <div className="absolute inset-0">
+        {cells.map((cell, i) => {
+          const rect = rects[i];
+          const Icon = fast ? FT_CELL_ICONS[cell as FTCellType] : CELL_ICONS[cell as CellType];
+          const full = fast ? FT_CELL_FULL[cell as FTCellType] : CELL_FULL[cell as CellType];
+          const caption = fast ? FT_CELL_CAPTIONS[cell as FTCellType] : CELL_CAPTIONS[cell as CellType];
+          return <button key={i} type="button" aria-label={`${i + 1}-katak: ${full}`} aria-pressed={selected === i}
+            onClick={() => setSelectedCell(i)}
+            className={cn("board-cell absolute flex flex-col items-center justify-center gap-0.5 rounded-lg focus-visible:z-30 focus-visible:outline-white", selected === i && "ring-2 ring-inset ring-white", fast && dreamGlowCell === i && "ring-4 ring-inset ring-gold-400")}
+            style={{color: readableCellText(rect.corner ? CORNER_FILL : fast ? FT_CELL_COLORS[cell as FTCellType] : CELL_COLORS[cell as CellType]), left: `${rect.x / 10}%`, top: `${rect.y / 10}%`, width: `${rect.w / 10}%`, height: `${rect.h / 10}%`}}>
+            <Icon aria-hidden="true" className="h-[clamp(14px,2.5cqw,24px)] w-[clamp(14px,2.5cqw,24px)]" />
+            <span className="board-cell-number text-xs leading-none">{i + 1}</span>
+            <span className="board-cell-caption text-xs font-semibold leading-tight">{caption}</span>
+          </button>;
+        })}
+      </div>
+      <div className="board-mobile-status pointer-events-none absolute inset-x-[20%] top-[42%] text-center">
+        <p className="text-sm font-semibold text-emerald-700">{active?.player.name}</p>
+        <p className="mt-1 text-sm text-ink-600">Joriy joy: {(active?.cell ?? 0) + 1}-katak</p>
+        <p className="mt-2 text-sm text-ink-600">Izoh uchun katakni bosing</p>
+      </div>
       {/* 1000-space overlay (icons, captions, tokens) */}
       {scale > 0 && (
         <div
-          className="absolute left-0 top-0"
+          className="pointer-events-none absolute left-0 top-0"
           style={{ width: BOARD, height: BOARD, transform: `scale(${scale})`, transformOrigin: "0 0" }}
         >
-          {cells.map((cell, i) => {
-            const r = rects[i];
-            const caption = fast
-              ? FT_CELL_CAPTIONS[cell as FTCellType]
-              : CELL_CAPTIONS[cell as CellType];
-            const full = fast
-              ? FT_CELL_FULL[cell as FTCellType]
-              : CELL_FULL[cell as CellType];
-            const Icon = fast
-              ? FT_CELL_ICONS[cell as FTCellType]
-              : CELL_ICONS[cell as CellType];
-            const isDreamGlow = fast && dreamGlowCell === i;
-            const iconSize = r.corner ? 40 : 28;
-            // burchaklar: oltin ikon + krem matn; oddiy kafellar: oq
-            const fg = r.corner ? GOLD : "#FFFFFF";
-            const textFg = r.corner ? "#F7ECD2" : "#FFFFFF";
-            return (
-              <div
-                key={i}
-                title={fast ? full : `${full} — ${cell === "payday" ? "Bu yerda daromad olasiz" : cell === "opportunity" ? "Bu yerda aktiv sotib olish mumkin" : cell === "doodad" ? "Bu katak xavfli: kutilmagan xarajat" : cell === "event" ? "Bu yerda muhim qaror bo'lishi mumkin" : ""}`}
-                className="absolute flex cursor-default flex-col items-center"
-                style={{ left: r.cx, top: r.cy, transform: "translate(-50%, -50%)" }}
-              >
-                {fast && cell === "dream" ? (
-                  <motion.span
-                    className={cn("block h-8 w-8", isDreamGlow && "drop-shadow-[0_0_10px_rgba(217,164,65,0.9)]")}
-                    animate={isDreamGlow ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-                    transition={isDreamGlow ? { repeat: Infinity, duration: 2 } : { duration: 0.2 }}
-                    style={{
-                      backgroundColor: fg,
-                      WebkitMask: "url(/star-8.svg) center / contain no-repeat",
-                      mask: "url(/star-8.svg) center / contain no-repeat",
-                    }}
-                  />
-                ) : (
-                  <Icon
-                    style={{ color: fg, width: iconSize, height: iconSize, filter: "drop-shadow(0 1px 1px rgba(0,0,0,.25))" }}
-                    strokeWidth={2}
-                  />
-                )}
-                <span
-                  className="mt-0.5 whitespace-nowrap font-sans font-semibold"
-                  style={{
-                    color: textFg,
-                    fontSize: captionSize(caption, r.corner),
-                    letterSpacing: "0.02em",
-                    textShadow: "0 1px 2px rgba(0,0,0,.3)",
-                  }}
-                >
-                  {caption}
-                </span>
-              </div>
-            );
-          })}
 
           {/* walking tokens (on top of the cells, fan-out when sharing) */}
           {[...groups.entries()].map(([cell, list]) => {
@@ -506,7 +480,7 @@ export default function Board({
                         <PlayerToken
                           name={bp.player.name}
                           colorIndex={bp.player.colorIndex}
-                          size={52}
+                          size={Math.max(52, 28 / scale)}
                           active={active}
                           className={cn(bp.player.bankrupt && "grayscale opacity-50")}
                         />
@@ -549,7 +523,9 @@ export default function Board({
 
       {/* hub content (real CSS pixels, centered) — fix-10: positioning wrapper alohida,
           chunki framer-motion inline transform Tailwind translate'ni ezardi (hub o'ngga siljardi) */}
-      <div className="absolute left-1/2 top-1/2 w-[52%] max-w-[340px] -translate-x-1/2 -translate-y-1/2">
+    </div>
+    </div>
+      <div className="board-controls">
         <motion.div
           className="flex flex-col items-center justify-center text-center"
           initial={{ opacity: 0, y: 20 }}
@@ -557,9 +533,13 @@ export default function Board({
           transition={{ delay: 0.65, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
           {hub}
+          <div className="mt-3 w-full rounded-xl border border-sand-200 bg-white/90 p-3 text-left text-sm text-ink-600">
+            <p className="font-semibold text-ink-900">{selected + 1}-katak</p>
+            <p>{selectedFull}</p>
+            {selectedCell !== null && <button className="mt-1 min-h-8 font-semibold text-emerald-700 underline" onClick={() => setSelectedCell(null)}>Joriy joyga qaytish</button>}
+          </div>
         </motion.div>
       </div>
-    </div>
     </div>
   );
 }

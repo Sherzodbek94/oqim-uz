@@ -28,6 +28,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogPortal, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
+import { Content as DialogContentPrimitive } from "@radix-ui/react-dialog";
 import { formatUZS, formatUZSCompact } from "@/lib/format";
 import { g } from "@/lib/game/strings";
 import { BANK_LOAN_MONTHS, DREAM_HOLD_MONTHS, INSTALLMENT_MIN_PRICE, LOAN_RATE_YEAR, MAX_DOODAD_DEFERS, SCORE_DEAL_MIN } from "@/lib/game/types";
@@ -121,91 +123,29 @@ export interface ModalHandlers {
   onFTInfoDone: () => void;
 }
 
-function useIsMobile(): boolean {
-  const [m, setM] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 1023px)").matches : false
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
-    const fn = () => setM(mq.matches);
-    mq.addEventListener("change", fn);
-    return () => mq.removeEventListener("change", fn);
-  }, []);
-  return m;
-}
-
-/* ---------------- Modal shell ---------------- */
-
-export function ModalShell({
-  children,
-  wide,
-  xl,
-  onClose,
-}: {
-  children: ReactNode;
-  wide?: boolean;
-  /** 720px — birja kabi keng jadvallar uchun */
-  xl?: boolean;
-  /** Berilsa: backdrop bosilsa yopiladi + har doim ko'rinadigan X tugmasi chiqadi */
-  onClose?: () => void;
+/** Accessible, non-dismissible for unresolved decisions; optional close for utilities. */
+export function ModalShell({ children, wide, xl, onClose }: {
+  children: ReactNode; wide?: boolean; xl?: boolean; onClose?: () => void;
 }) {
-  const mobile = useIsMobile();
   return (
-    <motion.div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-ink-900/35 backdrop-blur-sm lg:items-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      onClick={
-        onClose
-          ? (e) => {
-              if (e.target === e.currentTarget) onClose();
-            }
-          : undefined
-      }
-    >
-      <motion.div
-        className={cn(
-          "w-full bg-white shadow-modal",
-          mobile
-            ? "max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-3xl"
-            : cn(
-                "max-h-[90vh] overflow-y-auto overscroll-contain rounded-3xl",
-                xl ? "max-w-[720px]" : wide ? "max-w-[560px]" : "max-w-[420px]"
-              )
-        )}
-        initial={mobile ? { y: "100%" } : { scale: 0.92, opacity: 0 }}
-        animate={mobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-        exit={mobile ? { y: "100%" } : { scale: 0.94, opacity: 0 }}
-        transition={
-          mobile
-            ? { type: "spring", stiffness: 320, damping: 32 }
-            : { duration: 0.25, ease: [0.22, 1, 0.36, 1] }
-        }
-        drag={mobile ? "y" : false}
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.4 }}
-      >
-        {mobile && (
-          <div className="sticky top-0 z-10 flex justify-center bg-white pb-1 pt-2">
-            <span className="h-1.5 w-10 rounded-full bg-sand-200" />
-          </div>
-        )}
-        {onClose && (
-          <div className="sticky top-3 z-20 -mb-11 flex justify-end pr-3">
-            <button
-              onClick={onClose}
-              aria-label="Yopish"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-sand-200 bg-white/95 text-ink-600 shadow-card transition-colors hover:bg-sand-100 hover:text-ink-900"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-        {children}
-      </motion.div>
-    </motion.div>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose?.(); }}>
+      <DialogPortal>
+        <DialogOverlay className="z-[70] bg-ink-900/40 backdrop-blur-sm" />
+        <DialogContentPrimitive
+          aria-describedby={undefined}
+          onEscapeKeyDown={(event) => { if (!onClose) event.preventDefault(); }}
+          onInteractOutside={(event) => { if (!onClose) event.preventDefault(); }}
+          className={cn("fixed inset-x-0 bottom-0 z-[80] max-h-[90dvh] overflow-y-auto overscroll-contain rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-modal outline-none lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:w-[calc(100%-2rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl",
+            xl ? "lg:max-w-[720px]" : wide ? "lg:max-w-[560px]" : "lg:max-w-[420px]")}
+        >
+          <DialogTitle className="sr-only">O‘yin qarori</DialogTitle>
+          {onClose && <div className="sticky top-2 z-20 -mb-12 flex justify-end pr-2">
+            <button onClick={onClose} aria-label="Yopish" className="flex h-11 w-11 items-center justify-center rounded-full border border-sand-200 bg-white text-ink-600"><X className="h-5 w-5" /></button>
+          </div>}
+          {children}
+        </DialogContentPrimitive>
+      </DialogPortal>
+    </Dialog>
   );
 }
 
