@@ -2,7 +2,7 @@
  * OQIM — game engine (pure logic, no UI).
  * Functions mutate a draft Player/GameState — the controller clones state first.
  */
-import { startingBusiness } from "./business";
+import { startingBusiness, businessStage, operateBusiness, advanceBusinessMonth } from "./business";
 import type {
   ActiveNews,
   Asset,
@@ -1404,6 +1404,7 @@ export function applyPayday(
   month = 0
 ): PaydayResult {
   const notes: string[] = [];
+  notes.push(...advanceBusinessMonth(p));
   const dividends = exchange ? portfolioDividends(p, exchange) : 0;
   let amount = monthlyCashflow(p, { forPayday: true, news, exchange });
   // Avans olingan oyda oy kunida maoshdan aynan avans sifatida berilgan qism
@@ -1899,6 +1900,7 @@ export function takeLoanOffer(
 /** Qattiq eligibility shartlari (cooldown'dan tashqari barchasi) — C4 gate'lari bilan. */
 function eventGateOk(c: EventCard, p: Player): boolean {
   return (
+    (!c.businessStage || c.businessStage === businessStage(p)) &&
     (!c.requiresQuadrant || c.requiresQuadrant === p.quadrant) &&
     (!c.requiresQuadrants || c.requiresQuadrants.includes(p.quadrant)) &&
     (!c.requiresBusiness || p.assets.some((a) => a.kind === "business")) &&
@@ -1913,6 +1915,12 @@ function eventGateOk(c: EventCard, p: Player): boolean {
 }
 
 export function eligibleEvents(p: Player, recent: string[]): EventCard[] {
+  // Faol buyurtmaning keyingi bosqichi tasodifiy umumiy kartalar ortida yo'qolmasin.
+  const stage = businessStage(p);
+  if (stage && stage !== "offer") {
+    const followups = EVENT_CARDS.filter(c => c.businessStage === stage && eventGateOk(c, p));
+    if (followups.length) return followups;
+  }
   const pool = EVENT_CARDS.filter((c) => !recent.includes(c.id) && eventGateOk(c, p));
   if (pool.length > 0) return pool;
   // Fallback ham kvadrant gate'larini buzmasin: faqat umumiy hodisalar qaytadi.
@@ -1924,6 +1932,8 @@ export function eligibleEvents(p: Player, recent: string[]): EventCard[] {
 export function applyEvent(p: Player, card: EventCard, s?: GameState): string {
   const e = card.effect;
   switch (e.type) {
+    case "business-operation":
+      return operateBusiness(p, e.action);
     case "business-expansion": {
       const parent = p.assets.find((a) => a.kind === "business");
       if (p.quadrant !== "B" || !parent) return "Filial uchun mavjud biznes kerak";

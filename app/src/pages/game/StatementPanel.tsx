@@ -602,6 +602,13 @@ function ReportTab({
                   {a.title}{a.employees ? ` · ${a.employees} xodim` : ""} · {formatUZSCompact(assetCashflow(p, a, news))}/oy
                 </summary>
                 <div className="mt-2">
+                  <div className="mb-2 rounded-lg border border-gold-200 p-2 text-sm" aria-label="Qo'shimcha buyurtma holati">
+                    <p className="font-semibold">Qo'shimcha buyurtmalar</p>
+                    <p>Bo'sh quvvat: {(a.operations?.capacity ?? 20) - (a.operations?.usedCapacity ?? 0)} / {a.operations?.capacity ?? 20} birlik/oy</p>
+                    <p>Zaxira: {a.operations?.stock ?? 0} birlik · {formatUZSCompact((a.operations?.stock ?? 0) * 100_000)}</p>
+                    <p>{a.operations?.order ? `Faol buyurtma: ${a.operations.order.units} birlik · ${a.operations.order.monthsLeft} oy qoldi` : "Faol qo'shimcha buyurtma yo'q"}</p>
+                    <p className="mt-1">Boshqaruv qarorlari hodisa kartalarida beriladi. Zaxira xaridi bir martalik; buyurtma tushumi passiv daromadga qo'shilmaydi.</p>
+                  </div>
                   {a.monthlyRevenue !== undefined && <Row label="Tushum" value={a.monthlyRevenue} tone="good" />}
                   {a.operatingCostParts && <>
                     <Row label="Xodimlar maoshi" value={-a.operatingCostParts.payroll} tone="bad" />

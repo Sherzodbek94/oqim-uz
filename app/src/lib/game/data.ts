@@ -15,6 +15,7 @@ import type {
   WeekendCard,
 } from "./types";
 import { formatUZSCompact } from "../format";
+import { BUSINESS_EVENTS } from "./business-events";
 
 /* ---------------- Professions (game.md §2 balance table) ---------------- */
 
@@ -1546,6 +1547,7 @@ export const MARKET_CARDS: MarketCard[] = [
 /* ---------------- Hodisalar (game.md §7.4) ---------------- */
 
 export const EVENT_CARDS: EventCard[] = [
+  ...BUSINESS_EVENTS,
   {
     id: "inflation",
     title: "Inflyatsiya +8%",

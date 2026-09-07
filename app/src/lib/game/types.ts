@@ -199,6 +199,14 @@ export interface Installment {
 }
 
 export interface Asset {
+  /** Qo'shimcha buyurtmalar; bazaviy oylik faoliyatdan alohida. */
+  operations?: {
+    capacity: number;
+    usedCapacity: number;
+    stock: number;
+    hires: number;
+    order: { units: number; monthsLeft: number } | null;
+  };
   id: string;
   title: string;
   kind: AssetKind;
@@ -507,6 +515,7 @@ export interface MarketCard {
 }
 
 export type EventEffect =
+  | { type: "business-operation"; action: "accept" | "restock" | "deliver" | "cancel" | "hire" | "upgrade" }
   | { type: "business-expansion"; principal: number; monthlyRate: number; months: number }
   | { type: "inflation"; pct: number }
   /** cash change; negative amounts in a category get hero expense discounts */
@@ -602,6 +611,7 @@ export interface EventChoice {
 }
 
 export interface EventCard {
+  businessStage?: "offer" | "procure" | "deliver" | "capacity";
   id: string;
   title: string;
   desc: string;

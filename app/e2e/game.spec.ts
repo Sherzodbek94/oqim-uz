@@ -3,23 +3,39 @@ import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 
-async function fixture() {
+async function fixture(quadrant: 'E' | 'B' = 'E') {
   const bundled = await build({stdin: {contents: `
     import { makePlayer, makeGame } from './src/lib/game/engine';
     import { PROFESSIONS } from './src/lib/game/data';
     import { SAVE_KEY } from './src/lib/game/types';
-    const player = makePlayer(0, 'Audit o‘yinchisi', PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: 'd1', quadrant: 'E'});
+    import { operateBusiness } from './src/lib/game/business';
+    const player = makePlayer(0, 'Audit o‘yinchisi', PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: 'd1', quadrant: '${quadrant}'});
+    if (player.quadrant === 'B') { operateBusiness(player, 'accept'); operateBusiness(player, 'restock'); }
     console.log(JSON.stringify({key: SAVE_KEY, game: makeGame([player])}));`, resolveDir: process.cwd()}, bundle: true, platform: 'node', format: 'esm', write: false, alias: {'@': './src'}});
   return JSON.parse(execFileSync(process.execPath, ['--input-type=module'], {input: bundled.outputFiles[0].text, encoding: 'utf8'}));
 }
 
-async function resume(page: Page) {
-  const saved = await fixture();
+async function resume(page: Page, quadrant: 'E' | 'B' = 'E') {
+  const saved = await fixture(quadrant);
   await page.addInitScript(({key, game}) => {if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(game));}, saved);
   await page.goto('/game');
   await page.getByRole('button', {name: 'Davom etish', exact: true}).click();
   await expect(page.locator('.game-board')).toBeVisible();
 }
+
+test('business report restores stock, order deadline and capacity', async ({page, isMobile}) => {
+  await resume(page, 'B');
+  if (isMobile) await page.getByRole('button', {name: 'Hisobotni ochish', exact: true}).last().click();
+  await page.locator('summary:visible').filter({hasText: 'Batafsil hisobot va maqsadlar'}).first().click();
+  await page.locator('summary:visible').filter({hasText: "O'quv markazi"}).first().click();
+  const operations = page.locator('[aria-label="Qo\'shimcha buyurtma holati"]:visible').first();
+  await expect(operations).toContainText("Bo'sh quvvat: 20 / 20");
+  await expect(operations).toContainText('Zaxira: 20 birlik');
+  await expect(operations).toContainText('3 oy qoldi');
+  const box = await operations.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+});
 
 test('saved game resumes and board fits viewport', async ({page}) => {
   const errors: string[] = [];

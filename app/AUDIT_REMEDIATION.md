@@ -1,5 +1,16 @@
 # Audit tuzatishlari — 2026-09-06
 
+## Biznes operatsiyalari — 2026-09-07
+
+- `business.ts`, `business-events.ts`: qo'shimcha buyurtma → zaxira → topshirish zanjiri; faol buyurtma keyingi hodisada ustuvor. 20 birlik uchun 2 mln zaxira xaridi, 3,6 mln tushum; 3 oy muddat. Bazaviy oylik biznes faoliyatidan alohida, xizmatlar uchun birlik material/ish paketi sifatida talqin qilinadi.
+- Xodim: 1 mln bir martalik xarajat, 1 mln doimiy oylik maosh, +10 quvvat; ko'pi bilan 5 qo'shimcha xodim. Uskuna: 5 mln naqd aktivga aylanadi, +10 quvvat, jami maksimal 100. Xodim/uskuna avtomatik daromad bermaydi.
+- Ombor zaxirasi aktiv qiymatiga kiradi, topshirishda uning tannarxi aktiv qiymatidan chiqadi; naqd ikki marta yechilmaydi. Bekor qilish/muddat tugashida zaxira saqlanadi. Biznes sotilsa unga bog'liq buyurtma ham aktiv bilan ketadi; alohida yashirin to'lov yo'q.
+- Yangi oyda quvvat tiklanadi, buyurtma muddati kamayadi. Biznes to'xtaganda topshirish bloklanadi. Naqd yetishmasa qarz avtomatik olinmaydi va qisman o'zgarish bo'lmaydi.
+- `StatementPanel`: ochiladigan biznes tafsilotida zaxira, qolgan quvvat va buyurtma muddati. Boshqaruv hozir hodisa kartalari orqali, erkin alohida boshqaruv oynasi emas. Bir vaqtda bir biznes buyurtmasi ustuvor; ko'p biznesli buyurtma tanlash hali yo'q.
+- Botlar buyurtma uchun zaxira mablag'ini tekshiradi, buyurtmasiz uskunani rad etadi. Eski saqlovlar o'zgarishsiz ochiladi; yangi operatsion maydonlar chegaralar bo'yicha tekshiriladi.
+- Tekshiruvlar: maosh, quvvat, ombor, topshirishni takrorlash, expiry, no-op xatolar, save roundtrip va 1 000 buyurtmali arifmetik simulyatsiya. Bu simulyatsiya barcha kvadrantlarning umumiy o'yin balansini isbotlamaydi.
+- Production merge va backend deploy bajarilmaydi; GitHub PR #15 ichida saqlanadi.
+
 ## Bajarilgan
 
 - `workers/src/auth.ts`, `mail.ts`, `src/pages/AccountHelp.tsx`: email tasdiqlash va parol tiklash API hamda `/hisob` sahifasi. 256-bit tasodifiy tokenlar faqat SHA-256 hash sifatida saqlanadi; vaqt va revision tekshiruvi bir martalik ishlatishni ta’minlaydi. Parol o‘zgarsa sessiya versiyasi oshadi. Hisob mavjudligi bo‘yicha bir xil javob, IP/email urinish limiti, fon jo‘natish va maxfiy ma’lumotlarsiz xato logi qo‘llanadi. Workerd testida provider to‘liq mock qilinadi: expiry, purpose ajratish, parallel iste’mol, eski JWT bekor bo‘lishi va jo‘natish xatosi tekshirilgan.
@@ -57,5 +68,5 @@ Frontend nashri va Cloudflare Worker alohida xizmatlardir. Frontend nashri backe
 - Filial krediti endi naqd bonus va vaqtinchalik ustama emas: 80 mln kredit to'liq 80 mln filial aktiviga sarflanadi. Filial tushumi 18 mln, xarajati 12 mln; kredit to'lovi alohida. Aktiv odatdagi bozor/xavf/sotish mexanizmlariga bo'ysunadi.
 - Ta'lim, transport va onlayn biznes uchun teg hamda B kvadranti bilan cheklangan hodisalar qo'shildi.
 - Regressiya testi: kasblar, xarajatlar yig'indisi, filialning naqd/aktiv/qarz izchilligi va hodisa cheklovlari.
-- Hali qolgan ishlar: barcha sohalar uchun to'liq hodisa zanjirlari, aniq xodim/ombor/quvvat boshqaruvi, biznes balansini uzoq simulyatsiyada tekshirish. Ushbu bosqich to'liq audit yakunlandi degani emas.
+- Keyingi operatsion bosqich yuqorida: xodim, zaxira, quvvat va buyurtma zanjiri qo'shildi. Hali barcha sohalar uchun alohida zanjirlar, ko'p biznesni qo'lda tanlash va to'liq o'yin balansining uzoq simulyatsiyasi qolgan. Ushbu bosqich to'liq audit yakunlandi degani emas.
 - Backend deploy keyinga qoldirilgan. Onlayn o'yinda yangi qoidalar Worker ham yangilangandan keyingina ishlaydi.
