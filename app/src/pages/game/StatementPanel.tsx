@@ -546,7 +546,7 @@ function ReportTab({
   const ability = abilityOf(p);
   const dividends = portfolioDividends(p, exchange);
   const salary = effectiveSalary(p);
-  const passiveExcludingInvestments = Math.max(0, passive - dividends);
+  const passiveExcludingInvestments = passive - dividends;
   const totalIncome = salary + passive + p.ftCashflow;
   const businessAssets = p.assets.filter((a) => a.kind === "business");
   const businessRevenue = businessAssets.reduce((sum, a) => sum + (a.monthlyRevenue ?? a.monthlyCashflow), 0);

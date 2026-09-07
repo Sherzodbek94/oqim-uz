@@ -3,7 +3,7 @@
  * Desktop: centered rounded-3xl; mobile: bottom-sheet. Card draws flip from
  * their card-back asset with content stagger-in (design.md §7.2.3).
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Baby,
@@ -127,11 +127,13 @@ export interface ModalHandlers {
 export function ModalShell({ children, wide, xl, onClose }: {
   children: ReactNode; wide?: boolean; xl?: boolean; onClose?: () => void;
 }) {
+  const opener = useRef(typeof document !== 'undefined' ? document.activeElement : null);
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose?.(); }}>
       <DialogPortal>
         <DialogOverlay className="z-[70] bg-ink-900/40 backdrop-blur-sm" />
         <DialogContentPrimitive
+          onCloseAutoFocus={(event) => { if (opener.current instanceof HTMLElement && opener.current.isConnected) {event.preventDefault(); opener.current.focus();} }}
           aria-describedby={undefined}
           onEscapeKeyDown={(event) => { if (!onClose) event.preventDefault(); }}
           onInteractOutside={(event) => { if (!onClose) event.preventDefault(); }}

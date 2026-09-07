@@ -46,8 +46,9 @@ test('mobile report tabs switch and details stay usable', async ({page, isMobile
   await target.click();
   await expect(target).toHaveAttribute('aria-selected', 'true');
   await tabs.first().click();
-  await page.getByText('Batafsil hisobot va maqsadlar', {exact: true}).click();
-  await expect(page.locator('details[open]')).toBeVisible();
+  const panel = page.getByRole('tabpanel', {name: 'Hisobot'});
+  await panel.getByText('Batafsil hisobot va maqsadlar', {exact: true}).click();
+  await expect(panel.locator('details[open]')).toBeVisible();
 });
 
 test('game controls have accessible names and keyboard semantics', async ({page}) => {
@@ -63,7 +64,8 @@ test('corrupt save opens setup instead of crashing', async ({page}) => {
   const saved = await fixture();
   await page.addInitScript(key => localStorage.setItem(key, '{broken'), saved.key);
   await page.goto('/game');
-  await expect(page.locator('#player-name')).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Davom etish', exact: true})).toHaveCount(0);
+  await expect(page.getByRole('heading', {name: "O'yinni sozlash", exact: true})).toBeVisible();
 });
 
 test('leaderboard handles network failure and retries', async ({page}) => {
