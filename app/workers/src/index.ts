@@ -1,10 +1,11 @@
 import { GameRoom } from "./GameRoom";
+import { UserAccount } from "./UserAccount";
 import { RateLimiter, checkRoomsRateLimit } from "./rateLimit";
 import { getLeaderboard, makeRoomCode, makeToken, type LeaderboardEnv } from "./game/online";
 import { adminBan, adminListUsers, getMe, login, register, syncProfile, type AuthEnv } from "./auth";
 import { baseHeaders, corsHeaders, HttpError, isAllowedOrigin, json, readJson } from "./http";
 import { roomInput } from "./validation";
-export { GameRoom, RateLimiter };
+export { GameRoom, RateLimiter, UserAccount };
 interface Env extends LeaderboardEnv, AuthEnv { GAME_ROOM: DurableObjectNamespace; }
 
 async function route(request: Request, env: Env): Promise<Response> {

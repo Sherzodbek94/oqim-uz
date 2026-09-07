@@ -54,11 +54,25 @@ assert.equal(keys[0], keys[1], "Retries must use the same idempotency key");
 const users = new Map<string, string>();
 const authEnv = {
   JWT_SECRET: "test-only-secret-32-bytes-minimum-please",
+  ACCOUNT_REGISTRATION_ENABLED: 'true',
   ADMIN_EMAILS: "admin@example.com",
   OQIM_USERS: {get: async (key: string) => users.get(key) ?? null, put: async (key: string, value: string) => {users.set(key, value);}},
+  USER_ACCOUNT: {idFromName: (email: string) => email, get: (email: string) => ({fetch: async (_url: string, init?: RequestInit) => {
+    const key = `user:${email}`;
+    const user = users.has(key) ? JSON.parse(users.get(key)!) : null;
+    if (init?.method !== 'PUT') return Response.json({ok: true, user});
+    const input = JSON.parse(init.body as string);
+    if (input.expected !== (user?.revision ?? null)) return Response.json({ok: false}, {status: 409});
+    const updated = {...input.user, revision: (user?.revision ?? 0) + 1};
+    users.set(key, JSON.stringify(updated));
+    return Response.json({ok: true, user: updated});
+  }})},
   RATE_LIMITER: {idFromName: (name: string) => name, get: () => ({fetch: async () => Response.json({ok: true})})},
 } as never;
 const request = new Request("https://test/api/auth/register");
+assert.equal((await register({...request} as Request, {ACCOUNT_REGISTRATION_ENABLED: 'false'} as never,
+  {email: 'paused@example.com', password: 'test-password-long', name: 'Paused'})).status, 503,
+  'Registration must stay closed until migration is verified');
 const registered = await register(request, authEnv, {email: "admin@example.com", password: "test-password-long", name: "Test"});
 assert.equal(registered.status, 200);
 const registeredBody = await registered.json() as {token: string};

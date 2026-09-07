@@ -67,4 +67,4 @@ Frontend va Worker alohida chiqariladi. Sifat workflow’i deploy bajarmaydi. Ha
 
 ## Ochiq audit ishlari
 
-Auditning bajarilgan va tugallanmagan bandlari `app/AUDIT_REMEDIATION.md` da yuritiladi. Email tasdiqlash/parolni tiklash, hisoblar uchun kuchli izchillik, indekslangan reyting va kengaytirilgan biznes simulyatsiyasi hali tugallangan deb belgilanmagan.
+Auditning bajarilgan va tugallanmagan bandlari `app/AUDIT_REMEDIATION.md` da yuritiladi. Hisoblar uchun Durable Object va versiya bilan atomar yozish tayyor; haqiqiy hisoblarni ko‘chirish deploy bosqichida bajariladi. Email tasdiqlash/parolni tiklash, indekslangan reyting va kengaytirilgan biznes simulyatsiyasi hali tugallangan deb belgilanmagan.

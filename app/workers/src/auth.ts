@@ -5,10 +5,11 @@
 import { checkAuthRateLimit, type RateLimitEnv } from "./rateLimit";
 import { logAudit, type AuditEnv } from "./audit";
 import { SignJWT, jwtVerify } from "jose";
-import { json } from "./http";
+import { json, HttpError } from "./http";
 import { registration, credentials, profileInput, banInput } from "./validation";
 
 export interface User {
+  revision?: number;
   email: string;
   name: string;
   passwordHash: string; // base64
@@ -28,6 +29,9 @@ export interface User {
 }
 
 export interface AuthEnv extends RateLimitEnv, AuditEnv {
+  USER_ACCOUNT: DurableObjectNamespace;
+  /** Enable only after the legacy account migration has been verified. */
+  ACCOUNT_REGISTRATION_ENABLED?: string;
   JWT_SECRET: string;
   /** Vergul bilan ajratilgan admin email ro'yxati (kichik harfda solishtiriladi) */
   ADMIN_EMAILS?: string;
@@ -128,17 +132,24 @@ export async function verifyJwt(token: string, secret: string): Promise<JwtPaylo
 /* ---------------- Foydalanuvchi CRUD ---------------- */
 
 async function getUser(env: AuthEnv, email: string): Promise<User | null> {
-  const raw = await env.OQIM_USERS.get(`${USER_PREFIX}${email.toLowerCase()}`);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as User;
-  } catch {
-    return null;
-  }
+  const response = await accountStub(env, email).fetch(accountUrl(email));
+  if (!response.ok) throw new HttpError(503, "Hisobni yuklab bo‘lmadi. Qayta urinib ko‘ring.");
+  return (await response.json() as {user: User | null}).user;
 }
 
 async function putUser(env: AuthEnv, user: User): Promise<void> {
-  await env.OQIM_USERS.put(`${USER_PREFIX}${user.email.toLowerCase()}`, JSON.stringify(user));
+  const response = await accountStub(env, user.email).fetch(accountUrl(user.email), {
+    method: 'PUT', body: JSON.stringify({user, expected: user.revision ?? null}),
+  });
+  if (response.status === 409) throw new HttpError(409, "Hisob boshqa so‘rovda yangilandi. Qayta urinib ko‘ring.");
+  if (!response.ok) throw new HttpError(503, "Hisobni saqlab bo‘lmadi. Qayta urinib ko‘ring.");
+  user.revision = (await response.json() as {user: User}).user.revision;
+}
+
+function accountUrl(email: string): string { return `https://account/?email=${encodeURIComponent(email.toLowerCase())}`; }
+function accountStub(env: AuthEnv, email: string): DurableObjectStub {
+  if (!env.USER_ACCOUNT) throw new HttpError(503, 'Hisob xizmati sozlanmagan');
+  return env.USER_ACCOUNT.get(env.USER_ACCOUNT.idFromName(email.toLowerCase()));
 }
 
 function sanitizeEmail(email: string): string {
@@ -196,6 +207,8 @@ export async function register(
 ): Promise<Response> {
   const parsed = registration.safeParse(input);
   if (!parsed.success) return json({ok: false, error: "Email, ism va kamida 12 belgili parolni tekshiring"}, 400, origin);
+  if (env.ACCOUNT_REGISTRATION_ENABLED !== 'true')
+    return json({ok: false, error: 'Ro‘yxatdan o‘tish vaqtincha yopiq. Keyinroq urinib ko‘ring.'}, 503, origin);
   const body = parsed.data;
   const limit = await checkAuthRateLimit(env, getClientIP(request));
   if (!limit.ok) {
@@ -395,10 +408,9 @@ export async function adminListUsers(
   const list = await env.OQIM_USERS.list({ prefix: USER_PREFIX, limit: 50, cursor });
   const users: { email: string; name: string; role: string; banned: boolean; createdAt: number }[] = [];
   await Promise.all(list.keys.map(async (key) => {
-    const raw = await env.OQIM_USERS.get(key.name);
-    if (!raw) return;
     try {
-      const u = JSON.parse(raw) as User;
+      const u = await getUser(env, key.name.slice(USER_PREFIX.length));
+      if (!u) return;
       users.push({ email: u.email, name: u.name, role: u.role, banned: u.banned, createdAt: u.createdAt });
     } catch {
       /* ignore */
