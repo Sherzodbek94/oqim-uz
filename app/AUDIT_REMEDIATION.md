@@ -2,6 +2,8 @@
 
 ## Bajarilgan
 
+- `workers/src/auth.ts`, `mail.ts`, `src/pages/AccountHelp.tsx`: email tasdiqlash va parol tiklash API hamda `/hisob` sahifasi. 256-bit tasodifiy tokenlar faqat SHA-256 hash sifatida saqlanadi; vaqt va revision tekshiruvi bir martalik ishlatishni ta’minlaydi. Parol o‘zgarsa sessiya versiyasi oshadi. Hisob mavjudligi bo‘yicha bir xil javob, IP/email urinish limiti, fon jo‘natish va maxfiy ma’lumotlarsiz xato logi qo‘llanadi. Workerd testida provider to‘liq mock qilinadi: expiry, purpose ajratish, parallel iste’mol, eski JWT bekor bo‘lishi va jo‘natish xatosi tekshirilgan.
+
 - `workers/src/leaderboard.ts`: teskari vaqt kaliti bo‘yicha KV indeksi. Yoqilganda ommaviy reyting bir list va ko‘pi bilan 50 get bajaradi; arxiv hajmiga bog‘liq to‘liq skan yo‘q. Yangi natija eski kalitga ham, indeksga ham yoziladi; ikkala yozuv muvaffaqiyatli bo‘lmaguncha xona natijani tugallangan deb belgilamaydi. Admin migratsiyasi 50 yozuvli sahifalar va cursor bilan davom etadi. Muddati o‘tgan natijalar qayta tiriltirilmaydi; JSON buzilgan yozuvlar sanaladi. KV eventual consistency saqlanadi: yangi natija darhol ko‘rinishi kafolatlanmaydi.
 
 - `workers/src/UserAccount.ts`: hisoblar email bo‘yicha Durable Object orqali o‘qiladi va versiya sharti bilan atomar saqlanadi. Parallel ro‘yxatdan o‘tishdan biri 409 oladi; eski profil yozuvi yangi bloklash holatini bosmaydi. KV birinchi import manbasi va admin katalogi bo‘lib qoladi; katalog yozuvi alarm bilan qayta uriniladi. Haqiqiy workerd testida parallel yaratish, eski yozuvni rad etish, blokning darhol kuchga kirishi va importdan keyin KV yozuvi asosiy hisobni almashtirmasligi tekshirildi. Production migratsiya hali bajarilmagan.
@@ -38,7 +40,7 @@ Frontend nashri va Cloudflare Worker alohida xizmatlardir. Frontend nashri backe
 
 - Haqiqiy qurilmada vizual/E2E, screen reader va Core Web Vitals o‘lchovlari.
 - Cloudflare hisobiga kirish va haqiqiy bindinglarsiz backend production deploy.
-- Email tasdiqlash/parolni tiklash; kuchli izchil hisob omborining kodi va mahalliy integratsiya testi tayyor, ammo haqiqiy hisoblarni ko‘chirish va production cutover ochiq.
+- Email tasdiqlash/parolni tiklash kodi tayyor; haqiqiy jo‘natuvchi domen, Resend siri va PUBLIC_APP_URL sozlanishi, yetkazib berish tekshiruvi deploy bosqichida qolgan. Kuchli izchil hisob omborining kodi va mahalliy integratsiya testi tayyor, ammo haqiqiy hisoblarni ko‘chirish va production cutover ochiq.
 - Reyting indeksining kodi va ko‘chirish API tayyor; haqiqiy natijalarni ko‘chirish, tekshirish va indeksni production’da yoqish deploy bosqichida qolmoqda.
 - Sohalar bo‘yicha to‘liq biznes simulyatsiyasi, hamkorlik va boshqa uzoq muddatli mahsulot takliflari. Ushbu tuzatishlar ularning to‘liq realizatsiyasi emas.
 

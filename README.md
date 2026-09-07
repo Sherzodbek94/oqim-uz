@@ -54,6 +54,10 @@ JSON javoblarda `ok` va xatoda `error` maydoni mavjud. Himoyalangan yo‘llar `A
 | GET | `/api/leaderboard` | So‘nggi 50 natija |
 | POST | `/api/auth/register` | Ro‘yxatdan o‘tish |
 | POST | `/api/auth/login` | Kirish |
+| POST | `/api/auth/verify/request` | `{email}` bilan bir martalik tasdiqlash havolasini so‘rash |
+| POST | `/api/auth/verify/confirm` | `{email, token}` bilan emailni tasdiqlash |
+| POST | `/api/auth/reset/request` | `{email}` bilan parolni tiklash havolasini so‘rash |
+| POST | `/api/auth/reset/confirm` | `{email, token, password}` bilan parolni yangilash |
 | GET | `/api/auth/me` | Joriy hisob; token talab qilinadi |
 | POST | `/api/profile/sync` | Profil sinxronlash; token talab qilinadi |
 | GET | `/api/admin/users?cursor=...` | Foydalanuvchilar; admin talab qilinadi |
@@ -68,4 +72,8 @@ Frontend va Worker alohida chiqariladi. Sifat workflow’i deploy bajarmaydi. Ha
 
 ## Ochiq audit ishlari
 
-Auditning bajarilgan va tugallanmagan bandlari `app/AUDIT_REMEDIATION.md` da yuritiladi. Hisoblar uchun Durable Object va versiya bilan atomar yozish, reyting uchun vaqt indeksi va sahifali migratsiya tayyor; haqiqiy ma’lumotlarni ko‘chirish deploy bosqichida bajariladi. Email tasdiqlash/parolni tiklash va kengaytirilgan biznes simulyatsiyasi hali tugallangan deb belgilanmagan.
+Email amallari `/hisob` sahifasida, unga `/profil` orqali o‘tiladi. `app/workers/env.example` server konfiguratsiyasi namunasidir. Jo‘natish adapteri [Resend Email API](https://resend.com/docs/api-reference/emails/send-email) bilan ishlaydi: `RESEND_API_KEY`, tasdiqlangan domendagi `MAIL_FROM` va backend ruxsat ro‘yxatidagi HTTPS `PUBLIC_APP_URL` kerak. Kalit faqat Worker siri sifatida saqlanadi, frontend `VITE_` o‘zgaruvchilariga yozilmaydi. Xizmat sozlanmaguncha havola so‘rash 503 qaytaradi.
+
+Tasdiqlash havolasi 24 soat, parol tiklash havolasi 15 daqiqa amal qiladi. Server tokenning faqat hashini saqlaydi; havola fragmenti sahifa ochilganda manzil satridan olib tashlanadi. Email tasdiqlash adminlik bermaydi. Parol tiklanganda oldingi JWTlar bekor qilinadi. Mavjud bo‘lmagan email va jo‘natish xatolari hisob mavjudligini oshkor qiladigan javob bermaydi. Integratsiya testlari barcha tashqi email so‘rovlarini almashtiradi; haqiqiy xat jo‘natilmaydi.
+
+Auditning bajarilgan va tugallanmagan bandlari `app/AUDIT_REMEDIATION.md` da yuritiladi. Hisoblar ombori, reyting indeksi, email tasdiqlash va parolni tiklash kodi tayyor; haqiqiy ma’lumotlarni ko‘chirish va jo‘natuvchi domenni sozlash deploy bosqichida bajariladi. Kengaytirilgan biznes simulyatsiyasi hali tugallangan deb belgilanmagan.

@@ -7,8 +7,13 @@ import { logAudit, type AuditEnv } from "./audit";
 import { SignJWT, jwtVerify } from "jose";
 import { json, HttpError } from "./http";
 import { registration, credentials, profileInput, banInput } from "./validation";
+import { z } from 'zod';
+import { mailConfig, sendAccountLink, type MailEnv } from './mail';
 
 export interface User {
+  emailVerifiedAt?: number;
+  emailVerification?: {hash: string; expiresAt: number};
+  passwordReset?: {hash: string; expiresAt: number};
   revision?: number;
   email: string;
   name: string;
@@ -28,7 +33,7 @@ export interface User {
   updatedAt: number;
 }
 
-export interface AuthEnv extends RateLimitEnv, AuditEnv {
+export interface AuthEnv extends RateLimitEnv, AuditEnv, MailEnv {
   USER_ACCOUNT: DurableObjectNamespace;
   /** Enable only after the legacy account migration has been verified. */
   ACCOUNT_REGISTRATION_ENABLED?: string;
@@ -325,7 +330,59 @@ export async function getMe(env: AuthEnv, authHeader: string | null, origin: str
   if (user.banned) return json({ ok: false, error: "Akkaunt bloklangan" }, 403, origin);
   if ((user.sessionVersion ?? 0) !== payload.ver) return json({ok: false, error: "Qayta kiring"}, 401, origin);
 
-  return json({ ok: true, user: { email: user.email, name: user.name, role: user.role, profile: user.profile } }, 200, origin);
+  return json({ ok: true, user: { email: user.email, name: user.name, role: user.role, emailVerifiedAt: user.emailVerifiedAt ?? null, profile: user.profile } }, 200, origin);
+}
+
+const linkRequest = z.object({email: z.string().trim().email().max(128)}).strict();
+const linkProof = linkRequest.extend({token: z.string().regex(/^[A-Za-z0-9_-]{43}$/)});
+const resetProof = linkProof.extend({password: z.string().min(12).max(128)});
+async function linkHash(token: string): Promise<string> {
+  return b64encode(await crypto.subtle.digest('SHA-256', encode(token)));
+}
+
+export async function requestAccountLink(request: Request, env: AuthEnv, input: unknown,
+  purpose: 'verify' | 'reset', ctx: ExecutionContext, origin: string | null): Promise<Response> {
+  const parsed = linkRequest.safeParse(input);
+  if (!parsed.success) return json({ok: false, error: 'Emailni tekshiring'}, 400, origin);
+  mailConfig(env);
+  const email = sanitizeEmail(parsed.data.email);
+  const ipLimit = await checkAuthRateLimit(env, `mail-ip:${getClientIP(request)}`);
+  const emailLimit = await checkAuthRateLimit(env, `mail-email:${email}`);
+  if (!ipLimit.ok || !emailLimit.ok) return json({ok: false, error: 'Urinishlar ko‘paydi. Biroz kuting.'}, 429, origin);
+  // Both existing and unknown accounts return before lookup/delivery; no enumeration response.
+  ctx.waitUntil((async () => {
+    const user = await getUser(env, email);
+    if (!user || user.banned || (purpose === 'verify' && user.emailVerifiedAt)) return;
+    const token = b64encode(crypto.getRandomValues(new Uint8Array(32)));
+    const proof = {hash: await linkHash(token), expiresAt: Date.now() + (purpose === 'reset' ? 15 * 60_000 : 24 * 60 * 60_000)};
+    if (purpose === 'reset') user.passwordReset = proof;
+    else user.emailVerification = proof;
+    await putUser(env, user);
+    await sendAccountLink(env, email, token, purpose);
+  })().catch(() => console.error(JSON.stringify({event: 'account_link_delivery_failed', purpose}))));
+  return json({ok: true, message: 'Mos hisob mavjud bo‘lsa, emailga havola yuboriladi. Spam papkasini ham tekshiring.'}, 200, origin);
+}
+
+export async function confirmAccountLink(request: Request, env: AuthEnv, input: unknown,
+  purpose: 'verify' | 'reset', origin: string | null): Promise<Response> {
+  const parsed = (purpose === 'reset' ? resetProof : linkProof).safeParse(input);
+  if (!parsed.success) return json({ok: false, error: 'Havola yoki kiritilgan ma’lumot noto‘g‘ri'}, 400, origin);
+  const limit = await checkAuthRateLimit(env, `confirm:${getClientIP(request)}`);
+  if (!limit.ok) return json({ok: false, error: 'Urinishlar ko‘paydi. Biroz kuting.'}, 429, origin);
+  const user = await getUser(env, sanitizeEmail(parsed.data.email));
+  const proof = purpose === 'reset' ? user?.passwordReset : user?.emailVerification;
+  if (!user || user.banned || !proof || proof.expiresAt <= Date.now() || !timingSafeEqual(proof.hash, await linkHash(parsed.data.token)))
+    return json({ok: false, error: 'Havola eskirgan yoki ishlatilgan. Yangi havola so‘rang.'}, 400, origin);
+  if (purpose === 'reset') {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    user.passwordHash = b64encode(await pbkdf2((parsed.data as z.infer<typeof resetProof>).password, salt.buffer));
+    user.salt = b64encode(salt); user.passwordIterations = 600_000;
+    user.sessionVersion = (user.sessionVersion ?? 0) + 1;
+    delete user.passwordReset;
+  } else { user.emailVerifiedAt = Date.now(); delete user.emailVerification; }
+  user.updatedAt = Date.now();
+  await putUser(env, user); // Revision check makes token consumption single-use under concurrency.
+  return json({ok: true}, 200, origin);
 }
 
 export async function syncProfile(

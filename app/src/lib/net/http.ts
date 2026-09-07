@@ -8,7 +8,11 @@ export async function requestJson<T extends {ok: boolean; error?: string}>(url: 
     if (!body || typeof body !== 'object' || !('ok' in body) || typeof body.ok !== 'boolean'
       || ('error' in body && body.error !== undefined && typeof body.error !== 'string'))
       return {ok: false, error: 'Server javobi noto‘g‘ri. Qayta urinib ko‘ring.'} as T;
-    if (!response.ok) return {ok: false, error: response.status === 429 ? 'So‘rovlar ko‘payib ketdi. Biroz kuting.' : response.status === 404 ? 'Xona topilmadi — kodni tekshiring.' : 'So‘rov bajarilmadi. Qayta urinib ko‘ring.'} as T;
+    if (!response.ok) {
+      const safeError = 'error' in body && typeof body.error === 'string' && body.error.length <= 240 ? body.error : null;
+      return {ok: false, error: response.status === 429 ? 'So‘rovlar ko‘payib ketdi. Biroz kuting.'
+        : response.status < 500 && safeError ? safeError : 'So‘rov bajarilmadi. Qayta urinib ko‘ring.'} as T;
+    }
     return body as T;
   } catch {
     return {ok: false, error: controller.signal.aborted ? 'Server javob bermadi. Qayta urinib ko‘ring.' : 'Serverga ulanib bo‘lmadi. Internetni tekshiring.'} as T;
