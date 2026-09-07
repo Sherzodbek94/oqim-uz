@@ -2563,7 +2563,7 @@ export default function Game() {
           </span>
         )}
         {isHumanTurn && !fastTrack && (
-          <p className="max-w-[270px] text-center text-[11px] leading-snug text-ink-400" role="status">
+          <p className="max-w-[270px] text-center text-sm leading-snug text-ink-600" role="status">
             💡 {strategyHint}
           </p>
         )}
