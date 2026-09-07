@@ -24,6 +24,7 @@ export default function Leaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,12 +37,12 @@ export default function Leaderboard() {
         }
         setEntries(res.entries);
       })
-      .catch(() => setError("Serverga ulanib bo'lmadi"))
-      .finally(() => setLoading(false));
+      .catch(() => { if (!cancelled) setError("Serverga ulanib bo'lmadi"); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   return (
     <div className="min-h-screen bg-gradient-hero px-4 py-6 text-ink-900">
@@ -61,16 +62,17 @@ export default function Leaderboard() {
           className="card mt-6 !p-0 overflow-hidden"
         >
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-ink-500">
+            <div role="status" className="flex items-center justify-center gap-2 py-16 text-ink-500">
               <Loader2 className="h-5 w-5 animate-spin" />
               <span>Yuklanmoqda...</span>
             </div>
           ) : error ? (
-            <div className="p-6 text-center text-clay-600">
+            <div role="alert" className="p-6 text-center text-clay-600">
               <p>{error}</p>
               <p className="mt-2 text-body-sm text-ink-400">
-                Server hali deploy qilinmagan bo'lishi mumkin — faqat lokal o'yinlar mavjud.
+                Ulanishni tekshirib, yana urinib ko‘ring. Lokal o‘yin ishlashda davom etadi.
               </p>
+              <button className="btn-secondary mt-4" onClick={() => {setLoading(true); setError(null); setAttempt(value => value + 1);}}>Qayta urinish</button>
             </div>
           ) : entries.length === 0 ? (
             <div className="p-6 text-center text-ink-500">Hali hech qanday onlayn o'yin natijasi yo'q.</div>

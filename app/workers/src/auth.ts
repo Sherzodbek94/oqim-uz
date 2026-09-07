@@ -5,10 +5,16 @@
 import { checkAuthRateLimit, type RateLimitEnv } from "./rateLimit";
 import { logAudit, type AuditEnv } from "./audit";
 import { SignJWT, jwtVerify } from "jose";
-import { json } from "./http";
+import { json, HttpError } from "./http";
 import { registration, credentials, profileInput, banInput } from "./validation";
+import { z } from 'zod';
+import { mailConfig, sendAccountLink, type MailEnv } from './mail';
 
 export interface User {
+  emailVerifiedAt?: number;
+  emailVerification?: {hash: string; expiresAt: number};
+  passwordReset?: {hash: string; expiresAt: number};
+  revision?: number;
   email: string;
   name: string;
   passwordHash: string; // base64
@@ -27,7 +33,10 @@ export interface User {
   updatedAt: number;
 }
 
-export interface AuthEnv extends RateLimitEnv, AuditEnv {
+export interface AuthEnv extends RateLimitEnv, AuditEnv, MailEnv {
+  USER_ACCOUNT: DurableObjectNamespace;
+  /** Enable only after the legacy account migration has been verified. */
+  ACCOUNT_REGISTRATION_ENABLED?: string;
   JWT_SECRET: string;
   /** Vergul bilan ajratilgan admin email ro'yxati (kichik harfda solishtiriladi) */
   ADMIN_EMAILS?: string;
@@ -128,17 +137,24 @@ export async function verifyJwt(token: string, secret: string): Promise<JwtPaylo
 /* ---------------- Foydalanuvchi CRUD ---------------- */
 
 async function getUser(env: AuthEnv, email: string): Promise<User | null> {
-  const raw = await env.OQIM_USERS.get(`${USER_PREFIX}${email.toLowerCase()}`);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as User;
-  } catch {
-    return null;
-  }
+  const response = await accountStub(env, email).fetch(accountUrl(email));
+  if (!response.ok) throw new HttpError(503, "Hisobni yuklab bo‘lmadi. Qayta urinib ko‘ring.");
+  return (await response.json() as {user: User | null}).user;
 }
 
 async function putUser(env: AuthEnv, user: User): Promise<void> {
-  await env.OQIM_USERS.put(`${USER_PREFIX}${user.email.toLowerCase()}`, JSON.stringify(user));
+  const response = await accountStub(env, user.email).fetch(accountUrl(user.email), {
+    method: 'PUT', body: JSON.stringify({user, expected: user.revision ?? null}),
+  });
+  if (response.status === 409) throw new HttpError(409, "Hisob boshqa so‘rovda yangilandi. Qayta urinib ko‘ring.");
+  if (!response.ok) throw new HttpError(503, "Hisobni saqlab bo‘lmadi. Qayta urinib ko‘ring.");
+  user.revision = (await response.json() as {user: User}).user.revision;
+}
+
+function accountUrl(email: string): string { return `https://account/?email=${encodeURIComponent(email.toLowerCase())}`; }
+function accountStub(env: AuthEnv, email: string): DurableObjectStub {
+  if (!env.USER_ACCOUNT) throw new HttpError(503, 'Hisob xizmati sozlanmagan');
+  return env.USER_ACCOUNT.get(env.USER_ACCOUNT.idFromName(email.toLowerCase()));
 }
 
 function sanitizeEmail(email: string): string {
@@ -196,6 +212,8 @@ export async function register(
 ): Promise<Response> {
   const parsed = registration.safeParse(input);
   if (!parsed.success) return json({ok: false, error: "Email, ism va kamida 12 belgili parolni tekshiring"}, 400, origin);
+  if (env.ACCOUNT_REGISTRATION_ENABLED !== 'true')
+    return json({ok: false, error: 'Ro‘yxatdan o‘tish vaqtincha yopiq. Keyinroq urinib ko‘ring.'}, 503, origin);
   const body = parsed.data;
   const limit = await checkAuthRateLimit(env, getClientIP(request));
   if (!limit.ok) {
@@ -312,7 +330,59 @@ export async function getMe(env: AuthEnv, authHeader: string | null, origin: str
   if (user.banned) return json({ ok: false, error: "Akkaunt bloklangan" }, 403, origin);
   if ((user.sessionVersion ?? 0) !== payload.ver) return json({ok: false, error: "Qayta kiring"}, 401, origin);
 
-  return json({ ok: true, user: { email: user.email, name: user.name, role: user.role, profile: user.profile } }, 200, origin);
+  return json({ ok: true, user: { email: user.email, name: user.name, role: user.role, emailVerifiedAt: user.emailVerifiedAt ?? null, profile: user.profile } }, 200, origin);
+}
+
+const linkRequest = z.object({email: z.string().trim().email().max(128)}).strict();
+const linkProof = linkRequest.extend({token: z.string().regex(/^[A-Za-z0-9_-]{43}$/)});
+const resetProof = linkProof.extend({password: z.string().min(12).max(128)});
+async function linkHash(token: string): Promise<string> {
+  return b64encode(await crypto.subtle.digest('SHA-256', encode(token)));
+}
+
+export async function requestAccountLink(request: Request, env: AuthEnv, input: unknown,
+  purpose: 'verify' | 'reset', ctx: ExecutionContext, origin: string | null): Promise<Response> {
+  const parsed = linkRequest.safeParse(input);
+  if (!parsed.success) return json({ok: false, error: 'Emailni tekshiring'}, 400, origin);
+  mailConfig(env);
+  const email = sanitizeEmail(parsed.data.email);
+  const ipLimit = await checkAuthRateLimit(env, `mail-ip:${getClientIP(request)}`);
+  const emailLimit = await checkAuthRateLimit(env, `mail-email:${email}`);
+  if (!ipLimit.ok || !emailLimit.ok) return json({ok: false, error: 'Urinishlar ko‘paydi. Biroz kuting.'}, 429, origin);
+  // Both existing and unknown accounts return before lookup/delivery; no enumeration response.
+  ctx.waitUntil((async () => {
+    const user = await getUser(env, email);
+    if (!user || user.banned || (purpose === 'verify' && user.emailVerifiedAt)) return;
+    const token = b64encode(crypto.getRandomValues(new Uint8Array(32)));
+    const proof = {hash: await linkHash(token), expiresAt: Date.now() + (purpose === 'reset' ? 15 * 60_000 : 24 * 60 * 60_000)};
+    if (purpose === 'reset') user.passwordReset = proof;
+    else user.emailVerification = proof;
+    await putUser(env, user);
+    await sendAccountLink(env, email, token, purpose);
+  })().catch(() => console.error(JSON.stringify({event: 'account_link_delivery_failed', purpose}))));
+  return json({ok: true, message: 'Mos hisob mavjud bo‘lsa, emailga havola yuboriladi. Spam papkasini ham tekshiring.'}, 200, origin);
+}
+
+export async function confirmAccountLink(request: Request, env: AuthEnv, input: unknown,
+  purpose: 'verify' | 'reset', origin: string | null): Promise<Response> {
+  const parsed = (purpose === 'reset' ? resetProof : linkProof).safeParse(input);
+  if (!parsed.success) return json({ok: false, error: 'Havola yoki kiritilgan ma’lumot noto‘g‘ri'}, 400, origin);
+  const limit = await checkAuthRateLimit(env, `confirm:${getClientIP(request)}`);
+  if (!limit.ok) return json({ok: false, error: 'Urinishlar ko‘paydi. Biroz kuting.'}, 429, origin);
+  const user = await getUser(env, sanitizeEmail(parsed.data.email));
+  const proof = purpose === 'reset' ? user?.passwordReset : user?.emailVerification;
+  if (!user || user.banned || !proof || proof.expiresAt <= Date.now() || !timingSafeEqual(proof.hash, await linkHash(parsed.data.token)))
+    return json({ok: false, error: 'Havola eskirgan yoki ishlatilgan. Yangi havola so‘rang.'}, 400, origin);
+  if (purpose === 'reset') {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    user.passwordHash = b64encode(await pbkdf2((parsed.data as z.infer<typeof resetProof>).password, salt.buffer));
+    user.salt = b64encode(salt); user.passwordIterations = 600_000;
+    user.sessionVersion = (user.sessionVersion ?? 0) + 1;
+    delete user.passwordReset;
+  } else { user.emailVerifiedAt = Date.now(); delete user.emailVerification; }
+  user.updatedAt = Date.now();
+  await putUser(env, user); // Revision check makes token consumption single-use under concurrency.
+  return json({ok: true}, 200, origin);
 }
 
 export async function syncProfile(
@@ -345,7 +415,7 @@ export async function syncProfile(
   return json({ ok: true, user: { email: user.email, name: user.name, profile: user.profile } }, 200, origin);
 }
 
-async function getAdminFromToken(env: AuthEnv, authHeader: string | null): Promise<User | null> {
+export async function getAdminFromToken(env: AuthEnv, authHeader: string | null): Promise<User | null> {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const payload = await verifyJwt(authHeader.slice(7), env.JWT_SECRET);
   if (!payload) return null;
@@ -395,10 +465,9 @@ export async function adminListUsers(
   const list = await env.OQIM_USERS.list({ prefix: USER_PREFIX, limit: 50, cursor });
   const users: { email: string; name: string; role: string; banned: boolean; createdAt: number }[] = [];
   await Promise.all(list.keys.map(async (key) => {
-    const raw = await env.OQIM_USERS.get(key.name);
-    if (!raw) return;
     try {
-      const u = JSON.parse(raw) as User;
+      const u = await getUser(env, key.name.slice(USER_PREFIX.length));
+      if (!u) return;
       users.push({ email: u.email, name: u.name, role: u.role, banned: u.banned, createdAt: u.createdAt });
     } catch {
       /* ignore */

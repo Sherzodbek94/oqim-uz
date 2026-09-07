@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { BookOpen, Check } from "lucide-react";
@@ -8,15 +7,9 @@ import { formatDelta } from "@/lib/format";
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
-/** Mini Financial Statement mock with a live ticking cashflow number */
+/** Example statement: the displayed equation must always reconcile. */
 function StatementMock() {
-  const [cashflow, setCashflow] = useState(2_300_000);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setCashflow((v) => (v === 2_300_000 ? 3_100_000 : 2_300_000));
-    }, 2000);
-    return () => clearInterval(id);
-  }, []);
+  const cashflow = 3_500_000 + 2_300_000 - 2_900_000;
 
   const rows = [
     { label: uz.common.salary, value: "+3 500 000", tint: "bg-emerald-50 text-emerald-700" },

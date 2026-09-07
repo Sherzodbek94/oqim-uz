@@ -4,7 +4,7 @@ compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 [durable_objects]
-bindings = [{ name = "GAME_ROOM", class_name = "GameRoom" }, { name = "RATE_LIMITER", class_name = "RateLimiter" }]
+bindings = [{ name = "GAME_ROOM", class_name = "GameRoom" }, { name = "RATE_LIMITER", class_name = "RateLimiter" }, { name = "USER_ACCOUNT", class_name = "UserAccount" }]
 
 [[migrations]]
 tag = "v1"
@@ -13,6 +13,10 @@ new_classes = ["GameRoom"]
 [[migrations]]
 tag = "v2-audit"
 new_sqlite_classes = ["RateLimiter"]
+
+[[migrations]]
+tag = "v3-accounts"
+new_sqlite_classes = ["UserAccount"]
 
 [observability]
 enabled = true

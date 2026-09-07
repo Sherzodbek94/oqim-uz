@@ -107,6 +107,7 @@ export default function Profile() {
         <span className="ml-2 chip bg-gold-100 text-gold-600">v{APP_VERSION}</span>
         <h1 className="mt-4 text-display-lg">{uz.profile.title}</h1>
         <p className="mt-2 text-ink-600">{uz.profile.sub}</p>
+        <Link to="/hisob" className="mt-4 inline-block text-sm font-semibold text-emerald-700 underline">Emailni tasdiqlash yoki parolni tiklash</Link>
       </motion.div>
 
       {games.length === 0 ? (

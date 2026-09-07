@@ -7,6 +7,31 @@ on:
     branches: [master]
 
 jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-test-report
+          path: |
+            app/playwright-report
+            app/test-results
+          retention-days: 14
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -25,7 +50,9 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run check:game-core
+      - run: npm run check:bundle
       - run: npm run smoke
+      - run: npm run test:worker
 
   worker:
     runs-on: ubuntu-latest

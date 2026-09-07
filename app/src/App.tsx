@@ -1,11 +1,13 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router'
-import Layout from '@/components/Layout'
-import Home from '@/pages/Home'
 import ErrorBoundary from '@/components/ErrorBoundary'
+
+const Layout = lazy(() => import('@/components/Layout'))
+const Home = lazy(() => import('@/pages/Home'))
 
 const Rules = lazy(() => import('@/pages/Rules'))
 const Profile = lazy(() => import('@/pages/Profile'))
+const AccountHelp = lazy(() => import('@/pages/AccountHelp'))
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const Online = lazy(() => import('@/pages/Online'))
@@ -30,6 +32,7 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="rules" element={<Rules />} />
             <Route path="profil" element={<Profile />} />
+            <Route path="hisob" element={<AccountHelp />} />
             <Route path="reyting" element={<Leaderboard />} />
           </Route>
           {/* Game page stands alone — it has its own top bar (design.md §9.1) */}

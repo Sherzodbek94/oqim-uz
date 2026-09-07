@@ -35,8 +35,17 @@ export function loadSave(): GameState | null {
     // old-format saves (v1..v7) are dropped gracefully — a new game starts instead;
     // v8–v19 saqlanmalar v20 ga ko'tariladi (yangi maydonlar default qiymatlar bilan)
     const v = parsed.version as number;
-    if (v < 8 || v > 20) return null;
-    if (!Array.isArray(parsed.players)) return null;
+    if (!Number.isInteger(v) || v < 8 || v > 20) return null;
+    if (!Array.isArray(parsed.players) || parsed.players.length < 1 || parsed.players.length > 4) return null;
+    if (!Number.isInteger(parsed.current) || parsed.current < 0 || parsed.current >= parsed.players.length) return null;
+    if (!Number.isInteger(parsed.round) || parsed.round < 1 || !Array.isArray(parsed.log)) return null;
+    if (new Set(parsed.players.map(p => p?.id)).size !== parsed.players.length) return null;
+    for (const player of parsed.players) {
+      if (!player || !Number.isInteger(player.id) || typeof player.name !== 'string'
+        || !Number.isFinite(player.cash) || !Number.isFinite(player.salary)
+        || !Array.isArray(player.assets) || !Array.isArray(player.loans)
+        || !player.expenseParts || Object.values(player.expenseParts).some(value => !Number.isFinite(value))) return null;
+    }
     parsed.version = 20;
     // v15 (fix-13c, Q1): o'yin rejimi — eski saqlanmalar "classic"
     if (parsed.mode !== "tez") parsed.mode = "classic";

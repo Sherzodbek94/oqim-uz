@@ -527,18 +527,18 @@ export default function SetupScreen({ onComplete }: { onComplete: (r: SetupResul
       <div className="relative w-full max-w-[720px]">
         <h1 className="text-center text-display-lg">{g.setup.title}</h1>
 
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4 flex flex-col items-center gap-2">
           <button onClick={quickStart} className="btn-secondary">
             <Play className="h-4 w-4" />
             ⚡ Tez boshlash
           </button>
-          <p className="mt-1 text-center text-[11px] leading-snug text-ink-400">
+          <p className="mt-1 text-center text-sm leading-snug text-ink-600">
             Yangi o'yinchilar uchun: E kvadranti, Oson rejim va qisqa tushuntirish.
           </p>
         </div>
 
         {/* stepper */}
-        <div className="mt-4 flex items-center justify-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {g.setup.steps.map((s, i) => (
             <div key={s} className="flex items-center gap-2">
               <span

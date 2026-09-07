@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "smoke": "node scripts/run-smoke-tests.mjs",
+    "test:e2e": "playwright test",
+    "test:worker": "node scripts/test-worker.mjs",
+    "check:bundle": "node scripts/check-bundle-budget.mjs",
     "check:game-core": "node scripts/check-game-core-parity.mjs"
   },
   "dependencies": {
@@ -64,7 +67,9 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.63.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",

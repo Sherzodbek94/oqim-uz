@@ -546,7 +546,7 @@ function ReportTab({
   const ability = abilityOf(p);
   const dividends = portfolioDividends(p, exchange);
   const salary = effectiveSalary(p);
-  const passiveExcludingInvestments = Math.max(0, passive - dividends);
+  const passiveExcludingInvestments = passive - dividends;
   const totalIncome = salary + passive + p.ftCashflow;
   const businessAssets = p.assets.filter((a) => a.kind === "business");
   const businessRevenue = businessAssets.reduce((sum, a) => sum + (a.monthlyRevenue ?? a.monthlyCashflow), 0);
@@ -1429,7 +1429,7 @@ export default function StatementPanel({
   };
 
   const human = state.players.find((p) => p.id === humanId) ?? state.players[0];
-  const shown = peekBot !== null ? state.players.find((p) => p.id === peekBot) ?? human : human;
+  const shown = !forcedSell && peekBot !== null ? state.players.find((p) => p.id === peekBot) ?? human : human;
   const dream = DREAMS.find((d) => d.id === shown.dreamId);
 
   return (
@@ -1460,7 +1460,7 @@ export default function StatementPanel({
             key={p.id}
             p={p}
             active={state.players[state.current]?.id === p.id}
-            onClick={() => setPeekBot(p.id === humanId ? null : p.id)}
+            onClick={() => { if (!forcedSell) setPeekBot(p.id === humanId ? null : p.id); }}
           />
         ))}
       </div>
