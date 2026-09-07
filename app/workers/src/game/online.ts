@@ -6,6 +6,7 @@
  * MVP cheklovi: faqat KLASSIK doska rejimi onlayn o'ynaladi (path/plan — keyingi versiyalarda).
  * G'alaba: Asosiy aylanadan birinchi chiqgan o'yinchi (canEscape).
  */
+import { indexResult, readRecent, parseEntry } from '../leaderboard';
 import {
   addLog,
   advanceTurn,
@@ -613,6 +614,7 @@ export function recordGameResult(room: OnlineRoom, now = Date.now()): void {
 
 export interface LeaderboardEnv {
   OQIM_USERS: KVNamespace;
+  LEADERBOARD_INDEX_READY?: string;
 }
 
 export interface LeaderboardEntry {
@@ -638,7 +640,7 @@ export async function recordGlobalResult(env: LeaderboardEnv, room: OnlineRoom, 
   const entry: LeaderboardEntry = {
     id: `${room.code}:${room.createdAt}`,
     code: room.code,
-    finishedAt: room.results.at(-1)?.finishedAt ?? now,
+    finishedAt: room.results.at(-1)?.finishedAt ?? room.createdAt,
     createdAt: room.createdAt,
     winnerId: room.winnerId,
     winnerName: winner?.name ?? null,
@@ -656,18 +658,20 @@ export async function recordGlobalResult(env: LeaderboardEnv, room: OnlineRoom, 
   await env.OQIM_USERS.put(`${LEADERBOARD_PREFIX}${entry.id}`, JSON.stringify(entry), {
     expirationTtl: LEADERBOARD_MAX_AGE_SECONDS,
   });
+  await indexResult(env, entry, now);
   room.globalResultRecorded = true;
 }
 
 /** Global leaderboard ni o'qiydi (so'nggi o'yinlar birinchi). */
 export async function getLeaderboard(env: LeaderboardEnv, limit = 50): Promise<LeaderboardEntry[]> {
+  if (env.LEADERBOARD_INDEX_READY === 'true') return readRecent(env, limit);
   const entries: LeaderboardEntry[] = [];
   let cursor: string | undefined;
   do {
     const list = await env.OQIM_USERS.list({ prefix: LEADERBOARD_PREFIX, limit: 50, cursor });
     const page = await Promise.all(list.keys.map(async key => {
       const raw = await env.OQIM_USERS.get(key.name);
-      try { return raw ? JSON.parse(raw) as LeaderboardEntry : null; } catch { return null; }
+      return parseEntry(raw);
     }));
     entries.push(...page.filter((entry): entry is LeaderboardEntry => entry !== null));
     entries.sort((a, b) => b.finishedAt - a.finishedAt);

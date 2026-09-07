@@ -358,7 +358,7 @@ export async function syncProfile(
   return json({ ok: true, user: { email: user.email, name: user.name, profile: user.profile } }, 200, origin);
 }
 
-async function getAdminFromToken(env: AuthEnv, authHeader: string | null): Promise<User | null> {
+export async function getAdminFromToken(env: AuthEnv, authHeader: string | null): Promise<User | null> {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const payload = await verifyJwt(authHeader.slice(7), env.JWT_SECRET);
   if (!payload) return null;

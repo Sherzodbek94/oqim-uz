@@ -9,7 +9,7 @@ const mf = new Miniflare(convertV4MiniflareOptions({
   compatibilityDate: '2025-01-01', compatibilityFlags: ['nodejs_compat'],
   kvNamespaces: ['OQIM_USERS'],
   durableObjects: {GAME_ROOM: 'GameRoom', RATE_LIMITER: {className: 'RateLimiter', useSQLite: true}, USER_ACCOUNT: {className: 'UserAccount', useSQLite: true}},
-  bindings: {JWT_SECRET: 'local-integration-secret-not-for-production', ADMIN_EMAILS: 'audit@example.com', ACCOUNT_REGISTRATION_ENABLED: 'true'},
+  bindings: {JWT_SECRET: 'local-integration-secret-not-for-production', ADMIN_EMAILS: 'audit@example.com', ACCOUNT_REGISTRATION_ENABLED: 'true', LEADERBOARD_INDEX_READY: 'true'},
 }));
 const origin = 'https://oqim.pages.dev';
 const post = (path, body, ip = '192.0.2.1') => mf.dispatchFetch('https://local.test' + path, {method: 'POST', headers: {'Content-Type': 'application/json', Origin: origin, 'CF-Connecting-IP': ip}, body: JSON.stringify(body)});
@@ -45,6 +45,25 @@ try {
   assert.equal(migrated.passwordHash, original.passwordHash, 'Migration must preserve credentials');
   await kv.put('user:legacy@example.com', JSON.stringify({...original, email: 'legacy@example.com', banned: true}));
   assert.equal((await (await legacyStub.fetch(legacyUrl)).json()).user.banned, false, 'KV must not replace canonical account after import');
+  assert.equal((await post('/api/admin/leaderboard/migrate', {})).status, 403);
+  // Trusted fixture provisioning, never exposed by a public route.
+  const canonical = (await (await accountStub.fetch(accountUrl)).json()).user;
+  assert.equal((await accountStub.fetch(accountUrl, {method: 'PUT', body: JSON.stringify({expected: canonical.revision,
+    user: {...canonical, banned: false, role: 'admin', adminGrantedAt: Date.now(), sessionVersion: 2}})})).status, 200);
+  const adminLogin = await post('/api/auth/login', {email: 'audit@example.com', password: 'safe-integration-password'});
+  const adminToken = (await adminLogin.json()).token;
+  const sample = {id: 'old-game', code: 'ABCDEF', createdAt: Date.now() - 1000, finishedAt: Date.now(),
+    winnerId: null, winnerName: null, playerCount: 1, humanCount: 1,
+    players: [{id: 0, name: 'Audit', isBot: false, cash: 100, escaped: false, bankrupt: false}]};
+  await kv.put('leaderboard:entry:old-game', JSON.stringify(sample));
+  const migrate = () => mf.dispatchFetch('https://local.test/api/admin/leaderboard/migrate', {method: 'POST',
+    headers: {'Content-Type': 'application/json', Origin: origin, Authorization: `Bearer ${adminToken}`}, body: '{}'});
+  const migration = await migrate();
+  assert.equal(migration.status, 200, await migration.clone().text());
+  assert.equal((await migration.json()).indexed, 1);
+  assert.equal((await migrate()).status, 200);
+  const leaderboard = await (await mf.dispatchFetch('https://local.test/api/leaderboard')).json();
+  assert.deepEqual(leaderboard.entries.map(entry => entry.id), ['old-game'], 'Real KV migration and indexed route preserve one copy');
   console.log(`Workerd registration + login wall time: ${Math.round(performance.now() - started)}ms (not production CPU measurement)`);
   const room = await post('/api/rooms', {name: 'Audit', timerSec: 60, bots: 1});
   assert.equal(room.status, 201, await room.clone().text());

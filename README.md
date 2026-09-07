@@ -58,6 +58,7 @@ JSON javoblarda `ok` va xatoda `error` maydoni mavjud. Himoyalangan yo‘llar `A
 | POST | `/api/profile/sync` | Profil sinxronlash; token talab qilinadi |
 | GET | `/api/admin/users?cursor=...` | Foydalanuvchilar; admin talab qilinadi |
 | POST | `/api/admin/ban` | Hisobni bloklash; admin talab qilinadi |
+| POST | `/api/admin/leaderboard/migrate` | Eski natijalarning 50 yozuvli sahifasini indekslash; admin tokeni va ixtiyoriy cursor |
 
 Kiritish sxemalari `app/workers/src/validation.ts` da. JSON hajmi 512 KiB bilan cheklangan; noto‘g‘ri ma’lumot 400, katta so‘rov 413, noto‘g‘ri media turi 415, so‘rov limiti 429 qaytaradi.
 
@@ -67,4 +68,4 @@ Frontend va Worker alohida chiqariladi. Sifat workflow’i deploy bajarmaydi. Ha
 
 ## Ochiq audit ishlari
 
-Auditning bajarilgan va tugallanmagan bandlari `app/AUDIT_REMEDIATION.md` da yuritiladi. Hisoblar uchun Durable Object va versiya bilan atomar yozish tayyor; haqiqiy hisoblarni ko‘chirish deploy bosqichida bajariladi. Email tasdiqlash/parolni tiklash, indekslangan reyting va kengaytirilgan biznes simulyatsiyasi hali tugallangan deb belgilanmagan.
+Auditning bajarilgan va tugallanmagan bandlari `app/AUDIT_REMEDIATION.md` da yuritiladi. Hisoblar uchun Durable Object va versiya bilan atomar yozish, reyting uchun vaqt indeksi va sahifali migratsiya tayyor; haqiqiy ma’lumotlarni ko‘chirish deploy bosqichida bajariladi. Email tasdiqlash/parolni tiklash va kengaytirilgan biznes simulyatsiyasi hali tugallangan deb belgilanmagan.

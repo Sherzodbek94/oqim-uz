@@ -2,7 +2,8 @@ import { GameRoom } from "./GameRoom";
 import { UserAccount } from "./UserAccount";
 import { RateLimiter, checkRoomsRateLimit } from "./rateLimit";
 import { getLeaderboard, makeRoomCode, makeToken, type LeaderboardEnv } from "./game/online";
-import { adminBan, adminListUsers, getMe, login, register, syncProfile, type AuthEnv } from "./auth";
+import { adminBan, adminListUsers, getAdminFromToken, getMe, login, register, syncProfile, type AuthEnv } from "./auth";
+import { migrateRecentPage } from './leaderboard';
 import { baseHeaders, corsHeaders, HttpError, isAllowedOrigin, json, readJson } from "./http";
 import { roomInput } from "./validation";
 export { GameRoom, RateLimiter, UserAccount };
@@ -14,6 +15,14 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (origin && !isAllowedOrigin(origin)) return json({ok: false, error: "Bu manzildan ulanishga ruxsat yo‘q"}, 403);
   if (request.method === "OPTIONS") return new Response(null, {status: 204, headers: corsHeaders(origin)});
   if (url.pathname === "/api/health") return json({ok: true, service: "oqim-server", version: 20}, 200, origin);
+  if (request.method === 'POST' && url.pathname === '/api/admin/leaderboard/migrate') {
+    if (!await getAdminFromToken(env, request.headers.get('Authorization'))) return json({ok: false, error: "Ruxsat yo‘q"}, 403, origin);
+    const body = await readJson(request);
+    if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(key => key !== 'cursor')
+      || ('cursor' in body && (typeof body.cursor !== 'string' || body.cursor.length > 4096)))
+      throw new HttpError(400, 'Migratsiya kursori noto‘g‘ri');
+    return json(await migrateRecentPage(env, 'cursor' in body ? body.cursor as string : undefined), 200, origin);
+  }
   if (request.method === "POST" && url.pathname === "/api/rooms") {
     const parsed = roomInput.safeParse(await readJson(request));
     if (!parsed.success) throw new HttpError(400, "Ism, taymer va botlar sonini tekshiring");

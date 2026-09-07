@@ -43,13 +43,18 @@ assert.equal(startGame(room, "host").ok, true);
 room.phase = "finished";
 await assert.rejects(() => recordGlobalResult({OQIM_USERS: {put: async () => {throw new Error("KV offline");}}} as never, room));
 assert.equal(Boolean(room.globalResultRecorded), false, "Failed result writes must be retryable");
+await assert.rejects(() => recordGlobalResult({OQIM_USERS: {put: async (key: string) => {
+  if (key.startsWith('leaderboard:recent:')) throw new Error('Index unavailable');
+}}} as never, room));
+assert.equal(Boolean(room.globalResultRecorded), false, 'Partial index failure must remain retryable');
 const keys: string[] = [];
 const env = {OQIM_USERS: {put: async (key: string) => {keys.push(key);}}} as never;
 await recordGlobalResult(env, room);
 room.globalResultRecorded = false; // Simulate restart before DO state was persisted.
 await recordGlobalResult(env, room);
-assert.equal(keys.length, 2);
-assert.equal(keys[0], keys[1], "Retries must use the same idempotency key");
+assert.equal(keys.length, 4);
+assert.equal(keys[0], keys[2], "Legacy retries must use the same idempotency key");
+assert.equal(keys[1], keys[3], "Index retries must use the same idempotency key");
 
 const users = new Map<string, string>();
 const authEnv = {
