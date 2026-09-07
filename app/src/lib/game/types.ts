@@ -210,6 +210,7 @@ export interface Asset {
   monthlyRevenue?: number;
   /** biznesning operatsion xarajatlari (maosh, ijara, marketing va ta'minot) */
   monthlyOperatingCosts?: number;
+  operatingCostParts?: { payroll: number; rent: number; supplies: number; marketing: number; other: number };
   /** biznesdagi faol xodimlar soni */
   employees?: number;
   /** >0 means still under construction — no cashflow yet (game.md §7.2) */
@@ -506,6 +507,7 @@ export interface MarketCard {
 }
 
 export type EventEffect =
+  | { type: "business-expansion"; principal: number; monthlyRate: number; months: number }
   | { type: "inflation"; pct: number }
   /** cash change; negative amounts in a category get hero expense discounts */
   | { type: "cash"; amount: number; category?: ExpenseCategory }

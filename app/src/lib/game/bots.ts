@@ -133,7 +133,7 @@ export function botDilemmaChoice(p: Player, card: EventCard): 0 | 1 {
   // Kredit taklifi: annuitet to'lovi byudjetga sig'masa, bot taklifni rad etadi
   const loanBad = (i: 0 | 1): boolean => {
     const e = card.choices![i].effect;
-    if (e.type !== "loan-offer") return false;
+    if (e.type !== "loan-offer" && e.type !== "business-expansion") return false;
     return !botLoanAffordable(p, annuityPayment(e.principal, e.monthlyRate, e.months), 0);
   };
   if (loanBad(0) && !loanBad(1)) return 1;

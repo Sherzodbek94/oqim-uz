@@ -49,3 +49,13 @@ Frontend nashri va Cloudflare Worker alohida xizmatlardir. Frontend nashri backe
 `app` ichida: `npm ci`, `npm ci --prefix workers`, `npm run lint`, `npm run build`, `npm run check:game-core`, `npm run smoke`, `npm audit --audit-level=high`.
 
 `app/workers` ichida: `npm ci`, `npx tsc --noEmit`, `npm audit --audit-level=high`. Deploy uchun to‘liq repozitoriy kerak: Worker umumiy `app/src/lib/game` manbasini import qiladi.
+# Biznes modeli: keyingi bosqich (2026-09-07)
+
+- B kvadrantining boshlang'ich biznesi 10 kasb sohasiga mos nom, xodimlar va aktiv tegiga ega.
+- Balans saqlandi: tushum 30 mln, operatsion xarajat 16 mln, bazaviy sof foyda 14 mln. Bu real bozor prognozi emas.
+- Biznes kartasida maosh, ijara, ta'minot, marketing va boshqa xarajatlar alohida ochiladi. Eski saqlovlarda tafsilotlar bo'lmasa, uydirma taqsimot ko'rsatilmaydi.
+- Filial krediti endi naqd bonus va vaqtinchalik ustama emas: 80 mln kredit to'liq 80 mln filial aktiviga sarflanadi. Filial tushumi 18 mln, xarajati 12 mln; kredit to'lovi alohida. Aktiv odatdagi bozor/xavf/sotish mexanizmlariga bo'ysunadi.
+- Ta'lim, transport va onlayn biznes uchun teg hamda B kvadranti bilan cheklangan hodisalar qo'shildi.
+- Regressiya testi: kasblar, xarajatlar yig'indisi, filialning naqd/aktiv/qarz izchilligi va hodisa cheklovlari.
+- Hali qolgan ishlar: barcha sohalar uchun to'liq hodisa zanjirlari, aniq xodim/ombor/quvvat boshqaruvi, biznes balansini uzoq simulyatsiyada tekshirish. Ushbu bosqich to'liq audit yakunlandi degani emas.
+- Backend deploy keyinga qoldirilgan. Onlayn o'yinda yangi qoidalar Worker ham yangilangandan keyingina ishlaydi.

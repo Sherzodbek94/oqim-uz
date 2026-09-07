@@ -2,6 +2,7 @@
  * OQIM — game engine (pure logic, no UI).
  * Functions mutate a draft Player/GameState — the controller clones state first.
  */
+import { startingBusiness } from "./business";
 import type {
   ActiveNews,
   Asset,
@@ -359,23 +360,7 @@ export function makePlayer(
     assets:
       (opts.quadrant ?? "E") === "B"
         ? [
-            {
-              id: `business-${id}`,
-              title: "Mavjud kichik biznes",
-              kind: "business",
-              icon: "Store",
-              price: 200_000_000,
-              paid: 70_000_000,
-              monthlyRevenue: 30_000_000,
-              monthlyOperatingCosts: 16_000_000,
-              monthlyCashflow: 14_000_000,
-              employees: 3,
-              tag: "savdo",
-              resalePercent: 70,
-              liquidity: 3,
-              buyIndex: 1,
-              riskLevel: 2,
-            },
+            startingBusiness(`business-${id}`, opts.customField ?? profession.field ?? "savdo"),
           ]
         : [],
     portfolio: [],
@@ -1939,6 +1924,21 @@ export function eligibleEvents(p: Player, recent: string[]): EventCard[] {
 export function applyEvent(p: Player, card: EventCard, s?: GameState): string {
   const e = card.effect;
   switch (e.type) {
+    case "business-expansion": {
+      const parent = p.assets.find((a) => a.kind === "business");
+      if (p.quadrant !== "B" || !parent) return "Filial uchun mavjud biznes kerak";
+      const loan = takeLoanOffer(p, "Filial krediti", e.principal, e.monthlyRate, e.months);
+      // Kredit to'liq filialga sarflanadi; naqd va aktiv ikki marta ko'paymaydi.
+      p.cash -= e.principal;
+      p.assets.push({
+        id: `branch-${nextId()}`, title: `${parent.title} — filial`, kind: "business", icon: "Store",
+        price: e.principal, paid: e.principal, tag: parent.tag,
+        monthlyRevenue: 18_000_000, monthlyOperatingCosts: 12_000_000, monthlyCashflow: 6_000_000,
+        operatingCostParts: { payroll: 6_000_000, rent: 2_000_000, supplies: 2_500_000, marketing: 1_000_000, other: 500_000 },
+        employees: 2, resalePercent: 70, liquidity: 2, buyIndex: s?.marketIndices.business ?? 1, riskLevel: 3,
+      });
+      return `Filialga ${formatUZSCompact(e.principal)} sarflandi · sof foyda +6 mln/oy · kredit −${formatUZSCompact(loan.monthlyPayment)}/oy`;
+    }
     case "inflation": {
       const k = 1 + e.pct / 100;
       p.expenseParts = {

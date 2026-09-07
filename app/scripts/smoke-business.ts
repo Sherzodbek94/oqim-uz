@@ -1,0 +1,35 @@
+import assert from "node:assert/strict";
+import { PROFESSIONS, EVENT_CARDS } from "../src/lib/game/data";
+import { makePlayer, applyEvent, eligibleEvents, financeSummary } from "../src/lib/game/engine";
+const opts = { isBot: false, personality: null, colorIndex: 0, dreamId: "d1", quadrant: "B" as const };
+for (const profession of PROFESSIONS) {
+  const p = makePlayer(0, "Test", profession, opts);
+  const a = p.assets[0];
+  assert.equal(a.monthlyRevenue! - a.monthlyOperatingCosts!, a.monthlyCashflow);
+  assert.equal(Object.values(a.operatingCostParts!).reduce((s, n) => s + n, 0), a.monthlyOperatingCosts);
+  assert.notEqual(a.title, "Mavjud kichik biznes");
+}
+const p = makePlayer(0, "Test", PROFESSIONS[0], opts);
+assert.equal(p.assets[0].tag, "talim");
+assert.ok(eligibleEvents(p, []).some(c => c.id === "b-education-enrollment"));
+assert.ok(!eligibleEvents(p, []).some(c => c.id === "b-transport-maintenance"));
+const card = EVENT_CARDS.find(c => c.id === "b-expansion-loan")!;
+const cash = p.cash;
+const loans = p.loans.length;
+const before = financeSummary(p);
+applyEvent(p, { ...card, effect: card.choices![0].effect });
+assert.equal(p.cash, cash, "Credit is spent, not retained as free cash");
+assert.equal(p.loans.length, loans + 1);
+assert.equal(p.assets.length, 2);
+assert.equal(p.assets[1].price, 80_000_000);
+assert.equal(p.assets[1].tag, "talim");
+assert.equal(p.assets[1].monthlyCashflow, 6_000_000);
+assert.equal(p.assetModifiers.length, 0, "No temporary boost to existing businesses");
+const payment = p.loans.at(-1)!.monthlyPayment;
+assert.ok(Math.abs((financeSummary(p).net - before.net) - (6_000_000 - payment)) < 2);
+const employee = makePlayer(1, "E", PROFESSIONS[0], { ...opts, quadrant: "E" });
+assert.ok(!eligibleEvents(employee, []).some(c => c.id === card.id));
+const unchanged = JSON.stringify(employee);
+applyEvent(employee, { ...card, effect: card.choices![0].effect });
+assert.equal(JSON.stringify(employee), unchanged);
+console.log("Business profiles, costs, expansion accounting and quadrant gates: OK");

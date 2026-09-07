@@ -597,10 +597,24 @@ function ReportTab({
           </div>
           <div className="mt-2 space-y-1 border-t border-gold-200/70 pt-2">
             {businessAssets.map((a) => (
-              <div key={a.id} className="flex items-center justify-between text-[11px] text-ink-600">
-                <span>{a.title}{a.employees ? ` · ${a.employees} xodim` : ""}</span>
-                <span className="font-semibold">{formatUZSCompact(assetCashflow(p, a, news))}/oy</span>
-              </div>
+              <details key={a.id} className="rounded-lg bg-white/70 p-2 text-sm text-ink-700">
+                <summary className="cursor-pointer break-words font-semibold">
+                  {a.title}{a.employees ? ` · ${a.employees} xodim` : ""} · {formatUZSCompact(assetCashflow(p, a, news))}/oy
+                </summary>
+                <div className="mt-2">
+                  {a.monthlyRevenue !== undefined && <Row label="Tushum" value={a.monthlyRevenue} tone="good" />}
+                  {a.operatingCostParts && <>
+                    <Row label="Xodimlar maoshi" value={-a.operatingCostParts.payroll} tone="bad" />
+                    <Row label="Ijara" value={-a.operatingCostParts.rent} tone="bad" />
+                    <Row label="Ta'minot va materiallar" value={-a.operatingCostParts.supplies} tone="bad" />
+                    <Row label="Marketing" value={-a.operatingCostParts.marketing} tone="bad" />
+                    <Row label="Boshqa biznes xarajatlari" value={-a.operatingCostParts.other} tone="bad" />
+                  </>}
+                  {a.monthlyOperatingCosts !== undefined && <Row label="Jami operatsion xarajat" value={-a.monthlyOperatingCosts} tone="bad" />}
+                  <Row label="Hodisa va bozor ta’siridan keyin" value={assetCashflow(p, a, news)} tone="info" bold />
+                  <p className="mt-1 text-sm">Kredit to'lovlari umumiy qarzlar hisobotida alohida hisoblanadi. Qiymatlar o'yin modeli uchun.</p>
+                </div>
+              </details>
             ))}
           </div>
         </div>
