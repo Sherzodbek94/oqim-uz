@@ -77,3 +77,10 @@ test('leaderboard handles network failure and retries', async ({page}) => {
   await page.getByRole('button', {name: 'Qayta urinish'}).click();
   await expect(page.getByText("Hali hech qanday onlayn o'yin natijasi yo'q.", {exact: true})).toBeVisible();
 });
+
+test('malformed successful leaderboard response shows recoverable error', async ({page}) => {
+  await page.route('**/api/leaderboard', route => route.fulfill({json: {ok: true, entries: {unexpected: true}}}));
+  await page.goto('/reyting');
+  await expect(page.getByRole('alert')).toContainText('Server javobi noto‘g‘ri');
+  await expect(page.getByRole('button', {name: 'Qayta urinish'})).toBeEnabled();
+});
