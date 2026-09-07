@@ -53,6 +53,14 @@ test('mobile report tabs switch and details stay usable', async ({page, isMobile
 
 test('game controls have accessible names and keyboard semantics', async ({page}) => {
   await resume(page);
+  // Measure the settled screen, not the intermediate entrance fade.
+  await expect.poll(() => page.locator('.board-layout').evaluate(element => {
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      if (Number(getComputedStyle(node).opacity) !== 1) return false;
+    }
+    return true;
+  })).toBe(true);
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
   const result = await new AxeBuilder({page}).include('.board-layout').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
   expect(result.violations).toEqual([]);
   await page.locator('.board-cell').first().focus();
