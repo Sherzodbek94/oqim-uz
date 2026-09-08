@@ -71,6 +71,37 @@
 .game-board { width: 100%; min-width: 0; }
 .board-controls { margin-top: 1rem; }
 .board-cell-caption { display: none; }
+/* Optional city edition: the original /game presentation stays intact. */
+.oqim-city-v2 { background: linear-gradient(145deg,#e9f7ff,#e2f2e8 55%,#f6efdf); }
+.oqim-city-v2 .oqim-play-stage { justify-content: flex-start; padding-top: 1rem; }
+.oqim-city-v2 .live-game-hud { max-width: none; box-shadow: 0 8px 0 #cedfd430,0 12px 30px #17374710; }
+.oqim-city-v2 .board-layout { width: 100%; max-width: 820px; }
+.oqim-city-v2 .game-board { padding: 6px; border-radius: 30px; }
+.oqim-city-v2 .board-controls { position: static; inset: auto; margin-top: 1rem; overflow: visible; padding: .9rem; border: 1px solid #d7e5e2; }
+.oqim-city-v2 .board-controls > div { display: block; }
+.city-action-dock { display: flex; align-items: center; justify-content: space-between; gap: 1rem; text-align: left; }
+.city-action-dock .btn-primary,.city-action-dock .btn-secondary { min-height: 48px; white-space: nowrap; }
+.oqim-city-v2 .board-cell .event-scene { height: 56%; width: 84%; border: 2px solid #ffffffb0; }
+.oqim-city-v2 .board-cell-caption { display: block; font-size: clamp(10px,1.65cqw,15px); color: #173e38; background: #fffffff2; padding: 2px 4px; border-radius: 5px; max-width: 100%; }
+.oqim-city-v2 .board-cell-number { display: none; }
+.oqim-city-v2 .board-mobile-status { top: 58%; }
+.oqim-city-v2 .oqim-report-rail { margin: 1rem 1rem 1rem 0; border-radius: 24px; height: calc(100dvh - 88px); }
+@media (min-width:1024px) {
+  .oqim-city-v2 > .lg\:grid { grid-template-columns: minmax(0,1fr) 380px; max-width: 1680px; }
+  .oqim-play-shell.oqim-city-v2 .board-layout { width: min(100%,calc(100dvh - 300px)); }
+  .city-decision-overlay { background: #153b3114; backdrop-filter: none; }
+  .city-decision-panel { left: auto !important; right: 16px !important; top: 72px !important; bottom: 16px !important; transform: none !important; width: 364px !important; max-width: 364px !important; max-height: calc(100dvh - 88px) !important; border: 1px solid #dce7e1; }
+  .city-decision-panel .event-scene { height: 180px; }
+}
+@media (max-width:599px) {
+  .city-action-dock { flex-wrap: wrap; gap: .75rem; }
+  .city-action-dock > div:nth-child(2) { flex: 1; }
+  .city-action-dock > div:last-child { width: 100%; }
+  .city-action-dock button { width: 100%; }
+  .oqim-city-v2 .board-cell-caption { font-size: 10px; padding: 1px; }
+  .oqim-city-v2 .board-cell .event-scene + svg { display: none; }
+  .oqim-city-v2 .board-cell { gap: 0; }
+}
 .event-scene { position: relative; width: 100%; height: clamp(120px, 22dvh, 190px); overflow: hidden; background: #dceee8; isolation: isolate; }
 .event-scene img { position: absolute; width: 400%; height: auto; max-width: none; pointer-events: none; }
 .event-scene-compact { height: 100px; border-radius: 12px; margin-bottom: .7rem; }

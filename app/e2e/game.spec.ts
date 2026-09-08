@@ -15,13 +15,38 @@ async function fixture(quadrant: 'E' | 'B' = 'E', modern = false) {
   return JSON.parse(execFileSync(process.execPath, ['--input-type=module'], {input: bundled.outputFiles[0].text, encoding: 'utf8'}));
 }
 
-async function resume(page: Page, quadrant: 'E' | 'B' = 'E', modern = false) {
+async function resume(page: Page, quadrant: 'E' | 'B' = 'E', modern = false, route = '/game') {
   const saved = await fixture(quadrant, modern);
   await page.addInitScript(({key, game}) => {if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(game));}, saved);
-  await page.goto('/game');
+  await page.goto(route);
   await page.getByRole('button', {name: 'Davom etish', exact: true}).click();
   await expect(page.locator('.game-board')).toBeVisible();
 }
+
+test('city edition keeps playable board and can return to original edition', async ({page}) => {
+  await resume(page, 'E', false, '/game-city');
+  await expect(page.locator('.oqim-city-v2')).toBeVisible();
+  await expect(page.locator('.board-cell')).toHaveCount(30);
+  await page.locator('.board-cell').nth(2).click();
+  await expect(page.locator('.board-cell').nth(2)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.city-action-dock').getByRole('button', {name: 'Zar tashlash', exact: true})).toBeEnabled();
+  const box = await page.locator('.game-board').boundingBox();
+  expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+  await page.screenshot({path: test.info().outputPath('city-edition.png'), fullPage: true});
+  await page.getByRole('link', {name: 'Avvalgi ko‘rinish', exact: true}).click();
+  await expect(page).toHaveURL(/\/game$/);
+  await expect(page.locator('.oqim-city-v2')).toHaveCount(0);
+});
+
+test('city edition rolls and advances the real saved game', async ({page}) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => { Math.random = () => 0.01; });
+  await resume(page, 'E', false, '/game-city');
+  await page.locator('.city-action-dock').getByRole('button', {name: 'Zar tashlash', exact: true}).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('oqim-save-v1') ?? '{}').players?.[0]?.position)).toBe(1);
+  expect(errors).toEqual([]);
+});
 
 test('business report restores stock, order deadline and capacity', async ({page, isMobile}) => {
   await resume(page, 'B');

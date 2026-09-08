@@ -183,7 +183,7 @@ function pick<T>(arr: T[]): T {
 /* fix-10 (F1): hub ichidagi yangiliklar tickeri olib tashlandi —
    sarlavhalar endi 🔔 Bildirishnomalar markazida (F2), log esa pastki panelda qoladi. */
 
-export default function Game() {
+export default function Game({ cityVersion = false }: { cityVersion?: boolean }) {
   const navigate = useNavigate();
   const [entry, setEntry] = useState<Entry>(() => {
     const save = loadSave();
@@ -2643,7 +2643,7 @@ export default function Game() {
   );
 
   return (
-    <div className="oqim-play-shell min-h-[100dvh] bg-sand-50">
+    <div className={cn("oqim-play-shell min-h-[100dvh] bg-sand-50", cityVersion && "oqim-city-v2")}>
       {/* top bar (game.md §1 GameShell) */}
       <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-sand-200 bg-white px-4 lg:px-6">
         <Link to="/" className="flex items-center gap-2">
@@ -2652,6 +2652,7 @@ export default function Game() {
             OQ<span className="text-emerald-600">IM</span>
           </span>
         </Link>
+        {!blocked && s.phase === 'idle' && <Link className="rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800" to={cityVersion ? '/game' : '/game-city'}>{cityVersion ? 'Avvalgi ko‘rinish' : 'Shaharcha versiyasi'}</Link>}
         {/* fix-10 (F4): mobil sig'ishi uchun status-chiplar faqat md+ da (aylana/oy hub va panelda bor) */}
         <div className="hidden items-center gap-2 md:flex">
           <span className="chip bg-sand-100 text-ink-600">{g.shell.round(s.round)}</span>
@@ -2803,7 +2804,11 @@ export default function Game() {
                 track={fastTrack ? "fast" : "rat"}
                 players={boardPlayers}
                 flashCells={flashCells}
-                hub={hubNode}
+                hub={cityVersion ? <div className="city-action-dock">
+                  <div className={cn(s.diceCount === 1 && "[&>div>div:last-child]:hidden")}><Dice values={s.dice} rolling={rolling} size={40} playerColor={PLAYER_COLORS[current.colorIndex]} /></div>
+                  <div><p className="text-sm font-semibold text-ink-900">{current.name} · {calDay}-kun</p><p className="text-sm text-ink-600" role="status">{blocked ? 'Ochiq oynadagi qarorni yakunlang' : rolling ? 'Token harakatlanmoqda' : canEnd ? 'Navbatni yakunlash mumkin' : canRoll ? 'Zar tashlab yo‘lni davom ettiring' : 'Navbat davom etmoqda'}</p></div>
+                  <div>{actionButton}</div>
+                </div> : hubNode}
                 botBubble={bubble}
                 activePlayerId={current.id}
                 dreamGlowCell={fastTrack ? 2 : null}
@@ -3044,7 +3049,7 @@ export default function Game() {
       </div>
 
       {/* card modals */}
-      <CardModals modal={modal} player={current} state={s} handlers={handlers} decisionHint={decisionHint} />
+      <CardModals modal={modal} player={current} state={s} handlers={handlers} decisionHint={decisionHint} cityVersion={cityVersion} />
 
       {/* fix-9: Bilim olish / Mijoz topish markazlari */}
       <AnimatePresence>
