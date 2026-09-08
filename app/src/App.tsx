@@ -37,6 +37,7 @@ export default function App() {
           </Route>
           {/* Game page stands alone — it has its own top bar (design.md §9.1) */}
           <Route path="/game" element={<Game />} />
+          <Route path="/game-city" element={<Game cityVersion />} />
           {/* v19: Onlayn multiplayer — alohida sahifa, lokal o'yinga ta'sir qilmaydi */}
           <Route path="/onlayn" element={<Online />} />
           {/* Noto'g'ri marshrutlar */}
