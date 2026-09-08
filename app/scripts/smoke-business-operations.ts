@@ -8,6 +8,10 @@ import { SAVE_KEY } from "../src/lib/game/types";
 const make = () => {
   const p = makePlayer(0, "Biznes", PROFESSIONS[4], {isBot: false, personality: null, colorIndex: 0, dreamId: "d1", quadrant: "B"});
   delete p.assets[0].businessModel;
+  Object.assign(p.assets[0], {
+    monthlyRevenue: 30_000_000, monthlyOperatingCosts: 16_000_000,
+    operatingCostParts: { payroll: 8_000_000, rent: 3_000_000, supplies: 3_000_000, marketing: 1_000_000, other: 1_000_000 },
+  });
   return p;
 };
 const p = make();

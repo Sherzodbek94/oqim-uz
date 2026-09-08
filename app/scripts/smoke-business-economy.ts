@@ -66,7 +66,13 @@ for (const s of scenarios) {
   resolve("operations-order");
   if (s.resources) resolve("operations-procure");
   resolve("operations-deliver");
-  assert.equal(publicState(room).game!.players[0].assets[0].businessModel, s.model);
+  const published = publicState(room).game!.players[0].assets[0];
+  assert.equal(published.businessModel, s.model);
+  assert.equal(published.monthlyRevenue, a.monthlyRevenue);
+  assert.equal(published.monthlyOperatingCosts, a.monthlyOperatingCosts);
+  assert.deepEqual(published.operatingCostParts, a.operatingCostParts);
+  published.operatingCostParts!.payroll = 0;
+  assert.notEqual(a.operatingCostParts!.payroll, 0, "Public snapshot must not alias engine costs");
   console.log(`${s.model}: 100 cycles, cash/stock/capacity, staffing, upgrade and online decision chain OK`);
 }
 const poor = makePlayer(0, "Poor", PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: "d1", quadrant: "B"});

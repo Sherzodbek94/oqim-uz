@@ -1,3 +1,23 @@
+## 2026-09-08 — Bazaviy oylik iqtisodiyot
+
+Yangi bizneslar uchun tushum va xarajat tarkibi sohaga moslashtirildi:
+
+| Model | Tushum | Xarajat | Sof oqim |
+|---|---|---|---|
+| Savdo | 60 mln | 46 mln | 14 mln |
+| Ishlab chiqarish | 48 mln | 34 mln | 14 mln |
+| Xizmat | 30 mln | 16 mln | 14 mln |
+
+Savdoda tovar tannarxi 33 mln, ishlab chiqarishda xomashyo 16 mln va ish haqi 10 mln, xizmatda ish haqi 8 mln. Qolgan xarajatlar ijara, marketing va boshqa faoliyat xarajatlariga taqsimlangan. Teng boshlang‘ich sof oqim va kapital o‘yinchi tanlagan kasb uchun bepul ustunlik bermaydi; bu bozor ma’lumoti emas.
+
+`business-finance.ts` yangi boshlang‘ich biznes, naqd/kreditga yoki bo‘lib sotib olingan biznes va filialni boshlang‘ich qiymatlar bilan to‘ldiradi. Bitimning amaldagi sof oqimi saqlanadi; yaxlitlashdan keyin tushum minus xarajat aynan shu oqimga teng. Nol/manfiy oqimli bitimga noma’lum tushum o‘ylab topilmaydi. Eski saqlovlar qayta hisoblanmaydi.
+
+Lokal hisobotdagi material nomi sohaga mos. Onlayn hisobotda ham tushum, 5 xarajat turi va bazaviy sof oqim ko‘rsatiladi. Yollash maoshni oshiradi, ammo avtomatik savdo yaratmaydi. Qo‘shimcha buyurtmalar alohida hisoblanadi; kredit va vaqtinchalik bozor/hodisa ta’siri umumiy hisobda.
+
+Chegaralar: bu bazaviy moliyaviy profil; talab, ish vaqtidan foydalanish va xomashyo narxi oylik aylanmani dinamik qayta hisoblaydigan tizim hali emas. Sohaga oid hodisalar va uzoq muddatli balans keyingi bosqich.
+
+---
+
 ## 2026-09-08 — Sohaga mos qo‘shimcha buyurtmalar
 
 Savdo, ishlab chiqarish va xizmat uchun alohida iqtisodiyot kiritildi. 20 birlik buyurtma misolida:

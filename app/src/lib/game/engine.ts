@@ -1,3 +1,4 @@
+import { businessMonthlyFinance } from "./business-finance";
 /**
  * OQIM — game engine (pure logic, no UI).
  * Functions mutate a draft Player/GameState — the controller clones state first.
@@ -1625,6 +1626,7 @@ export function buyDeal(p: Player, deal: DealCard, useBankLoan: boolean, marketI
     constructionLeft: deal.constructionTurns,
     tag: deal.tag,
     businessModel: deal.kind === "business" ? businessModelForTag(deal.tag) : undefined,
+    ...(deal.kind === "business" ? businessMonthlyFinance(businessModelForTag(deal.tag), adjustedCashflow(p, deal)) : {}),
     resalePercent: deal.resalePercent,
     liquidity: deal.liquidity,
     buyIndex: marketIndex,
@@ -1707,6 +1709,7 @@ export function buyDealInstallment(p: Player, deal: DealCard, marketIndex = 1): 
     constructionLeft: deal.constructionTurns,
     tag: deal.tag,
     businessModel: deal.kind === "business" ? businessModelForTag(deal.tag) : undefined,
+    ...(deal.kind === "business" ? businessMonthlyFinance(businessModelForTag(deal.tag), adjustedCashflow(p, deal)) : {}),
     resalePercent: deal.resalePercent,
     liquidity: deal.liquidity,
     buyIndex: marketIndex,
@@ -1954,6 +1957,7 @@ export function applyEvent(p: Player, card: EventCard, s?: GameState): string {
         businessModel: parent.businessModel,
         monthlyRevenue: 18_000_000, monthlyOperatingCosts: 12_000_000, monthlyCashflow: 6_000_000,
         operatingCostParts: { payroll: 6_000_000, rent: 2_000_000, supplies: 2_500_000, marketing: 1_000_000, other: 500_000 },
+        ...(parent.businessModel ? businessMonthlyFinance(parent.businessModel, 6_000_000) : {}),
         employees: 2, resalePercent: 70, liquidity: 2, buyIndex: s?.marketIndices.business ?? 1, riskLevel: 3,
       });
       return `Filialga ${formatUZSCompact(e.principal)} sarflandi · sof foyda +6 mln/oy · kredit −${formatUZSCompact(loan.monthlyPayment)}/oy`;

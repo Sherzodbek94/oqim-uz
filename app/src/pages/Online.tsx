@@ -1,3 +1,4 @@
+import BusinessMonthlySummary from "./game/BusinessMonthlySummary";
 /**
  * OQIM v19 — 🌐 Onlayn multiplayer sahifasi (/onlayn).
  * 3 holat: kirish (xona yaratish / kod bilan kirish) → lobby → o'yin.
@@ -604,6 +605,7 @@ export default function Online() {
                     <details key={a.id} className="mt-2 rounded-lg bg-white p-2 text-sm text-ink-700">
                       <summary className="cursor-pointer font-semibold">{a.title} · {a.employees ?? 0} xodim</summary>
                       <BusinessOperationsSummary asset={a} />
+                      <BusinessMonthlySummary asset={a} />
                     </details>
                   ))}
                   {p.id === me && p.quadrant === "B" && p.assets.some(a => a.kind === "business") && (
