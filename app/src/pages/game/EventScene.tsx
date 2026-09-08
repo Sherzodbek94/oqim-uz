@@ -36,6 +36,6 @@ export function modalScene(modal: ModalState): Scene {
 export default function EventScene({scene, compact = false}: {scene: Scene; compact?: boolean}) {
   const index = scenes.indexOf(scene);
   return <div aria-hidden="true" className={compact ? 'event-scene event-scene-compact' : 'event-scene'} data-scene={scene}>
-    <img src="/event-scenes.webp" alt="" draggable={false} decoding="async" style={{left: `${-(index % 4) * 100}%`, top: `${-Math.floor(index / 4) * 100}%`}} />
+    <img src="/event-scenes.webp" alt="" draggable={false} decoding="async" style={{left: `${-(index % 4) * 100}%`, top: '50%', transform: `translateY(-${(Math.floor(index / 4) + .5) * 100 / 3}%)`}} />
   </div>;
 }
