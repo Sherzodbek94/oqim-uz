@@ -2652,7 +2652,6 @@ export default function Game({ cityVersion = false }: { cityVersion?: boolean })
             OQ<span className="text-emerald-600">IM</span>
           </span>
         </Link>
-        {!blocked && s.phase === 'idle' && <Link className="rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800" to={cityVersion ? '/game' : '/game-city'}>{cityVersion ? 'Avvalgi ko‘rinish' : 'Shaharcha versiyasi'}</Link>}
         {/* fix-10 (F4): mobil sig'ishi uchun status-chiplar faqat md+ da (aylana/oy hub va panelda bor) */}
         <div className="hidden items-center gap-2 md:flex">
           <span className="chip bg-sand-100 text-ink-600">{g.shell.round(s.round)}</span>
@@ -2738,6 +2737,7 @@ export default function Game({ cityVersion = false }: { cityVersion?: boolean })
           </button>
         </div>
       </header>
+      {!blocked && s.phase === 'idle' && <div className="px-4 pt-2 text-right"><Link className="inline-flex min-h-11 items-center rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800" to={cityVersion ? '/game' : '/game-city'}>{cityVersion ? 'Avvalgi ko‘rinish' : 'Shaharcha versiyasi'}</Link></div>}
 
       {/* turn banner */}
       <AnimatePresence>

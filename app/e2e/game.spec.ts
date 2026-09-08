@@ -44,6 +44,8 @@ test('city edition rolls and advances the real saved game', async ({page}) => {
   await page.addInitScript(() => { Math.random = () => 0.01; });
   await resume(page, 'E', false, '/game-city');
   await page.locator('.city-action-dock').getByRole('button', {name: 'Zar tashlash', exact: true}).click();
+  await page.getByRole('button', {name: /Kichik bitim/}).click();
+  await page.getByRole('button', {name: "O'tkazib yuborish", exact: true}).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('oqim-save-v1') ?? '{}').players?.[0]?.position)).toBe(1);
   expect(errors).toEqual([]);
 });
