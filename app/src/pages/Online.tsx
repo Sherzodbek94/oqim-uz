@@ -1,4 +1,5 @@
 import BusinessMonthlySummary from "./game/BusinessMonthlySummary";
+import EventScene, { sceneForText } from './game/EventScene';
 /**
  * OQIM v19 — 🌐 Onlayn multiplayer sahifasi (/onlayn).
  * 3 holat: kirish (xona yaratish / kod bilan kirish) → lobby → o'yin.
@@ -479,6 +480,7 @@ export default function Online() {
                         Menejer yollash · {formatUZSCompact(p.managerHireCost ?? 0)} (bir martalik)
                       </button>
                     ))}
+                    {pending && <EventScene scene={pending.kind === 'business-choice' ? sceneForText(pending.title, 'business') : pending.kind === 'deal' ? sceneForText(pending.card.title, 'business') : pending.kind === 'charity' ? 'charity' : pending.kind === 'market' ? 'market' : 'business'} compact />}
                     {pending?.kind === "deal-size" && (
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         <button onClick={() => clientRef.current?.action({ kind: "deal-size", size: "small" })} className="btn-primary">Kichik bitim</button>

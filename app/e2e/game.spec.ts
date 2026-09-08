@@ -65,6 +65,8 @@ test('saved game resumes and board fits viewport', async ({page}) => {
   expect(board!.x).toBeGreaterThanOrEqual(0);
   expect(board!.x + board!.width).toBeLessThanOrEqual(viewport.width + 1);
   await expect(page.locator('.board-cell')).toHaveCount(30);
+  await expect(page.locator('.board-cell .event-scene')).toHaveCount(30);
+  await expect.poll(() => page.locator('.board-cell .event-scene img').first().evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
   await page.locator('.board-cell').nth(2).click();
   await expect(page.locator('.board-cell').nth(2)).toHaveAttribute('aria-pressed', 'true');
   expect(errors).toEqual([]);
