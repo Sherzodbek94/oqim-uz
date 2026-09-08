@@ -10,6 +10,7 @@ joinRoom(room, "Guest", "guest");
 assert.ok(startGame(room, "host").ok);
 const p = makePlayer(0, "Host", PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: "d1", quadrant: "B"});
 p.cash = 20_000_000;
+delete p.assets[0].businessModel; // Legacy in-flight room compatibility.
 p.expenseParts.other = 50_000_000; // Prevent automatic win while testing decision protocol.
 room.game!.players[0] = p;
 room.players.forEach(r => {r.connected = true;});

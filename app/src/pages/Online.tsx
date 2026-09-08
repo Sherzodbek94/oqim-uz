@@ -21,6 +21,7 @@ import {
 } from "@/lib/net/client";
 import { CELL_CAPTIONS, CELL_COLORS, RAT_CELLS } from "@/lib/game/types";
 import { formatUZSCompact } from "@/lib/format";
+import BusinessOperationsSummary from "./game/BusinessOperationsSummary";
 
 type Screen = "entry" | "room";
 
@@ -602,9 +603,7 @@ export default function Online() {
                   {p.assets.filter(a => a.kind === "business").map(a => (
                     <details key={a.id} className="mt-2 rounded-lg bg-white p-2 text-sm text-ink-700">
                       <summary className="cursor-pointer font-semibold">{a.title} · {a.employees ?? 0} xodim</summary>
-                      <p>Bo'sh quvvat: {(a.operations?.capacity ?? 20) - (a.operations?.usedCapacity ?? 0)} / {a.operations?.capacity ?? 20}</p>
-                      <p>Zaxira: {a.operations?.stock ?? 0} birlik</p>
-                      <p>{a.operations?.order ? `Buyurtma: ${a.operations.order.units} birlik · ${a.operations.order.monthsLeft} oy qoldi` : "Faol buyurtma yo'q"}</p>
+                      <BusinessOperationsSummary asset={a} />
                     </details>
                   ))}
                   {p.id === me && p.quadrant === "B" && p.assets.some(a => a.kind === "business") && (

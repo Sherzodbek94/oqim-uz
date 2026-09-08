@@ -30,7 +30,8 @@ import {
 } from "./engine";
 import { SECURITIES, buySecurity, securityById, sellSecurity } from "./exchange";
 import { formatUZSCompact } from "../format";
-import { businessTarget, STOCK_UNIT_COST } from "./business";
+import { businessTarget } from "./business";
+import { businessOrderQuote } from "./business-economy";
 
 export interface BotDecision {
   buy: boolean;
@@ -134,12 +135,15 @@ export function botDilemmaChoice(p: Player, card: EventCard): 0 | 1 {
   // Kredit taklifi: annuitet to'lovi byudjetga sig'masa, bot taklifni rad etadi
   const operation = card.choices[0].effect;
   if (operation.type === "business-operation") {
-    const op = businessTarget(p, card.businessAssetId)?.operations;
+    const target = businessTarget(p, card.businessAssetId);
+    if (!target) return 1;
+    const op = target.operations;
+    const q = businessOrderQuote(target);
     switch (operation.action) {
-      case "accept": return p.cash >= 20 * STOCK_UNIT_COST ? 0 : 1;
-      case "restock": return p.cash >= Math.max(0, (op?.order?.units ?? 0) - (op?.stock ?? 0)) * STOCK_UNIT_COST ? 0 : 1;
-      case "deliver": return p.freezeBusinessTurns > 0 ? 1 : 0;
-      case "hire": return op?.order && (op.hires < 5) && p.cash >= 6_000_000 && monthlyCashflow(p) > 2_000_000 ? 0 : 1;
+      case "accept": return p.cash >= q.procurementCost + q.executionCost ? 0 : 1;
+      case "restock": return p.cash >= q.procurementCost + q.executionCost ? 0 : 1;
+      case "deliver": return p.freezeBusinessTurns > 0 || p.cash < q.executionCost ? 1 : 0;
+      case "hire": return op?.order && (op.hires < 5) && p.cash >= q.economy.hireCost + 5 * q.economy.salary && monthlyCashflow(p) > 2 * q.economy.salary ? 0 : 1;
       case "upgrade": return 1; // Buyurtmasiz uskuna olishdan saqlanadi.
       case "cancel": return 0;
     }

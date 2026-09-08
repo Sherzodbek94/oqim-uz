@@ -48,7 +48,8 @@ export function loadSave(): GameState | null {
         || !player.expenseParts || Object.values(player.expenseParts).some(value => !Number.isFinite(value))) return null;
       for (const asset of player.assets) {
         if (!asset || typeof asset !== "object") return null;
-        if (asset.operations !== undefined && !validBusinessOperations(asset.operations)) return null;
+        if (asset.businessModel !== undefined && !["trade", "production", "service"].includes(asset.businessModel)) return null;
+        if (asset.operations !== undefined && !validBusinessOperations(asset.operations, asset)) return null;
       }
       if (player.managedBusinessId !== undefined) {
         if (typeof player.managedBusinessId !== "string" || player.managedBusinessId.length > 128) return null;

@@ -1,3 +1,21 @@
+## 2026-09-08 — Sohaga mos qo‘shimcha buyurtmalar
+
+Savdo, ishlab chiqarish va xizmat uchun alohida iqtisodiyot kiritildi. 20 birlik buyurtma misolida:
+
+| Model | Resurs | Quvvat | Resurs xaridi | Bajarish xarajati | Tushum |
+|---|---|---|---|---|---|
+| Savdo | 20 tayyor tovar | 20 birlik | 4 mln | 0 | 5,6 mln |
+| Ishlab chiqarish | 40 xomashyo | 40 birlik | 3 mln | 0 | 6 mln |
+| Xizmat | Omborsiz | 40 ish soati | 0 | 1,2 mln | 2,8 mln |
+
+Hisoblar `business-economy.ts` orqali engine, bot, karta va lokal/onlayn hisobotlarga ulanadi. Xodim maoshi va quvvatni oshirish narxi ham modelga mos. Xizmat xarajati tushumdan oldin tekshiriladi; yetarli pul bo‘lmasa holat o‘zgarmaydi. Ishlab chiqarishda xomashyo topshirish paytida sarflanadi.
+
+Eski saqlovlarda model belgisi yo‘q bo‘lsa eski narxlar saqlanadi. Yangi boshlang‘ich/sotib olingan bizneslar sohasiga mos model oladi; filial ota biznes modelini oladi.
+
+Chegara: bu raqamlar o‘yin ssenariysi. Boshlang‘ich biznesning bazaviy oylik tushumi 30 mln, xarajati 16 mln va oqimi 14 mln hozircha o‘zgarmagan. Alohida tayyor mahsulot ombori va vaqtli ishlab chiqarish liniyasi hali yo‘q. Keyingi ishlar: kvadrant/soha hodisalari va butun o‘yin balansi. Merge/deploy keyinga qoldirilgan.
+
+---
+
 # Audit tuzatishlari — 2026-09-06
 
 ## Bir nechta biznesni tanlash — 2026-09-08

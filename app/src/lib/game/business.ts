@@ -1,4 +1,6 @@
 import type { Asset, EventEffect, Player, ProfessionField } from "./types";
+import { businessEconomy, businessModelForTag, businessOrderQuote } from "./business-economy";
+import { formatUZSCompact } from "../format";
 
 // O'yin balansining namunaviy qiymatlari; real bozor daromadi prognozi emas.
 const profiles: Record<ProfessionField, { title: string; tag: string; employees: number }> = {
@@ -17,6 +19,7 @@ const profiles: Record<ProfessionField, { title: string; tag: string; employees:
 export function startingBusiness(id: string, field: ProfessionField): Asset {
   return {
     id, ...profiles[field], kind: "business", icon: "Store",
+    businessModel: businessModelForTag(profiles[field].tag),
     price: 200_000_000, paid: 70_000_000,
     monthlyRevenue: 30_000_000, monthlyOperatingCosts: 16_000_000,
     monthlyCashflow: 14_000_000,
@@ -27,13 +30,14 @@ export function startingBusiness(id: string, field: ProfessionField): Asset {
 
 export const STOCK_UNIT_COST = 100_000;
 export const ORDER_UNIT_PRICE = 180_000;
-export function validBusinessOperations(value: unknown): boolean {
+export function validBusinessOperations(value: unknown, asset?: Asset): boolean {
   if (!value || typeof value !== "object") return false;
   const op = value as NonNullable<Asset["operations"]>;
   if (![op.capacity, op.usedCapacity, op.stock, op.hires].every(Number.isInteger)) return false;
-  if (op.capacity < 20 || op.capacity > 100 || op.capacity % 10 !== 0
+  const economy = businessEconomy(asset ?? {});
+  if (op.capacity < economy.initialCapacity || op.capacity > economy.maxCapacity || op.capacity % 10 !== 0
     || op.usedCapacity < 0 || op.usedCapacity > op.capacity
-    || op.stock < 0 || op.stock > 20 || op.hires < 0 || op.hires > 5) return false;
+    || op.stock < 0 || op.stock > 20 * economy.resourcePerUnit || op.hires < 0 || op.hires > 5) return false;
   return op.order === null || (!!op.order && typeof op.order === "object"
     && op.order.units === 20 && Number.isInteger(op.order.monthsLeft)
     && op.order.monthsLeft >= 1 && op.order.monthsLeft <= 3);
@@ -55,27 +59,30 @@ export function businessStage(p: Player, assetId?: string): "offer" | "procure" 
   if (p.quadrant !== "B" || !target) return null;
   const op = target.operations;
   if (!op?.order) return "offer";
-  if (op.capacity - op.usedCapacity < op.order.units) return "capacity";
-  return op.stock < op.order.units ? "procure" : "deliver";
+  const quote = businessOrderQuote(target);
+  if (op.capacity - op.usedCapacity < quote.capacity) return "capacity";
+  return op.stock < quote.resources ? "procure" : "deliver";
 }
 
 /** Atomic commands: failed decisions do not spend money or partially change state. */
 export function operateBusiness(p: Player, action: Extract<EventEffect, { type: "business-operation" }>["action"], assetId?: string): string {
   const a = businessTarget(p, assetId);
   if (p.quadrant !== "B" || !a) return "Faol biznes topilmadi";
-  const op = structuredClone(a.operations ?? { capacity: 20, usedCapacity: 0, stock: 0, hires: 0, order: null });
+  const quote = businessOrderQuote(a);
+  const economy = quote.economy;
+  const op = structuredClone(a.operations ?? { capacity: economy.initialCapacity, usedCapacity: 0, stock: 0, hires: 0, order: null });
   let message = "";
   switch (action) {
     case "accept":
       if (op.order) return "Avval mavjud buyurtmani yakunlang";
       op.order = { units: 20, monthsLeft: 3 };
-      message = "20 birlik buyurtma qabul qilindi: 3 oy ichida bajaring. Zaxira xarajati 2 mln, tushum 3,6 mln.";
+      message = `20 birlik buyurtma qabul qilindi: 3 oy. Tannarx ${formatUZSCompact(quote.stockCost + quote.executionCost)}, tushum ${formatUZSCompact(quote.revenue)}.`;
       break;
     case "restock": {
       if (!op.order) return "Avval buyurtma qabul qiling";
-      const units = Math.max(0, op.order.units - op.stock);
-      const cost = units * STOCK_UNIT_COST;
-      if (!units) return "Zaxira yetarli";
+      const units = Math.max(0, quote.resources - op.stock);
+      const cost = units * economy.unitCost;
+      if (!units) return economy.resourcePerUnit ? "Zaxira yetarli" : "Xizmat uchun ombor xaridi kerak emas";
       if (p.cash < cost) return "Zaxira xaridiga naqd yetmaydi";
       p.cash -= cost;
       op.stock += units;
@@ -86,17 +93,17 @@ export function operateBusiness(p: Player, action: Extract<EventEffect, { type: 
     }
     case "deliver": {
       if (!op.order) return "Bajariladigan buyurtma yo'q";
-      const units = op.order.units;
       if (p.freezeBusinessTurns > 0) return "Biznes vaqtincha to'xtagan; buyurtmani hozir bajarib bo'lmaydi";
-      if (op.stock < units) return "Buyurtma uchun zaxira yetmaydi";
-      if (op.capacity - op.usedCapacity < units) return "Bu oy quvvat yetmaydi; yangi oy yoki kengaytirishni kuting";
-      op.stock -= units;
-      op.usedCapacity += units;
+      if (op.stock < quote.resources) return "Buyurtma uchun zaxira yetmaydi";
+      if (op.capacity - op.usedCapacity < quote.capacity) return "Bu oy quvvat yetmaydi; yangi oy yoki kengaytirishni kuting";
+      if (p.cash < quote.executionCost) return "Buyurtmani bajarish xarajatiga naqd yetmaydi";
+      op.stock -= quote.resources;
+      op.usedCapacity += quote.capacity;
       op.order = null;
-      p.cash += units * ORDER_UNIT_PRICE;
-      a.price = Math.max(0, a.price - units * STOCK_UNIT_COST);
-      a.paid = Math.max(0, a.paid - units * STOCK_UNIT_COST);
-      message = "Buyurtma bajarildi: +3,6 mln tushum. Oldin to'langan 2 mln zaxiradan keyin marja 1,6 mln; bu oylik passiv daromad emas.";
+      p.cash += quote.revenue - quote.executionCost;
+      a.price = Math.max(0, a.price - quote.stockCost);
+      a.paid = Math.max(0, a.paid - quote.stockCost);
+      message = `Buyurtma bajarildi: tushum +${formatUZSCompact(quote.revenue)}, bajarish xarajati −${formatUZSCompact(quote.executionCost)}. Zaxira tannarxidan keyin marja ${formatUZSCompact(quote.margin)}; oylik passiv daromad emas.`;
       break;
     }
     case "cancel":
@@ -105,25 +112,25 @@ export function operateBusiness(p: Player, action: Extract<EventEffect, { type: 
       message = "Buyurtma bekor qilindi. Olingan zaxira keyingi buyurtmaga saqlanadi; tushum berilmaydi.";
       break;
     case "hire":
-      if (op.hires >= 5 || op.capacity >= 100) return "Xodim yoki quvvat chegarasiga yetdingiz";
-      if (p.cash < 1_000_000) return "Xodim yollashga naqd yetmaydi";
-      p.cash -= 1_000_000;
+      if (op.hires >= 5 || op.capacity >= economy.maxCapacity) return "Xodim yoki quvvat chegarasiga yetdingiz";
+      if (p.cash < economy.hireCost) return "Xodim yollashga naqd yetmaydi";
+      p.cash -= economy.hireCost;
       op.hires++;
-      op.capacity += 10;
+      op.capacity = Math.min(economy.maxCapacity, op.capacity + economy.hireCapacity);
       a.employees = (a.employees ?? 0) + 1;
-      if (a.monthlyOperatingCosts !== undefined) a.monthlyOperatingCosts += 1_000_000;
-      if (a.operatingCostParts) a.operatingCostParts.payroll += 1_000_000;
-      a.monthlyCashflow -= 1_000_000;
-      message = "Xodim yollandi: −1 mln bir martalik, −1 mln/oy maosh, quvvat +10. Yangi buyurtma kafolatlanmaydi.";
+      if (a.monthlyOperatingCosts !== undefined) a.monthlyOperatingCosts += economy.salary;
+      if (a.operatingCostParts) a.operatingCostParts.payroll += economy.salary;
+      a.monthlyCashflow -= economy.salary;
+      message = `Xodim yollandi: −${formatUZSCompact(economy.hireCost)} hozir, −${formatUZSCompact(economy.salary)}/oy. Quvvat ${op.capacity} ${economy.capacityLabel}. Buyurtma kafolatlanmaydi.`;
       break;
     case "upgrade":
-      if (op.capacity >= 100) return "Quvvat chegarasiga yetdingiz";
-      if (p.cash < 5_000_000) return "Uskunaga naqd yetmaydi";
-      p.cash -= 5_000_000;
-      a.price += 5_000_000;
-      a.paid += 5_000_000;
-      op.capacity += 10;
-      message = "Uskuna olindi: −5 mln naqd, aktiv qiymati +5 mln, quvvat +10. Tushum buyurtmani bajarganda keladi.";
+      if (op.capacity >= economy.maxCapacity) return "Quvvat chegarasiga yetdingiz";
+      if (p.cash < economy.upgradeCost) return "Uskunaga naqd yetmaydi";
+      p.cash -= economy.upgradeCost;
+      a.price += economy.upgradeCost;
+      a.paid += economy.upgradeCost;
+      op.capacity = Math.min(economy.maxCapacity, op.capacity + economy.upgradeCapacity);
+      message = `Jihoz yangilandi: −${formatUZSCompact(economy.upgradeCost)} naqd aktivga aylandi. Quvvat ${op.capacity} ${economy.capacityLabel}.`;
       break;
   }
   a.operations = op;

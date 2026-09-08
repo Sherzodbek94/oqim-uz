@@ -4,7 +4,12 @@ import { operateBusiness, businessStage, advanceBusinessMonth, validBusinessOper
 import { PROFESSIONS } from "../src/lib/game/data";
 import { loadSave, saveGame } from "../src/lib/game/save";
 import { SAVE_KEY } from "../src/lib/game/types";
-const make = () => makePlayer(0, "Biznes", PROFESSIONS[4], {isBot: false, personality: null, colorIndex: 0, dreamId: "d1", quadrant: "B"});
+// Legacy save contract: existing balances and orders must keep their old economics.
+const make = () => {
+  const p = makePlayer(0, "Biznes", PROFESSIONS[4], {isBot: false, personality: null, colorIndex: 0, dreamId: "d1", quadrant: "B"});
+  delete p.assets[0].businessModel;
+  return p;
+};
 const p = make();
 p.cash = 20_000_000;
 const baseCash = p.cash;

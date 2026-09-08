@@ -3,20 +3,20 @@ import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 
-async function fixture(quadrant: 'E' | 'B' = 'E') {
+async function fixture(quadrant: 'E' | 'B' = 'E', modern = false) {
   const bundled = await build({stdin: {contents: `
     import { makePlayer, makeGame } from './src/lib/game/engine';
     import { PROFESSIONS } from './src/lib/game/data';
     import { SAVE_KEY } from './src/lib/game/types';
     import { operateBusiness, startingBusiness } from './src/lib/game/business';
     const player = makePlayer(0, 'Audit o‘yinchisi', PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: 'd1', quadrant: '${quadrant}'});
-    if (player.quadrant === 'B') { operateBusiness(player, 'accept'); operateBusiness(player, 'restock'); player.assets.push(startingBusiness('second-business', 'transport')); }
+    if (player.quadrant === 'B') { if (!${modern}) delete player.assets[0].businessModel; /* preserve legacy coverage */ operateBusiness(player, 'accept'); operateBusiness(player, 'restock'); player.assets.push(startingBusiness('second-business', 'transport')); }
     console.log(JSON.stringify({key: SAVE_KEY, game: makeGame([player])}));`, resolveDir: process.cwd()}, bundle: true, platform: 'node', format: 'esm', write: false, alias: {'@': './src'}});
   return JSON.parse(execFileSync(process.execPath, ['--input-type=module'], {input: bundled.outputFiles[0].text, encoding: 'utf8'}));
 }
 
-async function resume(page: Page, quadrant: 'E' | 'B' = 'E') {
-  const saved = await fixture(quadrant);
+async function resume(page: Page, quadrant: 'E' | 'B' = 'E', modern = false) {
+  const saved = await fixture(quadrant, modern);
   await page.addInitScript(({key, game}) => {if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(game));}, saved);
   await page.goto('/game');
   await page.getByRole('button', {name: 'Davom etish', exact: true}).click();
@@ -125,4 +125,17 @@ test('malformed successful leaderboard response shows recoverable error', async 
   await page.goto('/reyting');
   await expect(page.getByRole('alert')).toContainText('Server javobi noto‘g‘ri');
   await expect(page.getByRole('button', {name: 'Qayta urinish'})).toBeEnabled();
+});
+
+
+test('service business uses working hours without inventory after resume', async ({page, isMobile}) => {
+  await resume(page, 'B', true);
+  if (isMobile) await page.getByRole('button', {name: 'Hisobotni ochish', exact: true}).last().click();
+  await page.locator('summary:visible').filter({hasText: 'Batafsil hisobot va maqsadlar'}).first().click();
+  await page.locator('summary:visible').filter({hasText: "O'quv markazi"}).first().click();
+  const operations = page.locator("[aria-label=\"Qo'shimcha buyurtma holati\"]:visible").first();
+  await expect(operations).toContainText('Xizmat');
+  await expect(operations).toContainText('40 / 40 ish soati/oy');
+  await expect(operations).toContainText('Ombor talab qilinmaydi');
+  await expect(operations).toContainText('3 oy qoldi');
 });

@@ -199,6 +199,8 @@ export interface Installment {
 }
 
 export interface Asset {
+  /** Yo'q bo'lsa eski saqlov iqtisodiyoti o'zgarishsiz qoladi. */
+  businessModel?: "trade" | "production" | "service";
   /** Qo'shimcha buyurtmalar; bazaviy oylik faoliyatdan alohida. */
   operations?: {
     capacity: number;

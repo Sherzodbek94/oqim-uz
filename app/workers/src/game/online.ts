@@ -641,7 +641,7 @@ export function publicState(room: OnlineRoom, forToken?: string) {
             hasManager: p.hasManager,
             managerHireCost: managerCost(p),
             managedBusinessId: businessTarget(p)?.id,
-            assets: p.assets.map((a) => ({ id: a.id, title: a.title, kind: a.kind, icon: a.icon, price: a.price, monthlyCashflow: a.monthlyCashflow, employees: a.employees, constructionLeft: a.constructionLeft, operations: a.operations ? structuredClone(a.operations) : undefined })),
+            assets: p.assets.map((a) => ({ id: a.id, title: a.title, kind: a.kind, icon: a.icon, price: a.price, monthlyCashflow: a.monthlyCashflow, employees: a.employees, constructionLeft: a.constructionLeft, businessModel: a.businessModel, operations: a.operations ? structuredClone(a.operations) : undefined })),
             loansCount: p.loans.length,
             children: p.children,
             escaped: p.escaped,

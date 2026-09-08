@@ -10,6 +10,7 @@ const p = makePlayer(0, "Test", PROFESSIONS[0], {isBot: false, personality: null
 p.cash = 100_000_000;
 const a = p.assets[0];
 const b = startingBusiness("second-business", "transport");
+delete a.businessModel; delete b.businessModel; // Preserve legacy multi-business regression scenario.
 const building = {...startingBusiness("building", "savdo"), constructionLeft: 2};
 p.assets.push(b, building);
 const original = JSON.stringify(p);

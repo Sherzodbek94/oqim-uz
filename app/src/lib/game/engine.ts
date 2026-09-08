@@ -3,6 +3,7 @@
  * Functions mutate a draft Player/GameState — the controller clones state first.
  */
 import { startingBusiness, businessTarget, businessStage, operateBusiness, advanceBusinessMonth } from "./business";
+import { businessModelForTag, describeBusinessCard } from "./business-economy";
 import type {
   ActiveNews,
   Asset,
@@ -1623,6 +1624,7 @@ export function buyDeal(p: Player, deal: DealCard, useBankLoan: boolean, marketI
     monthlyCashflow: adjustedCashflow(p, deal),
     constructionLeft: deal.constructionTurns,
     tag: deal.tag,
+    businessModel: deal.kind === "business" ? businessModelForTag(deal.tag) : undefined,
     resalePercent: deal.resalePercent,
     liquidity: deal.liquidity,
     buyIndex: marketIndex,
@@ -1704,6 +1706,7 @@ export function buyDealInstallment(p: Player, deal: DealCard, marketIndex = 1): 
     monthlyCashflow: adjustedCashflow(p, deal),
     constructionLeft: deal.constructionTurns,
     tag: deal.tag,
+    businessModel: deal.kind === "business" ? businessModelForTag(deal.tag) : undefined,
     resalePercent: deal.resalePercent,
     liquidity: deal.liquidity,
     buyIndex: marketIndex,
@@ -1918,7 +1921,7 @@ export function eligibleEvents(p: Player, recent: string[]): EventCard[] {
   const target = businessTarget(p);
   const bind = (cards: EventCard[]) => cards.map(c => {
     const targeted = c.businessStage || c.choices?.some(ch => ch.effect.type === "business-expansion");
-    return targeted && target ? {...c, businessAssetId: target.id, title: `${c.title} — ${target.title}`} : c;
+    return targeted && target ? describeBusinessCard({...c, businessAssetId: target.id, title: `${c.title} — ${target.title}`}, target) : c;
   });
   // Faol buyurtmaning keyingi bosqichi tasodifiy umumiy kartalar ortida yo'qolmasin.
   const stage = businessStage(p);
@@ -1948,6 +1951,7 @@ export function applyEvent(p: Player, card: EventCard, s?: GameState): string {
       p.assets.push({
         id: `branch-${nextId()}`, title: `${parent.title} — filial`, kind: "business", icon: "Store",
         price: e.principal, paid: e.principal, tag: parent.tag,
+        businessModel: parent.businessModel,
         monthlyRevenue: 18_000_000, monthlyOperatingCosts: 12_000_000, monthlyCashflow: 6_000_000,
         operatingCostParts: { payroll: 6_000_000, rent: 2_000_000, supplies: 2_500_000, marketing: 1_000_000, other: 500_000 },
         employees: 2, resalePercent: 70, liquidity: 2, buyIndex: s?.marketIndices.business ?? 1, riskLevel: 3,
