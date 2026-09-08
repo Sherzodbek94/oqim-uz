@@ -29,13 +29,19 @@ test('new life plays a full month and preserves classic save',async({page})=>{
 
 test('walking, camera and additional business offers are usable',async({page})=>{
   await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.clock.install({time:new Date('2026-01-01T08:00:00Z')});
   await page.goto('/hayot');await page.getByRole('button',{name:/Biznes egasi/}).click();
   await page.getByRole('button',{name:/Boshlaymiz/}).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.clock.pauseAt(new Date('2026-01-01T09:00:00Z'));
   const before=await page.evaluate(key=>localStorage.getItem(key),SAVE_KEY);
   await page.getByRole('button',{name:'Mening uyim',exact:true}).click();
+  await page.clock.runFor(100);
   await expect(page.locator('.life-walker')).toHaveAttribute('data-moving','true');
   await expect(page.getByRole('button',{name:/Mijozlarni jalb qilish/})).toBeDisabled();
+  await page.clock.runFor(5000);
   await expect(page.locator('.life-walker')).toHaveAttribute('data-moving','false');
+  await page.clock.resume();
   expect(await page.evaluate(key=>localStorage.getItem(key),SAVE_KEY)).toBe(before);
   await page.getByRole('button',{name:'Xaritani yaqinlashtirish',exact:true}).click();
   await expect(page.getByLabel('Xarita masshtabi')).toHaveText('120%');
@@ -48,6 +54,7 @@ test('walking, camera and additional business offers are usable',async({page})=>
   await page.getByRole('button',{name:/Biznesni sotib olish/}).click();
   await page.getByRole('button',{name:'Tasdiqlash',exact:true}).click();
   await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).businesses.length,SAVE_KEY)).toBe(2);
+  await expect(page.getByRole('dialog')).toBeHidden();
   const box=await page.locator('.life-map').boundingBox();expect(box!.x+box!.width).toBeLessThanOrEqual(page.viewportSize()!.width+1);
   await page.screenshot({path:test.info().outputPath('oqim-life-expanded.png'),fullPage:true});
 });
