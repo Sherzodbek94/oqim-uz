@@ -71,6 +71,72 @@
 .game-board { width: 100%; min-width: 0; }
 .board-controls { margin-top: 1rem; }
 .board-cell-caption { display: none; }
+.live-game-hud {
+  display: flex;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto .75rem;
+  align-items: center;
+  gap: .5rem;
+  overflow-x: auto;
+  padding: .5rem;
+  border: 1px solid rgba(226, 214, 188, .9);
+  border-radius: 18px;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 8px 24px rgba(30,45,42,.08);
+  scrollbar-width: none;
+}
+.live-game-hud::-webkit-scrollbar { display: none; }
+.live-turn-pill, .live-stat { flex: 0 0 auto; }
+.live-turn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border-radius: 999px;
+  padding: .55rem .8rem;
+  color: white;
+  font-size: .75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.live-turn-dot { width: .45rem; height: .45rem; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.2); }
+.live-stat { min-width: 106px; padding: .15rem .55rem; border-left: 1px solid #eee6d7; }
+.live-stat span { display: block; color: #7b817c; font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.live-stat strong { display: block; color: #1b4636; font-size: .86rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.live-stat strong.is-positive { color: #2e7d5f; }
+.live-stat strong.is-negative { color: #b45443; }
+.live-stat-goal { margin-left: auto; }
+.oqim-play-shell {
+  background: radial-gradient(ellipse at 15% 10%, #d9eee9 0, transparent 48%), radial-gradient(ellipse at 90% 80%, #e2e9ff 0, transparent 48%), #f4f7fb;
+}
+.oqim-play-shell > header { border-color: #dce5eb; box-shadow: 0 4px 20px #163a5010; }
+.oqim-play-shell .live-game-hud { flex-wrap: wrap; overflow: visible; padding: .8rem; border-color: #d7e3eb; border-radius: 22px; box-shadow: 0 8px 28px #1737470d; }
+.oqim-play-shell .live-turn-pill { font-size: .875rem; padding: .7rem .9rem; }
+.oqim-play-shell .live-stat { flex: 1 1 110px; min-width: 0; }
+.oqim-play-shell .live-stat span { color: #48596a; font-size: .875rem; text-transform: none; letter-spacing: 0; }
+.oqim-play-shell .live-stat strong { font-size: 1rem; white-space: normal; overflow-wrap: anywhere; }
+.oqim-play-shell .live-stat-goal { display: block; margin-left: 0; }
+.live-stat progress { display: block; width: 100%; height: 6px; margin-top: .4rem; accent-color: #147b66; border: 0; border-radius: 8px; overflow: hidden; }
+.live-stat progress::-webkit-progress-bar { background: #e3eceb; }
+.live-stat progress::-webkit-progress-value { background: #147b66; }
+.oqim-play-shell .board-controls { border-radius: 24px; padding: .8rem; background: #ffffffed; box-shadow: 0 8px 24px #1737470c; }
+.oqim-play-shell .board-controls .btn-primary { min-height: 48px; font-size: 1rem; box-shadow: 0 5px 0 #164d3c, 0 10px 20px #21695125; }
+.oqim-play-shell .board-controls .btn-primary:active { box-shadow: 0 2px 0 #164d3c; transform: translateY(3px); }
+.oqim-play-shell .oqim-report-rail { border: 1px solid #dce5eb; border-radius: 24px 0 0 24px; overflow: hidden; box-shadow: -8px 0 30px #163a5008; }
+.oqim-play-shell [role="tab"][aria-selected="true"] { background: #e3f3ee; color: #175b48; border-radius: 12px; }
+.oqim-play-shell button:focus-visible, .oqim-play-shell a:focus-visible { outline: 3px solid #176aa0; outline-offset: 3px; }
+@media (min-width: 1024px) {
+  .oqim-play-shell .board-layout { width: min(100%, calc(100dvh - 220px)); }
+}
+@media (max-width: 599px) {
+  .oqim-play-shell .live-turn-pill { flex-basis: 100%; justify-content: center; }
+  .oqim-play-shell .live-stat { flex-basis: 40%; border: 0; padding: .4rem; }
+  .oqim-play-shell .live-stat-goal { flex-basis: 100%; }
+  .oqim-play-shell .board-controls { margin-top: .7rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oqim-play-shell *, .oqim-play-shell *::before, .oqim-play-shell *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
 @container (min-width: 600px) {
   .board-controls {
     position: absolute;
@@ -91,6 +157,12 @@
     max-width: 920px;
     margin-inline: auto;
   }
+}
+@media (max-width: 480px) {
+  .live-game-hud { margin-bottom: .5rem; padding: .4rem; border-radius: 14px; }
+  .live-turn-pill { padding: .48rem .65rem; font-size: .7rem; }
+  .live-stat { min-width: 92px; }
+  .live-stat-goal { display: none; }
 }
 
 @layer components {
