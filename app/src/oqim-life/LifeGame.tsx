@@ -27,6 +27,7 @@ export default function LifeGame(){
   const [help,setHelp]=useState(false);
   const [saveError,setSaveError]=useState(false);
   const decisionRef=useRef<HTMLElement>(null);
+  function changeTab(next:'map'|'report'|'journal'){setTab(next);requestAnimationFrame(()=>document.querySelector('.life-workspace')?.scrollIntoView({behavior:'instant',block:'start'}));}
   function choosePlace(next:Place){setPlace(next);if(window.matchMedia('(max-width: 860px)').matches)decisionRef.current?.scrollIntoView({behavior:'instant',block:'start'});}
   useEffect(()=>{if(!state)return;let failed=false;try{localStorage.setItem(SAVE_KEY,JSON.stringify(state));}catch{failed=true;}const timer=setTimeout(()=>setSaveError(failed),0);return()=>clearTimeout(timer);},[state]);
   function begin(role:Role){setState(start(role));setPlace(role==='owner'?'market':role==='freelancer'?'studio':'office');setHelp(true);}
@@ -47,7 +48,7 @@ export default function LifeGame(){
     <header className="life-top"><Link to="/" className="life-brand">OQIM<span>HAYOT</span></Link><div className="life-calendar"><span>{s.month}-oy</span><strong>{s.actions} ta hafta qoldi</strong></div><div className="life-top-actions"><button onClick={()=>setHelp(true)} aria-label="O‘yin yo‘riqnomasi"><BookOpen size={19}/></button><button onClick={()=>setReset(true)} aria-label="Yangi hayot boshlash"><RotateCcw size={19}/></button><Link to="/game">Avvalgi o‘yin</Link></div></header>
     {saveError&&<p role="alert" className="life-alert">O‘yin saqlanmadi. Brauzer xotirasida joy yetishmasligi mumkin. Bu oynani yopmang.</p>}
     <div className="life-shell">
-      <nav className="life-nav" aria-label="O‘yin bo‘limlari"><img src={ROLES[s.role].image} alt={ROLES[s.role].title}/>{([{id:'map',name:'Shaharcha',icon:MapPin},{id:'report',name:'Hisobot',icon:Wallet},{id:'journal',name:'Kundalik',icon:BookOpen}] as const).map(t=><button key={t.id} aria-current={tab===t.id?'page':undefined} onClick={()=>setTab(t.id)}><t.icon size={23}/><span>{t.name}</span></button>)}<div className="life-energy"><Heart size={18}/><strong>{s.energy}%</strong><span>Quvvat</span></div></nav>
+      <nav className="life-nav" aria-label="O‘yin bo‘limlari"><img src={ROLES[s.role].image} alt={ROLES[s.role].title}/>{([{id:'map',name:'Shaharcha',icon:MapPin},{id:'report',name:'Hisobot',icon:Wallet},{id:'journal',name:'Kundalik',icon:BookOpen}] as const).map(t=><button key={t.id} aria-current={tab===t.id?'page':undefined} onClick={()=>changeTab(t.id)}><t.icon size={23}/><span>{t.name}</span></button>)}<div className="life-energy"><Heart size={18}/><strong>{s.energy}%</strong><span>Quvvat</span></div></nav>
       <main className="life-workspace">
         <div className="life-stats"><div><span><Wallet size={16}/> Naqd pul</span><strong>{money(s.cash)} <small>so‘m</small></strong></div><div><span><TrendingUp size={16}/> Oylik sof oqim</span><strong className={f.flow<0?'life-negative':'life-positive'}>{signed(f.flow)}</strong></div><div><span>Passiv daromad</span><strong>{money(f.passive)}</strong></div><div><span>Qarz qoldig‘i</span><strong>{money(s.loan?.principal??0)}</strong></div></div>
         {tab==='map'?<>

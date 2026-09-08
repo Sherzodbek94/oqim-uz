@@ -17,3 +17,10 @@
  .life-mobile-places button{display:flex;align-items:center;gap:7px;background:white;border:1px solid #d1e2d8;border-radius:11px;padding:10px;font-size:14px;min-height:48px;text-align:left}
  .life-mobile-places svg{flex-shrink:0}
 }
+@media(max-width:860px){
+ .life-game .life-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 64px;gap:2px;width:100%;min-width:0}
+ .life-game .life-nav>button{min-width:0;width:100%;padding:6px 2px;flex-direction:column;font-size:12px;gap:2px}
+ .life-game .life-energy{margin:0;padding:4px;justify-content:center}
+}
+
+.life-workspace{scroll-margin-top:76px}
