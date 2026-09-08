@@ -18,7 +18,7 @@
 
 `oqim-life-independent-v1` alohida localStorage kaliti. Eski o‘yin saqlanmasi o‘qilmaydi yoki ko‘chirilmaydi. Brauzer xotirasi xatosi foydalanuvchiga aytiladi. Bir qurilmali yakka o‘yin; serverli multiplayer emas.
 
-Narxlar o‘quv uchun taxminiy kalibrlangan, jonli bozor ko‘rsatkichi emas. Soliq, QQS, debitorlik, xomashyo ombori, uskunaning jismoniy amortizatsiyasi va real bank stavkalari alohida simulyatsiya qilinmaydi. Hisoblash oylik pul tushumi/to‘lovi soddalashtirilgan modelidir. 6 tur hodisa va 3 biznes modeli bor; eski o‘yinning butun kartalar katalogi avtomatik ko‘chirilmagan.
+Narxlar o‘quv uchun taxminiy kalibrlangan, jonli bozor ko‘rsatkichi emas. Model solig‘i, debitorlik, kreditorlik, ombor tannarxi, inflyatsiya va buxgalteriya amortizatsiyasi hisoblanadi. QQS, jismoniy uskuna nosozligi modeli va real bank stavkalari yo‘q. Model taxminlari EXPANSION_PLAN.md da ko‘rsatilgan. 36 tur hodisa va 9 biznes modeli bor; eski o‘yinning butun kartalar katalogi avtomatik ko‘chirilmagan.
 
 Art: `/life-city.webp` yangi 2.5D shaharcha xaritasi. Mavjud avatarlar va mavzuli sahnalar qayta ishlatilgan. Xaritadagi belgilar real o‘yin joylari va aktiv egaligini ko‘rsatadi.
 
@@ -26,3 +26,12 @@ Art: `/life-city.webp` yangi 2.5D shaharcha xaritasi. Mavjud avatarlar va mavzul
 
 `scripts/smoke-life.ts`: pul hisoblari, kredit, passiv foyda, eski holatni o‘zgartirmaslik, uch karyerada 12 oy, g‘alaba/mag‘lubiyat, buzilgan save.
 `e2e/life.spec.ts`: haqiqiy UI bilan oy yakuni, voqea, menejer, hisobot, qayta ochish, eski save saqlanishi va xarita yuklanishi.
+
+## Kengaytirilgan boshqaruv
+Qahramon 4×4 sprite atlas bilan yo‘l grafigi bo‘ylab yuradi. Masshtab 100–180%; yaqinlashtirganda xaritani barmoq/sichqoncha bilan surish mumkin. Animatsiyani kamaytirish mavjud. Bino tanlash vaqt yoki pul sarflamaydi. Xarita hali fon rasmidir; barcha binolar jonlantirilgan deb hisoblanmasin.
+
+## Hisoblash manbasi va chegara
+Foyda va pul oqimini ajratish uchun naqd bo‘lmagan xarajatlar hamda aylanma mablag‘ o‘zgarishi hisobga olinadi. Bu tamoyil [IFRS Foundation IAS 7 sharhi](https://www.ifrs.org/issued-standards/list-of-standards/ias-7-statement-of-cash-flows/) bilan solishtirildi; o‘yin IFRS yoki O‘zbekiston soliq hisobotiga to‘liq mos deb da’vo qilinmaydi. Model stavkalari qonuniy stavkalar emas.
+
+## Sprite manbasi
+`public/life-walker.webp`: built-in Imagegen, 4×4 shaffof yurish atlas. Prompt: same Uzbek young adult in teal jacket, cream shirt, navy trousers; 4 walking frames per row, four diagonal orientations, isometric 2.5D, aligned feet, no text/background. PNG manba WebP ga kodlangan; qatorlar kamera yo‘nalishiga moslab ishlatiladi.

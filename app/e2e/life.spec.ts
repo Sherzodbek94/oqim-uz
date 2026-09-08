@@ -27,6 +27,31 @@ test('new life plays a full month and preserves classic save',async({page})=>{
   expect(errors).toEqual([]);
 });
 
+test('walking, camera and additional business offers are usable',async({page})=>{
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.goto('/hayot');await page.getByRole('button',{name:/Biznes egasi/}).click();
+  await page.getByRole('button',{name:/Boshlaymiz/}).click();
+  const before=await page.evaluate(key=>localStorage.getItem(key),SAVE_KEY);
+  await page.getByRole('button',{name:'Mening uyim',exact:true}).click();
+  await expect(page.locator('.life-walker')).toHaveAttribute('data-moving','true');
+  await expect(page.getByRole('button',{name:/Mijozlarni jalb qilish/})).toBeDisabled();
+  await expect(page.locator('.life-walker')).toHaveAttribute('data-moving','false');
+  expect(await page.evaluate(key=>localStorage.getItem(key),SAVE_KEY)).toBe(before);
+  await page.getByRole('button',{name:'Xaritani yaqinlashtirish',exact:true}).click();
+  await expect(page.getByLabel('Xarita masshtabi')).toHaveText('120%');
+  await page.getByRole('button',{name:'Xaritani tiklash',exact:true}).click();
+  await expect(page.getByLabel('Xarita masshtabi')).toHaveText('100%');
+  await page.getByLabel('Kam harakat',{exact:true}).check();
+  await page.getByRole('button',{name:'Mahalla bozori — sizniki',exact:true}).click();
+  await page.getByLabel('Biznes taklifini tanlang').selectOption('online');
+  await expect(page.getByRole('heading',{name:'Onlayn savdo',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:/Biznesni sotib olish/}).click();
+  await page.getByRole('button',{name:'Tasdiqlash',exact:true}).click();
+  await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).businesses.length,SAVE_KEY)).toBe(2);
+  const box=await page.locator('.life-map').boundingBox();expect(box!.x+box!.width).toBeLessThanOrEqual(page.viewportSize()!.width+1);
+  await page.screenshot({path:test.info().outputPath('oqim-life-expanded.png'),fullPage:true});
+});
+
 test('business is an interactive map asset with real management',async({page})=>{
   await page.goto('/hayot');await page.getByRole('button',{name:/Biznes egasi/}).click();
   await page.getByRole('button',{name:/Boshlaymiz/}).click();
