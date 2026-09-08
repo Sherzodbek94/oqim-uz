@@ -35,3 +35,8 @@ Foyda va pul oqimini ajratish uchun naqd bo‘lmagan xarajatlar hamda aylanma ma
 
 ## Sprite manbasi
 `public/life-walker.webp`: built-in Imagegen, 4×4 shaffof yurish atlas. Prompt: same Uzbek young adult in teal jacket, cream shirt, navy trousers; 4 walking frames per row, four diagonal orientations, isometric 2.5D, aligned feet, no text/background. PNG manba WebP ga kodlangan; qatorlar kamera yo‘nalishiga moslab ishlatiladi.
+
+## Ichki sahnalar (keyingi bosqich)
+9 biznes uchun alohida izometrik ichki tasvir va uch bosqichli interaktiv jarayon qo‘shildi. `BusinessInterior.tsx` joriy state va `economics`dan prognoz oladi; ko‘rik pul, hafta yoki save ni o‘zgartirmaydi. Egalik qilinmagan biznes faqat taxminiy ko‘rik sifatida belgilanadi. Animatsiya foydalanuvchi tomonidan yoqiladi/to‘xtatiladi; reduced-motion yoqilganda qo‘lda bosqich tanlanadi. Animatsiya jarayon ko‘rsatkichlarini almashtiradi, rasmdagi odamlar va uskunalar hozircha alohida skelet animatsiyasiga ega emas.
+
+Asset: `app/public/life-interiors.webp`, built-in image generation. Prompt: square 3×3 atlas, nine independent isometric cutaway interiors in order grocery/clothing/ecommerce, bakery/furniture/dairy, design/carwash/barber; Uzbek contemporary setting, teal/amber/wood palette, workers and recognizable equipment, no text or UI. Original generated PNG preserved; atlas encoded WebP and displayed by CSS crop.

@@ -76,3 +76,27 @@ test('business is an interactive map asset with real management',async({page})=>
   expect(width).toBeLessThanOrEqual(page.viewportSize()!.width+1);
   await page.screenshot({path:test.info().outputPath('oqim-life.png'),fullPage:true});
 });
+
+test('all nine interiors explain forecasts without spending money or time',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.goto('/hayot');await page.getByRole('button',{name:/Biznes egasi/}).click();
+  await page.getByRole('button',{name:/Boshlaymiz/}).click();
+  const before=await page.evaluate(key=>localStorage.getItem(key),SAVE_KEY);
+  const groups=[['Mahalla bozori — sizniki',['trade','clothing','online']],['Nonvoyxona',['production','furniture','dairy']],['Dizayn studiyasi',['service','carwash','barber']]] as const;
+  for(const [place,sectors] of groups){
+    await page.getByRole('button',{name:place,exact:true}).click();
+    for(const sector of sectors){
+      await page.getByLabel('Biznes taklifini tanlang').selectOption(sector);
+      await page.getByRole('button',{name:'Biznes ichiga kirish',exact:true}).click();
+      const room=page.getByRole('region',{name:'Biznes ichki sahnasi'});
+      await expect(room).toHaveAttribute('data-sector',sector);
+      await expect(room.getByRole('button',{name:'Jarayonni ko‘rsatish',exact:true})).toBeDisabled();
+      await room.getByRole('button',{name:/3\. Pul tushumi/}).click();
+      await expect(room.getByRole('heading',{name:'Pul tushumi',exact:true})).toBeVisible();
+      expect(await page.evaluate(key=>localStorage.getItem(key),SAVE_KEY)).toBe(before);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width+1);
+      if(sector==='trade')await page.screenshot({path:test.info().outputPath('life-interior.png'),fullPage:true});
+      await room.getByRole('button',{name:'Shaharchaga qaytish',exact:true}).click();
+    }
+  }
+});
