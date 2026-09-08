@@ -1,5 +1,14 @@
 # Audit tuzatishlari — 2026-09-06
 
+## Onlayn biznes qarorlari — 2026-09-07
+
+- `workers/src/game/online.ts`: biznes kartalari endi pending qaror bo'lib ochiladi; server yaratgan bir martalik `decisionId`, joriy o'yinchi va deadline tekshiriladi. Klient faqat ID va 0/1 tanlov yuboradi, effekt va narx server kartasidan olinadi.
+- `GameRoom.ts`: yangi xabarlar shakli tekshiriladi. Botlar biznes tanlovini mavjud mantiq bilan bajaradi; insonning taymeri tugasa xarid/buyurtma avtomatik qabul qilinmaydi.
+- `Online.tsx`, `net/client.ts`: biznes qarori va ikkita tanlov, server holati kelganda kartani yopish; ombor, quvvat va muddatni o'yinchilar panelida ko'rsatish.
+- S kvadrantidagi biznes egasi o'z navbatida zar tashlashdan oldin menejer yollashi mumkin. Narx mavjud `managerCost` qoidasidan olinadi; yetarli aktiv bilan B ga o'tish tekshiriladi. Takroriy yollash rad etiladi. Yangi xonalar avvalgidek E kvadrantidan boshlanadi.
+- Smoke tekshiruv: haqiqiy zar bilan hodisaga tushish, navbat avtorizatsiyasi, eskirgan ID, noto'g'ri tanlov, takroriy topshirish, timeout, ombor/naqd, publicState va S→B menejer yo'li. Brauzer testi WebSocket mock orqali qaror yuborish va panel yopilishini tekshiradi; haqiqiy production WebSocket sinovi emas.
+- Avval qayd etilgan onlayn biznes kartalarini chiqarib tashlash cheklovi shu kodda yopildi. Boshqa eski tanlovli hodisalar hali alohida; production'da ishlashi uchun frontend va Worker birgalikda yangilanishi kerak. Hozir merge/deploy yo'q.
+
 ## Biznes operatsiyalari — 2026-09-07
 
 - `business.ts`, `business-events.ts`: qo'shimcha buyurtma → zaxira → topshirish zanjiri; faol buyurtma keyingi hodisada ustuvor. 20 birlik uchun 2 mln zaxira xaridi, 3,6 mln tushum; 3 oy muddat. Bazaviy oylik biznes faoliyatidan alohida, xizmatlar uchun birlik material/ish paketi sifatida talqin qilinadi.

@@ -16,6 +16,9 @@ import {
   applyDoodad,
   applyDownsized,
   applyEvent,
+  hireManager,
+  managerCost,
+  maybeAdvanceQuadrant,
   applyPayday,
   applyWeekend,
   buyDeal,
@@ -35,7 +38,8 @@ import {
 } from "./engine";
 import { BIG_DEALS, DOODAD_CARDS, DREAMS, MARKET_CARDS, PROFESSIONS, SMALL_DEALS, WEEKEND_CARDS } from "./data";
 import { botCharityDecision, botDealDecision, botDoodadDecline, botDoodadMode, botPickDealSize, botSellDecision, botWeekendChoice } from "./bots";
-import type { BotPersonality, DealCard, GameState, MarketCard, Player } from "./types";
+import type { BotPersonality, DealCard, EventCard, GameState, MarketCard, Player } from "./types";
+import { botDilemmaChoice } from "./bots";
 import { RAT_CELLS } from "./types";
 
 export const MAX_PLAYERS = 4;
@@ -65,6 +69,7 @@ export interface RoomPlayer {
 }
 
 export type Pending =
+  | { kind: "business-choice"; card: EventCard; decisionId: string }
   | { kind: "deal-size" }
   | { kind: "deal"; card: DealCard }
   | { kind: "market"; card: MarketCard; assetIds: string[] }
@@ -350,9 +355,23 @@ function resolveCell(room: OnlineRoom, now: number): void {
       return;
     }
     case "event": {
-      const cards = eligibleEvents(p, g.recentEvents).filter((c) => !c.choices && c.effect.type !== "migration");
+      const cards = eligibleEvents(p, g.recentEvents).filter((c) => (!c.choices || c.businessStage) && c.effect.type !== "migration");
       if (cards.length === 0) return endOrWait(room, now);
       const card = pick(cards);
+      if (card.businessStage && card.choices) {
+        if (bot) {
+          const choice = card.choices[botDilemmaChoice(p, card)];
+          const note = applyEvent(p, { ...card, effect: choice.effect }, g);
+          g.recentEvents.push(card.id);
+          if (g.recentEvents.length > 8) g.recentEvents.shift();
+          addLog(g, "sparkles", `${p.name}: ${card.title} — ${note}`, "gold");
+          return endOrWait(room, now);
+        }
+        room.pending = { kind: "business-choice", card, decisionId: crypto.randomUUID() };
+        room.awaiting = p.id;
+        room.deadline = now + room.settings.timerSec * 1000;
+        return;
+      }
       const note = applyEvent(p, card, g);
       g.recentEvents.push(card.id);
       if (g.recentEvents.length > 8) g.recentEvents.shift();
@@ -406,6 +425,8 @@ function botPlay(room: OnlineRoom, now: number): void {
 }
 
 export type ClientAction =
+  | { kind: "hire-manager" }
+  | { kind: "business-choice"; decisionId: string; choice: 0 | 1 }
   | { kind: "roll" }
   | { kind: "deal-size"; size: "small" | "big" }
   | { kind: "buy" }
@@ -424,6 +445,15 @@ export function handleAction(room: OnlineRoom, token: string, action: ClientActi
   if (room.awaiting !== rp.id) return { ok: false, error: "Hozir kutilmayapti" };
 
   if (!room.pending) {
+    if (action.kind === "hire-manager") {
+      if (room.deadline !== null && now >= room.deadline) return {ok: false, error: "Navbat vaqti tugagan"};
+      if (p.quadrant !== "S" || !p.assets.some(a => a.kind === "business") || p.hasManager)
+        return { ok: false, error: "Menejer faqat S kvadrantidagi biznesga yollanadi" };
+      if (!hireManager(p)) return { ok: false, error: "Menejer yollashga naqd yetmaydi" };
+      maybeAdvanceQuadrant(p, g.exchange);
+      addLog(g, "work", `${p.name}: menejer yollandi · kvadrant ${p.quadrant}`, "good");
+      return { ok: true };
+    }
     if (action.kind !== "roll") return { ok: false, error: "Avval zar tashlang" };
     room.awaiting = null;
     doRoll(room, now);
@@ -431,6 +461,22 @@ export function handleAction(room: OnlineRoom, token: string, action: ClientActi
   }
 
   switch (room.pending.kind) {
+    case "business-choice": {
+      if (room.deadline !== null && now >= room.deadline) return {ok: false, error: "Qaror vaqti tugagan"};
+      if (action.kind !== "business-choice" || action.decisionId !== room.pending.decisionId
+        || (action.choice !== 0 && action.choice !== 1)) return { ok: false, error: "Eskirgan yoki noto'g'ri biznes qarori" };
+      const card = room.pending.card;
+      const choice = card.choices?.[action.choice];
+      if (!choice || !card.businessStage) return { ok: false, error: "Biznes qarori topilmadi" };
+      const note = applyEvent(p, { ...card, effect: choice.effect }, g);
+      g.recentEvents.push(card.id);
+      if (g.recentEvents.length > 8) g.recentEvents.shift();
+      addLog(g, "sparkles", `${p.name}: ${card.title} — ${note}`, "gold");
+      room.pending = null;
+      room.awaiting = null;
+      finishTurn(room, now);
+      return { ok: true };
+    }
     case "deal-size": {
       if (action.kind === "deal-size") {
         const card = pick(action.size === "big" ? BIG_DEALS : SMALL_DEALS);
@@ -523,6 +569,7 @@ export function onTimeout(room: OnlineRoom, now = Date.now()): void {
     case "deal-size":
     case "deal":
     case "market":
+    case "business-choice":
       addLog(g, "coins", `${p.name}: vaqt tugadi — taklif o'tkazib yuborildi`, "neutral");
       break;
     case "charity":
@@ -549,7 +596,11 @@ export function publicState(room: OnlineRoom, forToken?: string) {
     awaiting: room.awaiting,
     deadline: room.deadline,
     pending: room.pending
-      ? room.pending.kind === "deal"
+      ? room.pending.kind === "business-choice"
+        ? { kind: "business-choice", decisionId: room.pending.decisionId, onlyFor: room.awaiting,
+            title: room.pending.card.title, desc: room.pending.card.desc,
+            choices: room.pending.card.choices?.map(c => ({ label: c.label, hint: c.hint })) ?? [] }
+        : room.pending.kind === "deal"
         ? { kind: "deal", card: room.pending.card, onlyFor: room.awaiting }
         : room.pending.kind === "market"
           ? {
@@ -577,7 +628,10 @@ export function publicState(room: OnlineRoom, forToken?: string) {
             position: p.position,
             cash: p.cash,
             salary: p.salary,
-            assets: p.assets.map((a) => ({ id: a.id, title: a.title, kind: a.kind, icon: a.icon, price: a.price, monthlyCashflow: a.monthlyCashflow })),
+            quadrant: p.quadrant,
+            hasManager: p.hasManager,
+            managerHireCost: managerCost(p),
+            assets: p.assets.map((a) => ({ id: a.id, title: a.title, kind: a.kind, icon: a.icon, price: a.price, monthlyCashflow: a.monthlyCashflow, employees: a.employees, operations: a.operations ? structuredClone(a.operations) : undefined })),
             loansCount: p.loans.length,
             children: p.children,
             escaped: p.escaped,

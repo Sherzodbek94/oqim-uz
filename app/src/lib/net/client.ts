@@ -7,6 +7,7 @@
 
 import { requestJson } from './http';
 import { z } from 'zod';
+import type { Asset } from '../game/types';
 
 const resultPlayerSchema = z.object({
   id: z.number().int(), name: z.string(), isBot: z.boolean(), cash: z.number(),
@@ -129,6 +130,7 @@ export interface PublicState {
   awaiting: number | null;
   deadline: number | null;
   pending:
+    | { kind: "business-choice"; decisionId: string; onlyFor: number | null; title: string; desc: string; choices: {label: string; hint: string}[] }
     | { kind: "deal-size"; onlyFor: number | null }
     | { kind: "deal"; card: OnlineDealCard; onlyFor: number | null }
     | { kind: "market"; card: { id: string; kind: string; factor: number; icon: string }; assetIds: string[]; onlyFor: number | null }
@@ -158,6 +160,9 @@ export interface OnlineDealCard {
 }
 
 export interface OnlinePlayer {
+  quadrant?: "E" | "S" | "B" | "I";
+  hasManager?: boolean;
+  managerHireCost?: number;
   id: number;
   name: string;
   isBot: boolean;
@@ -166,7 +171,7 @@ export interface OnlinePlayer {
   position: number;
   cash: number;
   salary: number;
-  assets: { id: string; title: string; kind: string; icon: string; price: number; monthlyCashflow: number }[];
+  assets: { id: string; title: string; kind: string; icon: string; price: number; monthlyCashflow: number; employees?: number; operations?: Asset['operations'] }[];
   loansCount: number;
   children: number;
   escaped: boolean;
@@ -185,6 +190,8 @@ export type ServerMsg =
   | { t: "chat"; playerId: number; text: string; at: number };
 
 export type ClientAction =
+  | { kind: "hire-manager" }
+  | { kind: "business-choice"; decisionId: string; choice: 0 | 1 }
   | { kind: "roll" }
   | { kind: "deal-size"; size: "small" | "big" }
   | { kind: "buy" }
