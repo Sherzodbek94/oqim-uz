@@ -4,6 +4,8 @@
  * players strip on top; live row flashes + delta floaters; OqimGauge.
  */
 import { useEffect, useRef, useState } from "react";
+import { businessTarget } from "@/lib/game/business";
+import BusinessOperationsSummary from "./BusinessOperationsSummary";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -516,6 +518,7 @@ function ClientsBlock({
 /* ---------------- Hisobot tab ---------------- */
 
 function ReportTab({
+  onSelectBusiness,
   p,
   news,
   exchange,
@@ -530,6 +533,7 @@ function ReportTab({
   news: ActiveNews | null;
   exchange: ExchangeState;
   month: number;
+  onSelectBusiness?: (assetId: string) => void;
   /** fix-13c (Q1): o'yin rejimi (erkinlik streak talabi uchun) */
   mode?: GameMode;
   readOnly?: boolean;
@@ -589,6 +593,18 @@ function ReportTab({
             <span className="chip bg-white/70 text-gold-700">{businessAssets.length} ta biznes</span>
           </div>
           <p className="mt-1 text-[11px] leading-snug text-ink-500">{g.statement.businessHint}</p>
+          {p.quadrant === "B" && (
+            <label className="mt-3 block text-sm font-semibold text-ink-700">
+              Boshqariladigan biznes
+              <select className="mt-1 block w-full min-w-0 rounded-lg border border-gold-200 bg-white p-2 text-sm"
+                value={businessTarget(p)?.id ?? ""} disabled={readOnly || !onSelectBusiness}
+                onChange={event => onSelectBusiness?.(event.target.value)}>
+                <option value="" disabled>Faol biznes yo'q</option>
+                {businessAssets.map(a => <option key={a.id} value={a.id} disabled={(a.constructionLeft ?? 0) > 0}>{a.title}{a.operations?.order ? ` · ${a.operations.order.monthsLeft} oy qoldi` : ""}</option>)}
+              </select>
+              <span className="mt-1 block font-normal">Zar tashlashdan oldin tanlang. Qaror faqat tanlangan biznesga qo'llanadi; boshqa buyurtmalar muddati ham davom etadi.</span>
+            </label>
+          )}
           <div className="mt-2 space-y-0.5">
             <Row label="Bazaviy tushum" value={businessRevenue} tone="good" />
             <Row label="Bazaviy operatsion xarajat" value={-businessCosts} tone="bad" />
@@ -597,10 +613,25 @@ function ReportTab({
           </div>
           <div className="mt-2 space-y-1 border-t border-gold-200/70 pt-2">
             {businessAssets.map((a) => (
-              <div key={a.id} className="flex items-center justify-between text-[11px] text-ink-600">
-                <span>{a.title}{a.employees ? ` · ${a.employees} xodim` : ""}</span>
-                <span className="font-semibold">{formatUZSCompact(assetCashflow(p, a, news))}/oy</span>
-              </div>
+              <details key={a.id} className="rounded-lg bg-white/70 p-2 text-sm text-ink-700">
+                <summary className="cursor-pointer break-words font-semibold">
+                  {a.title}{a.employees ? ` · ${a.employees} xodim` : ""} · {formatUZSCompact(assetCashflow(p, a, news))}/oy
+                </summary>
+                <div className="mt-2">
+                  <BusinessOperationsSummary asset={a} />
+                  {a.monthlyRevenue !== undefined && <Row label="Tushum" value={a.monthlyRevenue} tone="good" />}
+                  {a.operatingCostParts && <>
+                    <Row label="Xodimlar maoshi" value={-a.operatingCostParts.payroll} tone="bad" />
+                    <Row label="Ijara" value={-a.operatingCostParts.rent} tone="bad" />
+                    <Row label="Ta'minot va materiallar" value={-a.operatingCostParts.supplies} tone="bad" />
+                    <Row label="Marketing" value={-a.operatingCostParts.marketing} tone="bad" />
+                    <Row label="Boshqa biznes xarajatlari" value={-a.operatingCostParts.other} tone="bad" />
+                  </>}
+                  {a.monthlyOperatingCosts !== undefined && <Row label="Jami operatsion xarajat" value={-a.monthlyOperatingCosts} tone="bad" />}
+                  <Row label="Hodisa va bozor ta’siridan keyin" value={assetCashflow(p, a, news)} tone="info" bold />
+                  <p className="mt-1 text-sm">Kredit to'lovlari umumiy qarzlar hisobotida alohida hisoblanadi. Qiymatlar o'yin modeli uchun.</p>
+                </div>
+              </details>
             ))}
           </div>
         </div>
@@ -1386,6 +1417,7 @@ const TABS = [
 export type TabId = (typeof TABS)[number]["id"];
 
 export default function StatementPanel({
+  onSelectBusiness,
   state,
   humanId,
   forcedSell,
@@ -1401,6 +1433,7 @@ export default function StatementPanel({
   onTabChange,
 }: {
   state: GameState;
+  onSelectBusiness?: (assetId: string) => void;
   humanId: number;
   forcedSell: boolean;
   onForcedSell: (assetId: string) => void;
@@ -1501,6 +1534,7 @@ export default function StatementPanel({
               </div>
             )}
             <ReportTab
+              onSelectBusiness={peekBot === null ? onSelectBusiness : undefined}
               p={shown}
               news={state.news}
               exchange={state.exchange}

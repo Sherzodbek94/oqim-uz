@@ -21,6 +21,7 @@ import {
 } from "@/lib/net/client";
 import { CELL_CAPTIONS, CELL_COLORS, RAT_CELLS } from "@/lib/game/types";
 import { formatUZSCompact } from "@/lib/format";
+import BusinessOperationsSummary from "./game/BusinessOperationsSummary";
 
 type Screen = "entry" | "room";
 
@@ -470,6 +471,13 @@ export default function Online() {
                         🎲 Zar tashlash
                       </button>
                     )}
+                    {!pending && game.players.filter(p => p.id === me && p.quadrant === "S" && !p.hasManager && p.assets.some(a => a.kind === "business")).map(p => (
+                      <button key={p.id} className="btn-secondary mt-2 w-full whitespace-normal"
+                        disabled={p.managerHireCost === undefined || p.cash < p.managerHireCost}
+                        onClick={() => clientRef.current?.action({kind: "hire-manager"})}>
+                        Menejer yollash · {formatUZSCompact(p.managerHireCost ?? 0)} (bir martalik)
+                      </button>
+                    ))}
                     {pending?.kind === "deal-size" && (
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         <button onClick={() => clientRef.current?.action({ kind: "deal-size", size: "small" })} className="btn-primary">Kichik bitim</button>
@@ -518,6 +526,21 @@ export default function Online() {
                         </button>
                         <button onClick={() => clientRef.current?.action({ kind: "charity", accept: false })} className="btn-secondary">Voz kechish</button>
                       </div>
+                    )}
+                    {pending?.kind === "business-choice" && (
+                      <section className="mt-3 space-y-3 rounded-xl border border-gold-200 bg-gold-50 p-3" aria-label="Biznes qarori">
+                        <h3 className="font-semibold text-ink-900">{pending.title}</h3>
+                        <p className="text-sm text-ink-700">{pending.desc}</p>
+                        <div className="grid gap-2">
+                          {pending.choices.map((choice, index) => (
+                            <button key={index} className="btn-secondary h-auto whitespace-normal text-left"
+                              onClick={() => clientRef.current?.action({kind: "business-choice", decisionId: pending.decisionId, choice: index as 0 | 1})}>
+                              <span><span className="block font-semibold">{choice.label}</span><span className="block text-sm">{choice.hint}</span></span>
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-sm text-ink-700">Qarordan so'ng navbat davom etadi. Vaqt tugasa, pul sarflanmaydi.</p>
+                      </section>
                     )}
                   </div>
                 ) : (
@@ -572,10 +595,29 @@ export default function Online() {
                   </div>
                   <p className="mt-1 text-[12px] text-ink-400 sm:text-body-sm">
                     Maosh {formatUZSCompact(p.salary)} · Aktivlar {p.assets.length} · Kredit {p.loansCount}
+                    {p.quadrant && ` · Kvadrant ${p.quadrant}`}
                     {p.children > 0 && ` · 👶${p.children}`}
                     {p.charityTurns > 0 && " · ❤️2 zar"}
                     {p.skipTurns > 0 && ` · ⏸${p.skipTurns}`}
                   </p>
+                  {p.assets.filter(a => a.kind === "business").map(a => (
+                    <details key={a.id} className="mt-2 rounded-lg bg-white p-2 text-sm text-ink-700">
+                      <summary className="cursor-pointer font-semibold">{a.title} · {a.employees ?? 0} xodim</summary>
+                      <BusinessOperationsSummary asset={a} />
+                    </details>
+                  ))}
+                  {p.id === me && p.quadrant === "B" && p.assets.some(a => a.kind === "business") && (
+                    <label className="mt-3 block text-sm font-semibold text-ink-700">
+                      Boshqariladigan biznes
+                      <select className="mt-1 block w-full min-w-0 rounded-lg border border-sand-200 bg-white p-2 text-sm"
+                        disabled={!myTurn || !!pending || !connected} value={p.managedBusinessId ?? ""}
+                        onChange={event => clientRef.current?.action({kind: "select-business", assetId: event.target.value})}>
+                        <option value="" disabled>Faol biznesni tanlang</option>
+                        {p.assets.filter(a => a.kind === "business").map(a => <option key={a.id} value={a.id} disabled={(a.constructionLeft ?? 0) > 0}>{a.title}{a.operations?.order ? ` · ${a.operations.order.monthsLeft} oy qoldi` : ""}</option>)}
+                      </select>
+                      <span className="mt-1 block font-normal">Zar tashlashdan oldin tanlang. Ochiq qarorning biznesi almashtirilmaydi.</span>
+                    </label>
+                  )}
                 </div>
               ))}
             </div>

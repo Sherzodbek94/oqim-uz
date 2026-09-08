@@ -7,6 +7,7 @@ import type { AssetKind, GameState } from "./types";
 import { BEST_KEY, OLD_SAVE_KEY, SAVE_KEY, SETTINGS_KEY } from "./types";
 import { makeExchangeState } from "./exchange";
 import { amortizeTerms, makeMarketIndices } from "./engine";
+import { validBusinessOperations, businessTarget } from "./business";
 
 export interface GameSettings {
   haptics: boolean;
@@ -45,6 +46,15 @@ export function loadSave(): GameState | null {
         || !Number.isFinite(player.cash) || !Number.isFinite(player.salary)
         || !Array.isArray(player.assets) || !Array.isArray(player.loans)
         || !player.expenseParts || Object.values(player.expenseParts).some(value => !Number.isFinite(value))) return null;
+      for (const asset of player.assets) {
+        if (!asset || typeof asset !== "object") return null;
+        if (asset.businessModel !== undefined && !["trade", "production", "service"].includes(asset.businessModel)) return null;
+        if (asset.operations !== undefined && !validBusinessOperations(asset.operations, asset)) return null;
+      }
+      if (player.managedBusinessId !== undefined) {
+        if (typeof player.managedBusinessId !== "string" || player.managedBusinessId.length > 128) return null;
+        if (!businessTarget(player, player.managedBusinessId)) delete player.managedBusinessId;
+      }
     }
     parsed.version = 20;
     // v15 (fix-13c, Q1): o'yin rejimi — eski saqlanmalar "classic"

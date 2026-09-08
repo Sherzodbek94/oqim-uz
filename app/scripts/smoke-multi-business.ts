@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import { makePlayer, makeGame, eligibleEvents, applyEvent } from "../src/lib/game/engine";
+import { startingBusiness, businessTarget, selectBusiness, operateBusiness, advanceBusinessMonth } from "../src/lib/game/business";
+import { PROFESSIONS } from "../src/lib/game/data";
+import { createRoom, joinRoom, startGame, handleAction, publicState } from "../workers/src/game/online";
+import { loadSave, saveGame } from "../src/lib/game/save";
+import { SAVE_KEY } from "../src/lib/game/types";
+
+const p = makePlayer(0, "Test", PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: "d1", quadrant: "B"});
+p.cash = 100_000_000;
+const a = p.assets[0];
+const b = startingBusiness("second-business", "transport");
+delete a.businessModel; delete b.businessModel; // Preserve legacy multi-business regression scenario.
+const building = {...startingBusiness("building", "savdo"), constructionLeft: 2};
+p.assets.push(b, building);
+const original = JSON.stringify(p);
+assert.equal(selectBusiness(p, "other-players-business"), false);
+assert.equal(selectBusiness(p, building.id), false);
+assert.equal(JSON.stringify(p), original);
+selectBusiness(p, b.id);
+operateBusiness(p, "accept");
+assert.equal(a.operations, undefined);
+selectBusiness(p, a.id);
+operateBusiness(p, "accept");
+assert.ok(a.operations?.order && b.operations?.order, "Two independent orders can coexist");
+const procurement = eligibleEvents(p, []).find(c => c.id === "operations-procure")!;
+assert.equal(procurement.businessAssetId, a.id);
+selectBusiness(p, b.id);
+applyEvent(p, {...procurement, effect: procurement.choices![0].effect});
+assert.equal(a.operations!.stock, 20, "Open card retains its original business");
+assert.equal(b.operations!.stock, 0);
+operateBusiness(p, "restock");
+selectBusiness(p, a.id);
+const delivery = eligibleEvents(p, []).find(c => c.id === "operations-deliver")!;
+const aCashflow = a.monthlyCashflow;
+selectBusiness(p, b.id);
+operateBusiness(p, "hire");
+operateBusiness(p, "upgrade");
+assert.equal(a.monthlyCashflow, aCashflow);
+assert.equal(a.operations!.capacity, 20);
+assert.equal(b.operations!.capacity, 40);
+const bSnapshot = JSON.stringify(b);
+const money = p.cash;
+applyEvent(p, {...delivery, effect: delivery.choices![0].effect});
+assert.equal(p.cash, money + 3_600_000);
+assert.equal(JSON.stringify(b), bSnapshot);
+assert.equal(a.operations!.order, null);
+assert.equal(b.operations!.order!.monthsLeft, 3);
+advanceBusinessMonth(p);
+assert.equal(a.operations!.usedCapacity, 0);
+assert.equal(b.operations!.order!.monthsLeft, 2, "Unselected order deadline still advances");
+
+// A sold target cannot silently redirect the open card to another business.
+p.assets = p.assets.filter(x => x.id !== a.id);
+const soldBefore = JSON.stringify(p);
+applyEvent(p, {...delivery, effect: delivery.choices![0].effect});
+assert.equal(JSON.stringify(p), soldBefore);
+assert.equal(businessTarget(p, a.id), undefined);
+
+const store = new Map<string, string>();
+Object.defineProperty(globalThis, "localStorage", {value: {getItem: (k: string) => store.get(k) ?? null, setItem: (k: string,v: string) => store.set(k,v)}});
+assert.ok(saveGame(makeGame([p])));
+assert.equal(loadSave()!.players[0].managedBusinessId, b.id);
+const corrupt = makeGame([structuredClone(p)]);
+corrupt.players[0].managedBusinessId = "sold";
+store.set(SAVE_KEY, JSON.stringify(corrupt));
+assert.equal(loadSave()!.players[0].managedBusinessId, undefined);
+
+const room = createRoom("ABCDEF", {timerSec: 60, bots: 0}, "Test", "host");
+joinRoom(room, "Other", "guest"); startGame(room, "host");
+room.game!.players[0] = structuredClone(p);
+const actor = room.game!.players[0];
+actor.expenseParts.other = 100_000_000; // avoid winning during protocol test
+room.game!.current = 0; room.awaiting = 0; room.deadline = Date.now() + 60_000;
+assert.equal(handleAction(room, "guest", {kind: "select-business", assetId: b.id}).ok, false);
+assert.equal(handleAction(room, "host", {kind: "select-business", assetId: "foreign"}).ok, false);
+assert.equal(handleAction(room, "host", {kind: "select-business", assetId: building.id}).ok, false);
+assert.ok(handleAction(room, "host", {kind: "select-business", assetId: b.id}).ok);
+assert.equal(publicState(room, "host").game!.players[0].managedBusinessId, b.id);
+const card = eligibleEvents(actor, []).find(c => c.id === "operations-deliver")!;
+room.pending = {kind: "business-choice", card, decisionId: "bound-to-second"};
+const stateBefore = JSON.stringify(room);
+assert.equal(handleAction(room, "host", {kind: "select-business", assetId: b.id}).ok, false);
+assert.equal(JSON.stringify(room), stateBefore);
+assert.ok(handleAction(room, "host", {kind: "business-choice", decisionId: "bound-to-second", choice: 0}).ok);
+assert.equal(actor.assets[0].operations!.order, null);
+console.log("Multiple businesses: isolated orders/costs, bound cards, sold/foreign targets, deadlines, saves and online selection OK");

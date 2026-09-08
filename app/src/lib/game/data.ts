@@ -15,6 +15,7 @@ import type {
   WeekendCard,
 } from "./types";
 import { formatUZSCompact } from "../format";
+import { BUSINESS_EVENTS } from "./business-events";
 
 /* ---------------- Professions (game.md §2 balance table) ---------------- */
 
@@ -1546,6 +1547,7 @@ export const MARKET_CARDS: MarketCard[] = [
 /* ---------------- Hodisalar (game.md §7.4) ---------------- */
 
 export const EVENT_CARDS: EventCard[] = [
+  ...BUSINESS_EVENTS,
   {
     id: "inflation",
     title: "Inflyatsiya +8%",
@@ -2455,6 +2457,30 @@ export const EVENT_CARDS: EventCard[] = [
   },
   // B — biznes egasi
   {
+    id: "b-education-enrollment",
+    title: "Yangi guruhga qabul",
+    desc: "O'quv markazingiz yangi guruh ochdi. O'qituvchi va materiallar xarajatidan keyin 2 mln so'm sof foyda qoldi.",
+    icon: "GraduationCap", requiresQuadrant: "B", requiresBusiness: true, requiresTag: "talim",
+    effect: { type: "cash", amount: 2_000_000 },
+    lessonText: "Qabul tushumi to'liq foyda emas: dars o'tish xarajatlarini avval ayiring.",
+  },
+  {
+    id: "b-transport-maintenance",
+    title: "Avtoparkka texnik xizmat",
+    desc: "Transport korxonangiz avtomobillarini rejali ta'mirlash uchun 2 mln so'm kerak.",
+    icon: "Truck", requiresQuadrant: "B", requiresBusiness: true, requiresTag: "avto",
+    effect: { type: "cash", amount: -2_000_000 },
+    lessonText: "Transport biznesida ta'mirlash uchun alohida naqd zaxira saqlang.",
+  },
+  {
+    id: "b-software-contract",
+    title: "Dasturiy xizmat shartnomasi",
+    desc: "Onlayn biznesingiz buyurtmani topshirdi. Jamoa va xizmat xarajatlari ayirilgach 3 mln so'm sof foyda olindi.",
+    icon: "Laptop", requiresQuadrant: "B", requiresBusiness: true, requiresTag: "onlayn",
+    effect: { type: "cash", amount: 3_000_000 },
+    lessonText: "Loyiha narxini belgilashda jamoa va infratuzilma xarajatlarini hisobga oling.",
+  },
+  {
     id: "b-employee-left",
     title: "Xodim ishdan ketdi",
     desc: "Kalit xodimingiz raqobatchiga o'tdi — biznes aktivlari daromadi 2 oyga −20% tushadi.",
@@ -2597,9 +2623,8 @@ export const EVENT_CARDS: EventCard[] = [
       {
         id: "b-expansion-accept",
         label: "Filialni ochish",
-        hint: "+80 mln · −4,2 mln/oy · biznes daromadi +25% (6 oy)",
-        effect: { type: "loan-offer", name: "Filial krediti (2%/oy, 24 oy)", principal: 80_000_000, monthlyRate: 0.02, months: 24 },
-        effect2: { type: "asset-kind-income-mod", kind: "business", pct: 25, months: 6 },
+        hint: "80 mln kredit to'liq filialga · tushum 18 mln/oy − xarajat 12 mln/oy − kredit ≈4,23 mln/oy",
+        effect: { type: "business-expansion", principal: 80_000_000, monthlyRate: 0.02, months: 24 },
         resultText: "Filial ochildi — yangi bozor uchun kredit mas'uliyati ham qo'shildi.",
         lessonText: "Kredit biznesni tezlashtiradi, lekin qo'shimcha tushum kredit to'lovidan ancha yuqori bo'lishi kerak.",
       },

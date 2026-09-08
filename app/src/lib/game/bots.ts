@@ -30,6 +30,8 @@ import {
 } from "./engine";
 import { SECURITIES, buySecurity, securityById, sellSecurity } from "./exchange";
 import { formatUZSCompact } from "../format";
+import { businessTarget } from "./business";
+import { businessOrderQuote } from "./business-economy";
 
 export interface BotDecision {
   buy: boolean;
@@ -131,9 +133,24 @@ export function botDilemmaChoice(p: Player, card: EventCard): 0 | 1 {
   if (!card.choices) return 0;
   const personality = p.personality ?? "balanced";
   // Kredit taklifi: annuitet to'lovi byudjetga sig'masa, bot taklifni rad etadi
+  const operation = card.choices[0].effect;
+  if (operation.type === "business-operation") {
+    const target = businessTarget(p, card.businessAssetId);
+    if (!target) return 1;
+    const op = target.operations;
+    const q = businessOrderQuote(target);
+    switch (operation.action) {
+      case "accept": return p.cash >= q.procurementCost + q.executionCost ? 0 : 1;
+      case "restock": return p.cash >= q.procurementCost + q.executionCost ? 0 : 1;
+      case "deliver": return p.freezeBusinessTurns > 0 || p.cash < q.executionCost ? 1 : 0;
+      case "hire": return op?.order && (op.hires < 5) && p.cash >= q.economy.hireCost + 5 * q.economy.salary && monthlyCashflow(p) > 2 * q.economy.salary ? 0 : 1;
+      case "upgrade": return 1; // Buyurtmasiz uskuna olishdan saqlanadi.
+      case "cancel": return 0;
+    }
+  }
   const loanBad = (i: 0 | 1): boolean => {
     const e = card.choices![i].effect;
-    if (e.type !== "loan-offer") return false;
+    if (e.type !== "loan-offer" && e.type !== "business-expansion") return false;
     return !botLoanAffordable(p, annuityPayment(e.principal, e.monthlyRate, e.months), 0);
   };
   if (loanBad(0) && !loanBad(1)) return 1;

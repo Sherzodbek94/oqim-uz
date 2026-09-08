@@ -149,6 +149,7 @@ import PathBoard from "./game/PathBoard";
 import PlanBoard from "./game/PlanBoard";
 import NotificationsCenter from "@/components/Notifications";
 import StatementPanel from "./game/StatementPanel";
+import { selectBusiness } from "@/lib/game/business";
 import SetupScreen, { type SetupResult } from "./game/SetupScreen";
 import CardModals, { ModalShell, type ModalHandlers, type ModalState } from "./game/CardModals";
 import { ClientsCenterModal, KnowledgeCenterModal } from "./game/ActionsModals";
@@ -2266,6 +2267,15 @@ export default function Game() {
   };
 
   // Menejer yollash (B2): 2× oylik xarajat — mijoz cheklovi olinadi, B kvadranti sharti
+  const onSelectBusiness = (assetId: string) => {
+    if (modal || actionsModal) return;
+    mutate(st => {
+      const pl = st.players[st.current];
+      if (st.phase !== "idle" || pl.isBot) return;
+      selectBusiness(pl, assetId);
+    });
+  };
+
   const onHireManager = () => {
     let ok = false;
     let cost = 0;
@@ -2797,6 +2807,7 @@ export default function Game() {
         {/* statement sidebar (desktop) */}
         <aside className="sticky top-14 hidden h-[calc(100dvh-56px)] border-l border-sand-200 lg:block">
           <StatementPanel
+            onSelectBusiness={actionsEnabled && s.phase === "idle" && !forcedSellMode ? onSelectBusiness : undefined}
             state={s}
             humanId={human.id}
             forcedSell={forcedSellMode}
@@ -2898,6 +2909,7 @@ export default function Game() {
         {sheetOpen && (
           <div className="min-h-0 flex-1">
             <StatementPanel
+              onSelectBusiness={actionsEnabled && s.phase === "idle" && !forcedSellMode ? onSelectBusiness : undefined}
               state={s}
               humanId={human.id}
               forcedSell={forcedSellMode}

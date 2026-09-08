@@ -199,6 +199,16 @@ export interface Installment {
 }
 
 export interface Asset {
+  /** Yo'q bo'lsa eski saqlov iqtisodiyoti o'zgarishsiz qoladi. */
+  businessModel?: "trade" | "production" | "service";
+  /** Qo'shimcha buyurtmalar; bazaviy oylik faoliyatdan alohida. */
+  operations?: {
+    capacity: number;
+    usedCapacity: number;
+    stock: number;
+    hires: number;
+    order: { units: number; monthsLeft: number } | null;
+  };
   id: string;
   title: string;
   kind: AssetKind;
@@ -210,6 +220,7 @@ export interface Asset {
   monthlyRevenue?: number;
   /** biznesning operatsion xarajatlari (maosh, ijara, marketing va ta'minot) */
   monthlyOperatingCosts?: number;
+  operatingCostParts?: { payroll: number; rent: number; supplies: number; marketing: number; other: number };
   /** biznesdagi faol xodimlar soni */
   employees?: number;
   /** >0 means still under construction — no cashflow yet (game.md §7.2) */
@@ -237,6 +248,7 @@ export interface ExpenseParts {
 }
 
 export interface Player {
+  managedBusinessId?: string;
   id: number;
   name: string;
   isBot: boolean;
@@ -506,6 +518,8 @@ export interface MarketCard {
 }
 
 export type EventEffect =
+  | { type: "business-operation"; action: "accept" | "restock" | "deliver" | "cancel" | "hire" | "upgrade" }
+  | { type: "business-expansion"; principal: number; monthlyRate: number; months: number }
   | { type: "inflation"; pct: number }
   /** cash change; negative amounts in a category get hero expense discounts */
   | { type: "cash"; amount: number; category?: ExpenseCategory }
@@ -600,6 +614,9 @@ export interface EventChoice {
 }
 
 export interface EventCard {
+  /** Hodisa ochilganda biriktirilgan biznes; keyin tanlov o'zgarsa ham nishon o'zgarmaydi. */
+  businessAssetId?: string;
+  businessStage?: "offer" | "procure" | "deliver" | "capacity";
   id: string;
   title: string;
   desc: string;

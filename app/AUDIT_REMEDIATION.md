@@ -1,4 +1,52 @@
+## 2026-09-08 — Sohaga mos qo‘shimcha buyurtmalar
+
+Savdo, ishlab chiqarish va xizmat uchun alohida iqtisodiyot kiritildi. 20 birlik buyurtma misolida:
+
+| Model | Resurs | Quvvat | Resurs xaridi | Bajarish xarajati | Tushum |
+|---|---|---|---|---|---|
+| Savdo | 20 tayyor tovar | 20 birlik | 4 mln | 0 | 5,6 mln |
+| Ishlab chiqarish | 40 xomashyo | 40 birlik | 3 mln | 0 | 6 mln |
+| Xizmat | Omborsiz | 40 ish soati | 0 | 1,2 mln | 2,8 mln |
+
+Hisoblar `business-economy.ts` orqali engine, bot, karta va lokal/onlayn hisobotlarga ulanadi. Xodim maoshi va quvvatni oshirish narxi ham modelga mos. Xizmat xarajati tushumdan oldin tekshiriladi; yetarli pul bo‘lmasa holat o‘zgarmaydi. Ishlab chiqarishda xomashyo topshirish paytida sarflanadi.
+
+Eski saqlovlarda model belgisi yo‘q bo‘lsa eski narxlar saqlanadi. Yangi boshlang‘ich/sotib olingan bizneslar sohasiga mos model oladi; filial ota biznes modelini oladi.
+
+Chegara: bu raqamlar o‘yin ssenariysi. Boshlang‘ich biznesning bazaviy oylik tushumi 30 mln, xarajati 16 mln va oqimi 14 mln hozircha o‘zgarmagan. Alohida tayyor mahsulot ombori va vaqtli ishlab chiqarish liniyasi hali yo‘q. Keyingi ishlar: kvadrant/soha hodisalari va butun o‘yin balansi. Merge/deploy keyinga qoldirilgan.
+
+---
+
 # Audit tuzatishlari — 2026-09-06
+
+## Bir nechta biznesni tanlash — 2026-09-08
+
+- Lokal hisobot va onlayn o'yinchilar panelida B kvadranti uchun «Boshqariladigan biznes» tanlovi. Tanlash faqat o'z navbatida zar tashlashdan oldin; ochiq qarorda onlayn almashtirish rad etiladi.
+- `managedBusinessId` saqlanadi. Eski saqlovlarda oldingi faol buyurtma/birinchi biznes tartibi saqlangan; sotilgan biznesga qolgan tanlov save ochilganda tozalanadi. Qurilishdagi va begona biznes tanlanmaydi.
+- `eligibleEvents` operatsiya va filial kartasini biznes ID hamda nomiga bog'laydi. Xodim, uskuna, ombor va buyurtma faqat o'sha aktivga qo'llanadi; sotilgan nishon boshqa biznesga avtomatik almashtirilmaydi.
+- Har bir biznes alohida buyurtma olib boradi. Tanlanmagan buyurtmalar muddati ham oyda kamayadi. Jami naqd umumiy, xodim/quvvat/zaxira va oylik biznes xarajatlari alohida.
+- Onlayn server tanlovni tekshiradi, qarorning nishoni va bosqichini qayta tekshiradi; klientdan narx yoki effekt qabul qilmaydi.
+- Regressiya: ikkita buyurtma, xarajatlar ajratilishi, o'zgargan tanlovda karta nishoni, sotilgan/begona biznes, oy muddatlari, save/reload va onlayn tanlash. Brauzer testlari lokal qayta ochish va server javobidan keyingi onlayn tanlovni tekshiradi.
+- Avvalgi «ko'p biznesni qo'lda tanlash yo'q» cheklovi shu bosqichda yopildi. Sohalarga xos narx/quvvat iqtisodiyoti va umumiy balansning uzoq sinovi keyingi ishlar; merge/deploy bajarilmaydi.
+
+## Onlayn biznes qarorlari — 2026-09-07
+
+- `workers/src/game/online.ts`: biznes kartalari endi pending qaror bo'lib ochiladi; server yaratgan bir martalik `decisionId`, joriy o'yinchi va deadline tekshiriladi. Klient faqat ID va 0/1 tanlov yuboradi, effekt va narx server kartasidan olinadi.
+- `GameRoom.ts`: yangi xabarlar shakli tekshiriladi. Botlar biznes tanlovini mavjud mantiq bilan bajaradi; insonning taymeri tugasa xarid/buyurtma avtomatik qabul qilinmaydi.
+- `Online.tsx`, `net/client.ts`: biznes qarori va ikkita tanlov, server holati kelganda kartani yopish; ombor, quvvat va muddatni o'yinchilar panelida ko'rsatish.
+- S kvadrantidagi biznes egasi o'z navbatida zar tashlashdan oldin menejer yollashi mumkin. Narx mavjud `managerCost` qoidasidan olinadi; yetarli aktiv bilan B ga o'tish tekshiriladi. Takroriy yollash rad etiladi. Yangi xonalar avvalgidek E kvadrantidan boshlanadi.
+- Smoke tekshiruv: haqiqiy zar bilan hodisaga tushish, navbat avtorizatsiyasi, eskirgan ID, noto'g'ri tanlov, takroriy topshirish, timeout, ombor/naqd, publicState va S→B menejer yo'li. Brauzer testi WebSocket mock orqali qaror yuborish va panel yopilishini tekshiradi; haqiqiy production WebSocket sinovi emas.
+- Avval qayd etilgan onlayn biznes kartalarini chiqarib tashlash cheklovi shu kodda yopildi. Boshqa eski tanlovli hodisalar hali alohida; production'da ishlashi uchun frontend va Worker birgalikda yangilanishi kerak. Hozir merge/deploy yo'q.
+
+## Biznes operatsiyalari — 2026-09-07
+
+- `business.ts`, `business-events.ts`: qo'shimcha buyurtma → zaxira → topshirish zanjiri; faol buyurtma keyingi hodisada ustuvor. 20 birlik uchun 2 mln zaxira xaridi, 3,6 mln tushum; 3 oy muddat. Bazaviy oylik biznes faoliyatidan alohida, xizmatlar uchun birlik material/ish paketi sifatida talqin qilinadi.
+- Xodim: 1 mln bir martalik xarajat, 1 mln doimiy oylik maosh, +10 quvvat; ko'pi bilan 5 qo'shimcha xodim. Uskuna: 5 mln naqd aktivga aylanadi, +10 quvvat, jami maksimal 100. Xodim/uskuna avtomatik daromad bermaydi.
+- Ombor zaxirasi aktiv qiymatiga kiradi, topshirishda uning tannarxi aktiv qiymatidan chiqadi; naqd ikki marta yechilmaydi. Bekor qilish/muddat tugashida zaxira saqlanadi. Biznes sotilsa unga bog'liq buyurtma ham aktiv bilan ketadi; alohida yashirin to'lov yo'q.
+- Yangi oyda quvvat tiklanadi, buyurtma muddati kamayadi. Biznes to'xtaganda topshirish bloklanadi. Naqd yetishmasa qarz avtomatik olinmaydi va qisman o'zgarish bo'lmaydi.
+- `StatementPanel`: ochiladigan biznes tafsilotida zaxira, qolgan quvvat va buyurtma muddati. Boshqaruv hozir hodisa kartalari orqali, erkin alohida boshqaruv oynasi emas. Bir vaqtda bir biznes buyurtmasi ustuvor; ko'p biznesli buyurtma tanlash hali yo'q.
+- Botlar buyurtma uchun zaxira mablag'ini tekshiradi, buyurtmasiz uskunani rad etadi. Eski saqlovlar o'zgarishsiz ochiladi; yangi operatsion maydonlar chegaralar bo'yicha tekshiriladi.
+- Tekshiruvlar: maosh, quvvat, ombor, topshirishni takrorlash, expiry, no-op xatolar, save roundtrip va 1 000 buyurtmali arifmetik simulyatsiya. Bu simulyatsiya barcha kvadrantlarning umumiy o'yin balansini isbotlamaydi.
+- Production merge va backend deploy bajarilmaydi; GitHub PR #15 ichida saqlanadi.
 
 ## Bajarilgan
 
@@ -49,3 +97,13 @@ Frontend nashri va Cloudflare Worker alohida xizmatlardir. Frontend nashri backe
 `app` ichida: `npm ci`, `npm ci --prefix workers`, `npm run lint`, `npm run build`, `npm run check:game-core`, `npm run smoke`, `npm audit --audit-level=high`.
 
 `app/workers` ichida: `npm ci`, `npx tsc --noEmit`, `npm audit --audit-level=high`. Deploy uchun to‘liq repozitoriy kerak: Worker umumiy `app/src/lib/game` manbasini import qiladi.
+# Biznes modeli: keyingi bosqich (2026-09-07)
+
+- B kvadrantining boshlang'ich biznesi 10 kasb sohasiga mos nom, xodimlar va aktiv tegiga ega.
+- Balans saqlandi: tushum 30 mln, operatsion xarajat 16 mln, bazaviy sof foyda 14 mln. Bu real bozor prognozi emas.
+- Biznes kartasida maosh, ijara, ta'minot, marketing va boshqa xarajatlar alohida ochiladi. Eski saqlovlarda tafsilotlar bo'lmasa, uydirma taqsimot ko'rsatilmaydi.
+- Filial krediti endi naqd bonus va vaqtinchalik ustama emas: 80 mln kredit to'liq 80 mln filial aktiviga sarflanadi. Filial tushumi 18 mln, xarajati 12 mln; kredit to'lovi alohida. Aktiv odatdagi bozor/xavf/sotish mexanizmlariga bo'ysunadi.
+- Ta'lim, transport va onlayn biznes uchun teg hamda B kvadranti bilan cheklangan hodisalar qo'shildi.
+- Regressiya testi: kasblar, xarajatlar yig'indisi, filialning naqd/aktiv/qarz izchilligi va hodisa cheklovlari.
+- Keyingi operatsion bosqich yuqorida: xodim, zaxira, quvvat va buyurtma zanjiri qo'shildi. Hali barcha sohalar uchun alohida zanjirlar, ko'p biznesni qo'lda tanlash va to'liq o'yin balansining uzoq simulyatsiyasi qolgan. Ushbu bosqich to'liq audit yakunlandi degani emas.
+- Backend deploy keyinga qoldirilgan. Onlayn o'yinda yangi qoidalar Worker ham yangilangandan keyingina ishlaydi.

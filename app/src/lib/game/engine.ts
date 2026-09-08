@@ -2,6 +2,8 @@
  * OQIM — game engine (pure logic, no UI).
  * Functions mutate a draft Player/GameState — the controller clones state first.
  */
+import { startingBusiness, businessTarget, businessStage, operateBusiness, advanceBusinessMonth } from "./business";
+import { businessModelForTag, describeBusinessCard } from "./business-economy";
 import type {
   ActiveNews,
   Asset,
@@ -359,23 +361,7 @@ export function makePlayer(
     assets:
       (opts.quadrant ?? "E") === "B"
         ? [
-            {
-              id: `business-${id}`,
-              title: "Mavjud kichik biznes",
-              kind: "business",
-              icon: "Store",
-              price: 200_000_000,
-              paid: 70_000_000,
-              monthlyRevenue: 30_000_000,
-              monthlyOperatingCosts: 16_000_000,
-              monthlyCashflow: 14_000_000,
-              employees: 3,
-              tag: "savdo",
-              resalePercent: 70,
-              liquidity: 3,
-              buyIndex: 1,
-              riskLevel: 2,
-            },
+            startingBusiness(`business-${id}`, opts.customField ?? profession.field ?? "savdo"),
           ]
         : [],
     portfolio: [],
@@ -1419,6 +1405,7 @@ export function applyPayday(
   month = 0
 ): PaydayResult {
   const notes: string[] = [];
+  notes.push(...advanceBusinessMonth(p));
   const dividends = exchange ? portfolioDividends(p, exchange) : 0;
   let amount = monthlyCashflow(p, { forPayday: true, news, exchange });
   // Avans olingan oyda oy kunida maoshdan aynan avans sifatida berilgan qism
@@ -1637,6 +1624,7 @@ export function buyDeal(p: Player, deal: DealCard, useBankLoan: boolean, marketI
     monthlyCashflow: adjustedCashflow(p, deal),
     constructionLeft: deal.constructionTurns,
     tag: deal.tag,
+    businessModel: deal.kind === "business" ? businessModelForTag(deal.tag) : undefined,
     resalePercent: deal.resalePercent,
     liquidity: deal.liquidity,
     buyIndex: marketIndex,
@@ -1718,6 +1706,7 @@ export function buyDealInstallment(p: Player, deal: DealCard, marketIndex = 1): 
     monthlyCashflow: adjustedCashflow(p, deal),
     constructionLeft: deal.constructionTurns,
     tag: deal.tag,
+    businessModel: deal.kind === "business" ? businessModelForTag(deal.tag) : undefined,
     resalePercent: deal.resalePercent,
     liquidity: deal.liquidity,
     buyIndex: marketIndex,
@@ -1914,6 +1903,7 @@ export function takeLoanOffer(
 /** Qattiq eligibility shartlari (cooldown'dan tashqari barchasi) — C4 gate'lari bilan. */
 function eventGateOk(c: EventCard, p: Player): boolean {
   return (
+    (!c.businessStage || c.businessStage === businessStage(p)) &&
     (!c.requiresQuadrant || c.requiresQuadrant === p.quadrant) &&
     (!c.requiresQuadrants || c.requiresQuadrants.includes(p.quadrant)) &&
     (!c.requiresBusiness || p.assets.some((a) => a.kind === "business")) &&
@@ -1928,17 +1918,46 @@ function eventGateOk(c: EventCard, p: Player): boolean {
 }
 
 export function eligibleEvents(p: Player, recent: string[]): EventCard[] {
+  const target = businessTarget(p);
+  const bind = (cards: EventCard[]) => cards.map(c => {
+    const targeted = c.businessStage || c.choices?.some(ch => ch.effect.type === "business-expansion");
+    return targeted && target ? describeBusinessCard({...c, businessAssetId: target.id, title: `${c.title} — ${target.title}`}, target) : c;
+  });
+  // Faol buyurtmaning keyingi bosqichi tasodifiy umumiy kartalar ortida yo'qolmasin.
+  const stage = businessStage(p);
+  if (stage && stage !== "offer") {
+    const followups = EVENT_CARDS.filter(c => c.businessStage === stage && eventGateOk(c, p));
+    if (followups.length) return bind(followups);
+  }
   const pool = EVENT_CARDS.filter((c) => !recent.includes(c.id) && eventGateOk(c, p));
-  if (pool.length > 0) return pool;
+  if (pool.length > 0) return bind(pool);
   // Fallback ham kvadrant gate'larini buzmasin: faqat umumiy hodisalar qaytadi.
   const gated = EVENT_CARDS.filter((c) => eventGateOk(c, p));
   const universal = gated.filter((c) => !c.requiresQuadrant && !c.requiresQuadrants);
-  return universal.length > 0 ? universal : gated;
+  return bind(universal.length > 0 ? universal : gated);
 }
 
 export function applyEvent(p: Player, card: EventCard, s?: GameState): string {
   const e = card.effect;
   switch (e.type) {
+    case "business-operation":
+      return operateBusiness(p, e.action, card.businessAssetId);
+    case "business-expansion": {
+      const parent = businessTarget(p, card.businessAssetId);
+      if (p.quadrant !== "B" || !parent) return "Filial uchun mavjud biznes kerak";
+      const loan = takeLoanOffer(p, "Filial krediti", e.principal, e.monthlyRate, e.months);
+      // Kredit to'liq filialga sarflanadi; naqd va aktiv ikki marta ko'paymaydi.
+      p.cash -= e.principal;
+      p.assets.push({
+        id: `branch-${nextId()}`, title: `${parent.title} — filial`, kind: "business", icon: "Store",
+        price: e.principal, paid: e.principal, tag: parent.tag,
+        businessModel: parent.businessModel,
+        monthlyRevenue: 18_000_000, monthlyOperatingCosts: 12_000_000, monthlyCashflow: 6_000_000,
+        operatingCostParts: { payroll: 6_000_000, rent: 2_000_000, supplies: 2_500_000, marketing: 1_000_000, other: 500_000 },
+        employees: 2, resalePercent: 70, liquidity: 2, buyIndex: s?.marketIndices.business ?? 1, riskLevel: 3,
+      });
+      return `Filialga ${formatUZSCompact(e.principal)} sarflandi · sof foyda +6 mln/oy · kredit −${formatUZSCompact(loan.monthlyPayment)}/oy`;
+    }
     case "inflation": {
       const k = 1 + e.pct / 100;
       p.expenseParts = {
