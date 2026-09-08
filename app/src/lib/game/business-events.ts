@@ -10,7 +10,7 @@ const hire = choice("operations-hire", "Xodim yollash", "−1 mln hozir · −1 
 export const BUSINESS_EVENTS: EventCard[] = [
   {
     id: "operations-order", title: "Qo'shimcha buyurtma", icon: "Briefcase",
-    desc: "Birinchi faol biznesingiz uchun 20 birlik qo'shimcha ish: zaxira 2 mln, tushum 3,6 mln. Bajarish muddati 3 oy. Bu bazaviy oylik faoliyatdan alohida.",
+    desc: "Tanlangan biznes uchun 20 birlik qo'shimcha ish: zaxira 2 mln, tushum 3,6 mln. Bajarish muddati 3 oy. Bu bazaviy oylik faoliyatdan alohida.",
     requiresQuadrant: "B", requiresBusiness: true, businessStage: "offer", effect: { type: "nothing" },
     choices: [choice("operations-accept", "Buyurtmani qabul qilish", "Hozir tushum yo'q; zaxira va quvvat kerak", { type: "business-operation", action: "accept" }), wait],
   },
@@ -34,7 +34,7 @@ export const BUSINESS_EVENTS: EventCard[] = [
   },
   {
     id: "operations-equipment", title: "Qo'shimcha ish uchun uskuna", icon: "Hammer",
-    desc: "Birinchi faol biznesning qo'shimcha buyurtma quvvatini oshirish mumkin. Uskuna o'zi tushum bermaydi; buyurtma kerak.",
+    desc: "Tanlangan biznesning qo'shimcha buyurtma quvvatini oshirish mumkin. Uskuna o'zi tushum bermaydi; buyurtma kerak.",
     requiresQuadrant: "B", requiresBusiness: true, businessStage: "offer", effect: { type: "nothing" },
     choices: [choice("operations-upgrade", "Uskuna olish", "−5 mln · aktiv qiymati +5 mln · quvvat +10 (maksimal 100)", { type: "business-operation", action: "upgrade" }), wait],
   },

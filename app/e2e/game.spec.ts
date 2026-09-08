@@ -8,9 +8,9 @@ async function fixture(quadrant: 'E' | 'B' = 'E') {
     import { makePlayer, makeGame } from './src/lib/game/engine';
     import { PROFESSIONS } from './src/lib/game/data';
     import { SAVE_KEY } from './src/lib/game/types';
-    import { operateBusiness } from './src/lib/game/business';
+    import { operateBusiness, startingBusiness } from './src/lib/game/business';
     const player = makePlayer(0, 'Audit o‘yinchisi', PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: 'd1', quadrant: '${quadrant}'});
-    if (player.quadrant === 'B') { operateBusiness(player, 'accept'); operateBusiness(player, 'restock'); }
+    if (player.quadrant === 'B') { operateBusiness(player, 'accept'); operateBusiness(player, 'restock'); player.assets.push(startingBusiness('second-business', 'transport')); }
     console.log(JSON.stringify({key: SAVE_KEY, game: makeGame([player])}));`, resolveDir: process.cwd()}, bundle: true, platform: 'node', format: 'esm', write: false, alias: {'@': './src'}});
   return JSON.parse(execFileSync(process.execPath, ['--input-type=module'], {input: bundled.outputFiles[0].text, encoding: 'utf8'}));
 }
@@ -35,6 +35,24 @@ test('business report restores stock, order deadline and capacity', async ({page
   const box = await operations.boundingBox();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+});
+
+test('business selection persists after reopening the game', async ({page, isMobile}) => {
+  await resume(page, 'B');
+  const openReport = async () => {
+    if (isMobile) await page.getByRole('button', {name: 'Hisobotni ochish', exact: true}).last().click();
+    await page.locator('summary:visible').filter({hasText: 'Batafsil hisobot va maqsadlar'}).first().click();
+  };
+  await openReport();
+  const selection = page.getByRole('combobox', {name: /Boshqariladigan biznes/});
+  await expect(selection).toBeEnabled();
+  await selection.selectOption('second-business');
+  await expect(selection).toHaveValue('second-business');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('oqim-save-v1') ?? '{}').players?.[0]?.managedBusinessId)).toBe('second-business');
+  await page.reload();
+  await page.getByRole('button', {name: 'Davom etish', exact: true}).click();
+  await openReport();
+  await expect(selection).toHaveValue('second-business');
 });
 
 test('saved game resumes and board fits viewport', async ({page}) => {

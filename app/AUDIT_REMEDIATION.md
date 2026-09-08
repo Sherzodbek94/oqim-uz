@@ -1,5 +1,15 @@
 # Audit tuzatishlari — 2026-09-06
 
+## Bir nechta biznesni tanlash — 2026-09-08
+
+- Lokal hisobot va onlayn o'yinchilar panelida B kvadranti uchun «Boshqariladigan biznes» tanlovi. Tanlash faqat o'z navbatida zar tashlashdan oldin; ochiq qarorda onlayn almashtirish rad etiladi.
+- `managedBusinessId` saqlanadi. Eski saqlovlarda oldingi faol buyurtma/birinchi biznes tartibi saqlangan; sotilgan biznesga qolgan tanlov save ochilganda tozalanadi. Qurilishdagi va begona biznes tanlanmaydi.
+- `eligibleEvents` operatsiya va filial kartasini biznes ID hamda nomiga bog'laydi. Xodim, uskuna, ombor va buyurtma faqat o'sha aktivga qo'llanadi; sotilgan nishon boshqa biznesga avtomatik almashtirilmaydi.
+- Har bir biznes alohida buyurtma olib boradi. Tanlanmagan buyurtmalar muddati ham oyda kamayadi. Jami naqd umumiy, xodim/quvvat/zaxira va oylik biznes xarajatlari alohida.
+- Onlayn server tanlovni tekshiradi, qarorning nishoni va bosqichini qayta tekshiradi; klientdan narx yoki effekt qabul qilmaydi.
+- Regressiya: ikkita buyurtma, xarajatlar ajratilishi, o'zgargan tanlovda karta nishoni, sotilgan/begona biznes, oy muddatlari, save/reload va onlayn tanlash. Brauzer testlari lokal qayta ochish va server javobidan keyingi onlayn tanlovni tekshiradi.
+- Avvalgi «ko'p biznesni qo'lda tanlash yo'q» cheklovi shu bosqichda yopildi. Sohalarga xos narx/quvvat iqtisodiyoti va umumiy balansning uzoq sinovi keyingi ishlar; merge/deploy bajarilmaydi.
+
 ## Onlayn biznes qarorlari — 2026-09-07
 
 - `workers/src/game/online.ts`: biznes kartalari endi pending qaror bo'lib ochiladi; server yaratgan bir martalik `decisionId`, joriy o'yinchi va deadline tekshiriladi. Klient faqat ID va 0/1 tanlov yuboradi, effekt va narx server kartasidan olinadi.

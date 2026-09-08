@@ -134,7 +134,7 @@ export function botDilemmaChoice(p: Player, card: EventCard): 0 | 1 {
   // Kredit taklifi: annuitet to'lovi byudjetga sig'masa, bot taklifni rad etadi
   const operation = card.choices[0].effect;
   if (operation.type === "business-operation") {
-    const op = businessTarget(p)?.operations;
+    const op = businessTarget(p, card.businessAssetId)?.operations;
     switch (operation.action) {
       case "accept": return p.cash >= 20 * STOCK_UNIT_COST ? 0 : 1;
       case "restock": return p.cash >= Math.max(0, (op?.order?.units ?? 0) - (op?.stock ?? 0)) * STOCK_UNIT_COST ? 0 : 1;

@@ -607,6 +607,18 @@ export default function Online() {
                       <p>{a.operations?.order ? `Buyurtma: ${a.operations.order.units} birlik · ${a.operations.order.monthsLeft} oy qoldi` : "Faol buyurtma yo'q"}</p>
                     </details>
                   ))}
+                  {p.id === me && p.quadrant === "B" && p.assets.some(a => a.kind === "business") && (
+                    <label className="mt-3 block text-sm font-semibold text-ink-700">
+                      Boshqariladigan biznes
+                      <select className="mt-1 block w-full min-w-0 rounded-lg border border-sand-200 bg-white p-2 text-sm"
+                        disabled={!myTurn || !!pending || !connected} value={p.managedBusinessId ?? ""}
+                        onChange={event => clientRef.current?.action({kind: "select-business", assetId: event.target.value})}>
+                        <option value="" disabled>Faol biznesni tanlang</option>
+                        {p.assets.filter(a => a.kind === "business").map(a => <option key={a.id} value={a.id} disabled={(a.constructionLeft ?? 0) > 0}>{a.title}{a.operations?.order ? ` · ${a.operations.order.monthsLeft} oy qoldi` : ""}</option>)}
+                      </select>
+                      <span className="mt-1 block font-normal">Zar tashlashdan oldin tanlang. Ochiq qarorning biznesi almashtirilmaydi.</span>
+                    </label>
+                  )}
                 </div>
               ))}
             </div>

@@ -2,7 +2,7 @@
  * OQIM — game engine (pure logic, no UI).
  * Functions mutate a draft Player/GameState — the controller clones state first.
  */
-import { startingBusiness, businessStage, operateBusiness, advanceBusinessMonth } from "./business";
+import { startingBusiness, businessTarget, businessStage, operateBusiness, advanceBusinessMonth } from "./business";
 import type {
   ActiveNews,
   Asset,
@@ -1915,27 +1915,32 @@ function eventGateOk(c: EventCard, p: Player): boolean {
 }
 
 export function eligibleEvents(p: Player, recent: string[]): EventCard[] {
+  const target = businessTarget(p);
+  const bind = (cards: EventCard[]) => cards.map(c => {
+    const targeted = c.businessStage || c.choices?.some(ch => ch.effect.type === "business-expansion");
+    return targeted && target ? {...c, businessAssetId: target.id, title: `${c.title} — ${target.title}`} : c;
+  });
   // Faol buyurtmaning keyingi bosqichi tasodifiy umumiy kartalar ortida yo'qolmasin.
   const stage = businessStage(p);
   if (stage && stage !== "offer") {
     const followups = EVENT_CARDS.filter(c => c.businessStage === stage && eventGateOk(c, p));
-    if (followups.length) return followups;
+    if (followups.length) return bind(followups);
   }
   const pool = EVENT_CARDS.filter((c) => !recent.includes(c.id) && eventGateOk(c, p));
-  if (pool.length > 0) return pool;
+  if (pool.length > 0) return bind(pool);
   // Fallback ham kvadrant gate'larini buzmasin: faqat umumiy hodisalar qaytadi.
   const gated = EVENT_CARDS.filter((c) => eventGateOk(c, p));
   const universal = gated.filter((c) => !c.requiresQuadrant && !c.requiresQuadrants);
-  return universal.length > 0 ? universal : gated;
+  return bind(universal.length > 0 ? universal : gated);
 }
 
 export function applyEvent(p: Player, card: EventCard, s?: GameState): string {
   const e = card.effect;
   switch (e.type) {
     case "business-operation":
-      return operateBusiness(p, e.action);
+      return operateBusiness(p, e.action, card.businessAssetId);
     case "business-expansion": {
-      const parent = p.assets.find((a) => a.kind === "business");
+      const parent = businessTarget(p, card.businessAssetId);
       if (p.quadrant !== "B" || !parent) return "Filial uchun mavjud biznes kerak";
       const loan = takeLoanOffer(p, "Filial krediti", e.principal, e.monthlyRate, e.months);
       // Kredit to'liq filialga sarflanadi; naqd va aktiv ikki marta ko'paymaydi.

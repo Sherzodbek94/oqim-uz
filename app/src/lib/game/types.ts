@@ -246,6 +246,7 @@ export interface ExpenseParts {
 }
 
 export interface Player {
+  managedBusinessId?: string;
   id: number;
   name: string;
   isBot: boolean;
@@ -611,6 +612,8 @@ export interface EventChoice {
 }
 
 export interface EventCard {
+  /** Hodisa ochilganda biriktirilgan biznes; keyin tanlov o'zgarsa ham nishon o'zgarmaydi. */
+  businessAssetId?: string;
   businessStage?: "offer" | "procure" | "deliver" | "capacity";
   id: string;
   title: string;

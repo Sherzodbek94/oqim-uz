@@ -160,6 +160,7 @@ export interface OnlineDealCard {
 }
 
 export interface OnlinePlayer {
+  managedBusinessId?: string;
   quadrant?: "E" | "S" | "B" | "I";
   hasManager?: boolean;
   managerHireCost?: number;
@@ -171,7 +172,7 @@ export interface OnlinePlayer {
   position: number;
   cash: number;
   salary: number;
-  assets: { id: string; title: string; kind: string; icon: string; price: number; monthlyCashflow: number; employees?: number; operations?: Asset['operations'] }[];
+  assets: { id: string; title: string; kind: string; icon: string; price: number; monthlyCashflow: number; employees?: number; constructionLeft?: number; operations?: Asset['operations'] }[];
   loansCount: number;
   children: number;
   escaped: boolean;
@@ -190,6 +191,7 @@ export type ServerMsg =
   | { t: "chat"; playerId: number; text: string; at: number };
 
 export type ClientAction =
+  | { kind: "select-business"; assetId: string }
   | { kind: "hire-manager" }
   | { kind: "business-choice"; decisionId: string; choice: 0 | 1 }
   | { kind: "roll" }

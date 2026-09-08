@@ -38,21 +38,30 @@ export function validBusinessOperations(value: unknown): boolean {
     && op.order.units === 20 && Number.isInteger(op.order.monthsLeft)
     && op.order.monthsLeft >= 1 && op.order.monthsLeft <= 3);
 }
-export function businessTarget(p: Player): Asset | undefined {
+export function businessTarget(p: Player, assetId?: string): Asset | undefined {
   const active = p.assets.filter(a => a.kind === "business" && !(a.constructionLeft && a.constructionLeft > 0));
+  if (assetId !== undefined) return active.find(a => a.id === assetId);
+  const selected = active.find(a => a.id === p.managedBusinessId);
+  if (selected) return selected;
   return active.find(a => a.operations?.order) ?? active[0];
 }
-export function businessStage(p: Player): "offer" | "procure" | "deliver" | "capacity" | null {
-  if (p.quadrant !== "B" || !businessTarget(p)) return null;
-  const op = businessTarget(p)!.operations;
+export function selectBusiness(p: Player, assetId: string): boolean {
+  if (p.quadrant !== "B" || p.bankrupt || p.escaped || !businessTarget(p, assetId)) return false;
+  p.managedBusinessId = assetId;
+  return true;
+}
+export function businessStage(p: Player, assetId?: string): "offer" | "procure" | "deliver" | "capacity" | null {
+  const target = businessTarget(p, assetId);
+  if (p.quadrant !== "B" || !target) return null;
+  const op = target.operations;
   if (!op?.order) return "offer";
   if (op.capacity - op.usedCapacity < op.order.units) return "capacity";
   return op.stock < op.order.units ? "procure" : "deliver";
 }
 
 /** Atomic commands: failed decisions do not spend money or partially change state. */
-export function operateBusiness(p: Player, action: Extract<EventEffect, { type: "business-operation" }>["action"]): string {
-  const a = businessTarget(p);
+export function operateBusiness(p: Player, action: Extract<EventEffect, { type: "business-operation" }>["action"], assetId?: string): string {
+  const a = businessTarget(p, assetId);
   if (p.quadrant !== "B" || !a) return "Faol biznes topilmadi";
   const op = structuredClone(a.operations ?? { capacity: 20, usedCapacity: 0, stock: 0, hires: 0, order: null });
   let message = "";

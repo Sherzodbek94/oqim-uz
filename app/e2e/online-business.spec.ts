@@ -3,7 +3,8 @@ import type { PublicState } from '../src/lib/net/client';
 
 test('online business decision sends only server decision ID and closes on update', async ({page}) => {
   const player = {id: 0, name: 'Host', isBot: false, avatar: '/avatar-teacher.png', colorIndex: 0,
-    position: 3, cash: 10_000_000, salary: 0, assets: [], loansCount: 0, children: 0,
+    position: 3, cash: 10_000_000, salary: 0, quadrant: 'B' as const, managedBusinessId: 'first',
+    assets: ['first', 'second'].map(id => ({id, title: id === 'first' ? 'Savdo do\'koni' : 'Transport korxonasi', kind: 'business', icon: 'Store', price: 1_000_000, monthlyCashflow: 100_000})), loansCount: 0, children: 0,
     escaped: false, bankrupt: false, charityTurns: 0, skipTurns: 0};
   const state: PublicState = {
     code: 'ABCDEF', phase: 'playing', settings: {timerSec: 60, bots: 0}, isHost: true, you: 0,
@@ -15,6 +16,8 @@ test('online business decision sends only server decision ID and closes on updat
     game: {current: 0, round: 1, month: 1, dice: [1,1], diceCount: 1, log: [], players: [player, {...player, id: 1, name: 'Guest'}]},
   };
   const actions: unknown[] = [];
+  const decisionState = state.pending;
+  state.pending = null;
   await page.route('**/api/rooms', route => route.fulfill({json: {ok: true, code: 'ABCDEF', hostToken: 'test-room-token'}}));
   await page.routeWebSocket('**/api/rooms/ABCDEF/ws', ws => {
     ws.onMessage(raw => {
@@ -22,6 +25,12 @@ test('online business decision sends only server decision ID and closes on updat
       if (message.t === 'join') ws.send(JSON.stringify({t: 'state', state}));
       if (message.t === 'action') {
         actions.push(message.action);
+        if (message.action.kind === 'select-business') {
+          state.game!.players[0].managedBusinessId = message.action.assetId;
+          state.pending = decisionState;
+          ws.send(JSON.stringify({t: 'state', state}));
+          return;
+        }
         ws.send(JSON.stringify({t: 'state', state: {...state, pending: null, awaiting: 1, game: {...state.game, current: 1}}}));
       }
     });
@@ -29,11 +38,15 @@ test('online business decision sends only server decision ID and closes on updat
   await page.goto('/onlayn');
   await page.getByPlaceholder('Masalan: Dilnoza').fill('Host');
   await page.getByRole('button', {name: 'Xona yaratish', exact: true}).click();
+  const selection = page.getByRole('combobox', {name: /Boshqariladigan biznes/});
+  await selection.selectOption('second');
+  await expect(selection).toHaveValue('second');
+  await expect(selection).toBeDisabled();
   const decision = page.getByRole('region', {name: 'Biznes qarori'});
   await expect(decision).toBeVisible();
   const box = await decision.boundingBox();
   expect(box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await decision.getByRole('button', {name: /Zaxira xarid qilish/}).click();
   await expect(decision).toHaveCount(0);
-  expect(actions).toEqual([{kind: 'business-choice', decisionId: 'server-decision-1', choice: 0}]);
+  expect(actions).toEqual([{kind: 'select-business', assetId: 'second'}, {kind: 'business-choice', decisionId: 'server-decision-1', choice: 0}]);
 });

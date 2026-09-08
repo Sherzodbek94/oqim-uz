@@ -45,6 +45,8 @@ function isClientMsg(value: unknown): value is ClientMsg {
   if (msg.t === "chat") return typeof msg.text === "string" && msg.text.length <= 1000;
   if (msg.t === "action" && msg.action && typeof msg.action === "object") {
     const action = msg.action as Record<string, unknown>;
+    if (action.kind === "select-business") return Object.keys(action).length === 2
+      && typeof action.assetId === "string" && action.assetId.length > 0 && action.assetId.length <= 128;
     if (action.kind === "hire-manager") return Object.keys(action).length === 1;
     if (action.kind === "business-choice") return Object.keys(action).length === 3
       && typeof action.decisionId === "string" && action.decisionId.length <= 64

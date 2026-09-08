@@ -40,6 +40,7 @@ import { BIG_DEALS, DOODAD_CARDS, DREAMS, MARKET_CARDS, PROFESSIONS, SMALL_DEALS
 import { botCharityDecision, botDealDecision, botDoodadDecline, botDoodadMode, botPickDealSize, botSellDecision, botWeekendChoice } from "./bots";
 import type { BotPersonality, DealCard, EventCard, GameState, MarketCard, Player } from "./types";
 import { botDilemmaChoice } from "./bots";
+import { businessTarget, businessStage, selectBusiness } from "../../../src/lib/game/business";
 import { RAT_CELLS } from "./types";
 
 export const MAX_PLAYERS = 4;
@@ -425,6 +426,7 @@ function botPlay(room: OnlineRoom, now: number): void {
 }
 
 export type ClientAction =
+  | { kind: "select-business"; assetId: string }
   | { kind: "hire-manager" }
   | { kind: "business-choice"; decisionId: string; choice: 0 | 1 }
   | { kind: "roll" }
@@ -445,6 +447,11 @@ export function handleAction(room: OnlineRoom, token: string, action: ClientActi
   if (room.awaiting !== rp.id) return { ok: false, error: "Hozir kutilmayapti" };
 
   if (!room.pending) {
+    if (action.kind === "select-business") {
+      if (room.deadline !== null && now >= room.deadline) return {ok: false, error: "Navbat vaqti tugagan"};
+      if (!selectBusiness(p, action.assetId)) return {ok: false, error: "Faol va o'zingizga tegishli biznesni tanlang"};
+      return {ok: true};
+    }
     if (action.kind === "hire-manager") {
       if (room.deadline !== null && now >= room.deadline) return {ok: false, error: "Navbat vaqti tugagan"};
       if (p.quadrant !== "S" || !p.assets.some(a => a.kind === "business") || p.hasManager)
@@ -468,6 +475,8 @@ export function handleAction(room: OnlineRoom, token: string, action: ClientActi
       const card = room.pending.card;
       const choice = card.choices?.[action.choice];
       if (!choice || !card.businessStage) return { ok: false, error: "Biznes qarori topilmadi" };
+      if (businessStage(p, card.businessAssetId) !== card.businessStage)
+        return {ok: false, error: "Biznes holati o'zgargan; bu qaror endi bajarilmaydi"};
       const note = applyEvent(p, { ...card, effect: choice.effect }, g);
       g.recentEvents.push(card.id);
       if (g.recentEvents.length > 8) g.recentEvents.shift();
@@ -631,7 +640,8 @@ export function publicState(room: OnlineRoom, forToken?: string) {
             quadrant: p.quadrant,
             hasManager: p.hasManager,
             managerHireCost: managerCost(p),
-            assets: p.assets.map((a) => ({ id: a.id, title: a.title, kind: a.kind, icon: a.icon, price: a.price, monthlyCashflow: a.monthlyCashflow, employees: a.employees, operations: a.operations ? structuredClone(a.operations) : undefined })),
+            managedBusinessId: businessTarget(p)?.id,
+            assets: p.assets.map((a) => ({ id: a.id, title: a.title, kind: a.kind, icon: a.icon, price: a.price, monthlyCashflow: a.monthlyCashflow, employees: a.employees, constructionLeft: a.constructionLeft, operations: a.operations ? structuredClone(a.operations) : undefined })),
             loansCount: p.loans.length,
             children: p.children,
             escaped: p.escaped,
