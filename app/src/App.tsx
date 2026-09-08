@@ -12,6 +12,7 @@ const Leaderboard = lazy(() => import('@/pages/Leaderboard'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const Online = lazy(() => import('@/pages/Online'))
 const Game = lazy(() => import('@/pages/Game'))
+const LifeGame = lazy(() => import('@/oqim-life/LifeGame'))
 
 function PageLoader() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
           {/* Game page stands alone — it has its own top bar (design.md §9.1) */}
           <Route path="/game" element={<Game />} />
           <Route path="/game-city" element={<Game cityVersion />} />
+          <Route path="/hayot" element={<LifeGame />} />
           {/* v19: Onlayn multiplayer — alohida sahifa, lokal o'yinga ta'sir qilmaydi */}
           <Route path="/onlayn" element={<Online />} />
           {/* Noto'g'ri marshrutlar */}
