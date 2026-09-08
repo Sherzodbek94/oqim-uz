@@ -172,7 +172,7 @@ export interface OnlinePlayer {
   position: number;
   cash: number;
   salary: number;
-  assets: { id: string; title: string; kind: string; icon: string; price: number; monthlyCashflow: number; employees?: number; constructionLeft?: number; businessModel?: Asset['businessModel']; operations?: Asset['operations'] }[];
+  assets: { id: string; title: string; kind: string; icon: string; price: number; monthlyCashflow: number; employees?: number; constructionLeft?: number; monthlyRevenue?: number; monthlyOperatingCosts?: number; operatingCostParts?: Asset['operatingCostParts']; businessModel?: Asset['businessModel']; operations?: Asset['operations'] }[];
   loansCount: number;
   children: number;
   escaped: boolean;

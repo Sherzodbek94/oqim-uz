@@ -1,5 +1,6 @@
 import type { Asset, EventEffect, Player, ProfessionField } from "./types";
 import { businessEconomy, businessModelForTag, businessOrderQuote } from "./business-economy";
+import { businessMonthlyFinance } from "./business-finance";
 import { formatUZSCompact } from "../format";
 
 // O'yin balansining namunaviy qiymatlari; real bozor daromadi prognozi emas.
@@ -21,9 +22,8 @@ export function startingBusiness(id: string, field: ProfessionField): Asset {
     id, ...profiles[field], kind: "business", icon: "Store",
     businessModel: businessModelForTag(profiles[field].tag),
     price: 200_000_000, paid: 70_000_000,
-    monthlyRevenue: 30_000_000, monthlyOperatingCosts: 16_000_000,
+    ...businessMonthlyFinance(businessModelForTag(profiles[field].tag), 14_000_000),
     monthlyCashflow: 14_000_000,
-    operatingCostParts: { payroll: 8_000_000, rent: 3_000_000, supplies: 3_000_000, marketing: 1_000_000, other: 1_000_000 },
     resalePercent: 70, liquidity: 3, buyIndex: 1, riskLevel: 2,
   };
 }

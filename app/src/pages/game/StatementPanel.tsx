@@ -1,3 +1,4 @@
+import { businessSupplyLabel } from "@/lib/game/business-finance";
 /**
  * OQIM — StatementPanel (game.md §4).
  * White panel with suzani header strip; tabs: Hisobot · Aktivlar · Jurnal;
@@ -623,7 +624,7 @@ function ReportTab({
                   {a.operatingCostParts && <>
                     <Row label="Xodimlar maoshi" value={-a.operatingCostParts.payroll} tone="bad" />
                     <Row label="Ijara" value={-a.operatingCostParts.rent} tone="bad" />
-                    <Row label="Ta'minot va materiallar" value={-a.operatingCostParts.supplies} tone="bad" />
+                    <Row label={businessSupplyLabel(a.businessModel)} value={-a.operatingCostParts.supplies} tone="bad" />
                     <Row label="Marketing" value={-a.operatingCostParts.marketing} tone="bad" />
                     <Row label="Boshqa biznes xarajatlari" value={-a.operatingCostParts.other} tone="bad" />
                   </>}
