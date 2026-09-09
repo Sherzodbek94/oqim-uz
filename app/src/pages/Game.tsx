@@ -183,7 +183,7 @@ function pick<T>(arr: T[]): T {
 /* fix-10 (F1): hub ichidagi yangiliklar tickeri olib tashlandi —
    sarlavhalar endi 🔔 Bildirishnomalar markazida (F2), log esa pastki panelda qoladi. */
 
-export default function Game() {
+export default function Game({ cityVersion = false }: { cityVersion?: boolean }) {
   const navigate = useNavigate();
   const [entry, setEntry] = useState<Entry>(() => {
     const save = loadSave();
@@ -2643,7 +2643,7 @@ export default function Game() {
   );
 
   return (
-    <div className="min-h-[100dvh] bg-sand-50">
+    <div className={cn("oqim-play-shell min-h-[100dvh] bg-sand-50", cityVersion && "oqim-city-v2")}>
       {/* top bar (game.md §1 GameShell) */}
       <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-sand-200 bg-white px-4 lg:px-6">
         <Link to="/" className="flex items-center gap-2">
@@ -2737,6 +2737,7 @@ export default function Game() {
           </button>
         </div>
       </header>
+      {!blocked && s.phase === 'idle' && <div className="px-4 pt-2 text-right"><Link className="inline-flex min-h-11 items-center rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800" to={cityVersion ? '/game' : '/game-city'}>{cityVersion ? 'Avvalgi ko‘rinish' : 'Shaharcha versiyasi'}</Link></div>}
 
       {/* turn banner */}
       <AnimatePresence>
@@ -2761,10 +2762,19 @@ export default function Game() {
       <div className="mx-auto max-w-[1600px] lg:grid lg:min-w-0 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_400px]">
         {/* board zone */}
         <motion.main
-          className="min-w-0 overflow-x-hidden p-4 pb-48 lg:flex lg:min-h-[calc(100dvh-56px)] lg:items-center lg:justify-center lg:p-6"
+          className="oqim-play-stage min-w-0 overflow-x-hidden p-4 pb-48 lg:flex lg:flex-col lg:min-h-[calc(100dvh-56px)] lg:items-center lg:justify-center lg:p-6"
           animate={shake ? { x: [0, 2, -2, 0] } : { x: 0 }}
           transition={{ duration: 0.14 }}
         >
+          <div className="live-game-hud" aria-label="Jonli o‘yin holati">
+            <div className="live-turn-pill" style={{ backgroundColor: PLAYER_COLORS[current.colorIndex] }}>
+              <span className="live-turn-dot" aria-hidden />
+              {isHumanTurn ? "Sizning navbatingiz" : `${current.name} navbati`}
+            </div>
+            <div className="live-stat"><span>Naqd pul · {human.name}</span><strong>{formatUZSCompact(human.cash)}</strong></div>
+            <div className="live-stat"><span>Sof oqim</span><strong className={humanCf >= 0 ? "is-positive" : "is-negative"}>{humanCf >= 0 ? "+" : "−"}{formatUZSCompact(Math.abs(humanCf))}</strong></div>
+            <div className="live-stat live-stat-goal"><span>Passiv daromad / xarajat</span><strong>{gaugePct}% qoplangan</strong><progress aria-label="Xarajatlarning passiv daromad bilan qoplanishi" value={gaugePct} max={100} /></div>
+          </div>
           <motion.div
             className="w-full"
             key={fastTrack ? "ft" : "rat"}
@@ -2794,7 +2804,11 @@ export default function Game() {
                 track={fastTrack ? "fast" : "rat"}
                 players={boardPlayers}
                 flashCells={flashCells}
-                hub={hubNode}
+                hub={cityVersion ? <div className="city-action-dock">
+                  <div className={cn(s.diceCount === 1 && "[&>div>div:last-child]:hidden")}><Dice values={s.dice} rolling={rolling} size={40} playerColor={PLAYER_COLORS[current.colorIndex]} /></div>
+                  <div><p className="text-sm font-semibold text-ink-900">{current.name} · {calDay}-kun</p><p className="text-sm text-ink-600" role="status">{blocked ? 'Ochiq oynadagi qarorni yakunlang' : rolling ? 'Token harakatlanmoqda' : canEnd ? 'Navbatni yakunlash mumkin' : canRoll ? 'Zar tashlab yo‘lni davom ettiring' : 'Navbat davom etmoqda'}</p></div>
+                  <div>{actionButton}</div>
+                </div> : hubNode}
                 botBubble={bubble}
                 activePlayerId={current.id}
                 dreamGlowCell={fastTrack ? 2 : null}
@@ -2805,7 +2819,7 @@ export default function Game() {
         </motion.main>
 
         {/* statement sidebar (desktop) */}
-        <aside className="sticky top-14 hidden h-[calc(100dvh-56px)] border-l border-sand-200 lg:block">
+        <aside className="oqim-report-rail sticky top-14 hidden h-[calc(100dvh-56px)] border-l border-sand-200 lg:block">
           <StatementPanel
             onSelectBusiness={actionsEnabled && s.phase === "idle" && !forcedSellMode ? onSelectBusiness : undefined}
             state={s}
@@ -3035,7 +3049,7 @@ export default function Game() {
       </div>
 
       {/* card modals */}
-      <CardModals modal={modal} player={current} state={s} handlers={handlers} decisionHint={decisionHint} />
+      <CardModals modal={modal} player={current} state={s} handlers={handlers} decisionHint={decisionHint} cityVersion={cityVersion} />
 
       {/* fix-9: Bilim olish / Mijoz topish markazlari */}
       <AnimatePresence>

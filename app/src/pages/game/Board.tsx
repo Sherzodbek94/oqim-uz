@@ -29,6 +29,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import PlayerToken from "@/components/PlayerToken";
+import EventScene, { sceneForText } from './EventScene';
 import { cn } from "@/lib/utils";
 import {
   CELL_CAPTIONS,
@@ -279,6 +280,7 @@ export default function Board({
           transition={{ delay: 0.55, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
           style={{ transformBox: "view-box", transformOrigin: "500px 500px" }}
         />
+        <image aria-hidden="true" href="/town-center.webp" x={CORNER + 30} y={CORNER + 30} width={BOARD - 2 * (CORNER + 30)} height={BOARD - 2 * (CORNER + 30)} preserveAspectRatio="xMidYMid slice" pointerEvents="none" />
         {cells.map((cell, i) => {
           const r = rects[i];
           const color = fast
@@ -381,7 +383,7 @@ export default function Board({
       {/* markaz brend bloki: suzani yulduzi + OQIM wordmark */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-[17.8%] flex flex-col items-center"
+        className="pointer-events-none absolute inset-x-[28%] top-[17.8%] flex flex-col items-center rounded-2xl bg-white/95 p-1"
       >
         <span
           className="hidden aspect-square w-6 sm:block"
@@ -423,13 +425,14 @@ export default function Board({
             onClick={() => setSelectedCell(i)}
             className={cn("board-cell absolute flex flex-col items-center justify-center gap-0.5 rounded-lg focus-visible:z-30 focus-visible:outline-white", selected === i && "ring-2 ring-inset ring-white", fast && dreamGlowCell === i && "ring-4 ring-inset ring-gold-400")}
             style={{color: readableCellText(rect.corner ? CORNER_FILL : fast ? FT_CELL_COLORS[cell as FTCellType] : CELL_COLORS[cell as CellType]), left: `${rect.x / 10}%`, top: `${rect.y / 10}%`, width: `${rect.w / 10}%`, height: `${rect.h / 10}%`}}>
+            <EventScene scene={sceneForText(full, 'market')} compact />
             <Icon aria-hidden="true" className="h-[clamp(14px,2.5cqw,24px)] w-[clamp(14px,2.5cqw,24px)]" />
             <span className="board-cell-number text-xs leading-none">{i + 1}</span>
             <span className="board-cell-caption text-xs font-semibold leading-tight">{caption}</span>
           </button>;
         })}
       </div>
-      <div className="board-mobile-status pointer-events-none absolute inset-x-[20%] top-[42%] text-center">
+      <div className="board-mobile-status pointer-events-none absolute inset-x-[20%] top-[42%] rounded-2xl bg-white/95 p-2 text-center">
         <p className="text-sm font-semibold text-emerald-700">{active?.player.name}</p>
         <p className="mt-1 text-sm text-ink-600">Joriy joy: {(active?.cell ?? 0) + 1}-katak</p>
         <p className="mt-2 text-sm text-ink-600">Izoh uchun katakni bosing</p>

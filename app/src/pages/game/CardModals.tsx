@@ -3,7 +3,8 @@
  * Desktop: centered rounded-3xl; mobile: bottom-sheet. Card draws flip from
  * their card-back asset with content stagger-in (design.md §7.2.3).
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import EventScene, { modalScene, type Scene } from './EventScene';
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Baby,
@@ -124,27 +125,32 @@ export interface ModalHandlers {
 }
 
 /** Accessible, non-dismissible for unresolved decisions; optional close for utilities. */
+const SceneContext = createContext<Scene | null>(null);
+const CityContext = createContext(false);
 export function ModalShell({ children, wide, xl, onClose }: {
   children: ReactNode; wide?: boolean; xl?: boolean; onClose?: () => void;
 }) {
   const opener = useRef(typeof document !== 'undefined' ? document.activeElement : null);
+  const scene = useContext(SceneContext);
+  const city = useContext(CityContext);
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose?.(); }}>
       <DialogPortal>
-        <DialogOverlay className="z-[70] bg-ink-900/40 backdrop-blur-sm" />
+        <DialogOverlay className={cn("z-[70] bg-ink-900/40 backdrop-blur-sm", city && 'city-decision-overlay')} />
         <DialogContentPrimitive
           onCloseAutoFocus={(event) => { if (opener.current instanceof HTMLElement && opener.current.isConnected) {event.preventDefault(); opener.current.focus();} }}
           aria-describedby={undefined}
           onEscapeKeyDown={(event) => { if (!onClose) event.preventDefault(); }}
           onInteractOutside={(event) => { if (!onClose) event.preventDefault(); }}
           className={cn("fixed inset-x-0 bottom-0 z-[80] max-h-[90dvh] overflow-y-auto overscroll-contain rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-modal outline-none lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:w-[calc(100%-2rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl",
-            xl ? "lg:max-w-[720px]" : wide ? "lg:max-w-[560px]" : "lg:max-w-[420px]")}
+            xl ? "lg:max-w-[720px]" : wide ? "lg:max-w-[560px]" : "lg:max-w-[420px]", city && !xl && 'city-decision-panel')}
         >
           <DialogTitle className="sr-only">O‘yin qarori</DialogTitle>
           {onClose && <div className="sticky top-2 z-20 -mb-12 flex justify-end pr-2">
             <button onClick={onClose} aria-label="Yopish" className="flex h-11 w-11 items-center justify-center rounded-full border border-sand-200 bg-white text-ink-600"><X className="h-5 w-5" /></button>
           </div>}
-          {children}
+          {scene && <EventScene scene={scene} />}
+          <div className={scene ? 'illustrated-event-content' : undefined}>{children}</div>
         </DialogContentPrimitive>
       </DialogPortal>
     </Dialog>
@@ -1608,6 +1614,7 @@ function BotAutoModal({ m }: { m: Extract<ModalState, { kind: "bot" }> }) {
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="w-full max-w-[340px] rounded-2xl border border-sand-200 bg-white p-4 shadow-modal">
+        <EventScene scene={modalScene(m)} compact />
         <span className={cn("chip", chip)}>
           <Icon className="h-3.5 w-3.5" />
           {m.title}
@@ -1632,16 +1639,20 @@ export default function CardModals({
   state,
   handlers,
   decisionHint,
+  cityVersion = false,
 }: {
   modal: ModalState | null;
   player: Player;
   state: GameState;
   handlers: ModalHandlers;
   decisionHint?: string | null;
+  cityVersion?: boolean;
 }) {
   // birja har doim inson o'yinchi portfeli bilan ishlaydi
   const human = state.players.find((p) => !p.isBot) ?? player;
   return (
+    <CityContext.Provider value={cityVersion}>
+    <SceneContext.Provider value={modal ? modalScene(modal) : null}>
     <AnimatePresence>
       {modal?.kind === "deal-pick" && <DealPickModal key="dp" onPick={handlers.onPickDeal} />}
       {modal?.kind === "deal" && (
@@ -1705,5 +1716,7 @@ export default function CardModals({
       )}
       {modal?.kind === "bot" && <BotAutoModal key={`bot-${modal.title}-${modal.lines[0] ?? ""}`} m={modal} />}
     </AnimatePresence>
+    </SceneContext.Provider>
+    </CityContext.Provider>
   );
 }
