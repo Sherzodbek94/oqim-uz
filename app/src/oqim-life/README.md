@@ -40,3 +40,7 @@ Foyda va pul oqimini ajratish uchun naqd bo‘lmagan xarajatlar hamda aylanma ma
 9 biznes uchun alohida izometrik ichki tasvir va uch bosqichli interaktiv jarayon qo‘shildi. `BusinessInterior.tsx` joriy state va `economics`dan prognoz oladi; ko‘rik pul, hafta yoki save ni o‘zgartirmaydi. Egalik qilinmagan biznes faqat taxminiy ko‘rik sifatida belgilanadi. Animatsiya foydalanuvchi tomonidan yoqiladi/to‘xtatiladi; reduced-motion yoqilganda qo‘lda bosqich tanlanadi. Animatsiya jarayon ko‘rsatkichlarini almashtiradi, rasmdagi odamlar va uskunalar hozircha alohida skelet animatsiyasiga ega emas.
 
 Asset: `app/public/life-interiors.webp`, built-in image generation. Prompt: square 3×3 atlas, nine independent isometric cutaway interiors in order grocery/clothing/ecommerce, bakery/furniture/dairy, design/carwash/barber; Uzbek contemporary setting, teal/amber/wood palette, workers and recognizable equipment, no text or UI. Original generated PNG preserved; atlas encoded WebP and displayed by CSS crop.
+
+## Qarorlarni oldindan hisoblash
+`DecisionPreview.tsx` reklama, kengaytirish, boshqaruvchi va narx qarorlarini mavjud `quote`/`act`/`economics` orqali hisoblaydi. Tanlov va bekor qilish save ni o‘zgartirmaydi; qo‘llash umumiy tasdiqlash oynasidan o‘tadi. Naqd zaxira, foyda, biznes pul oqimi va hajm taqqoslanadi. Keyingi voqea qarori hali prognozga kirmaydi.
+Ichki sahna oldingi `life-walker.webp` qahramon spritini qayta ishlatadi: jarayon bosqichlari orasida yuradi; pauza va reduced-motion qo‘llanadi. Xonadagi boshqa odamlar va uskunalar hali statik tasvir.

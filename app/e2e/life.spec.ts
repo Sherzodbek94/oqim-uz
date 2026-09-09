@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {EVENTS,finances,SAVE_KEY} from '../src/oqim-life/engine';
+import {act,EVENTS,finances,SAVE_KEY} from '../src/oqim-life/engine';
 import type {State} from '../src/oqim-life/engine';
 
 test('new life plays a full month and preserves classic save',async({page})=>{
@@ -99,4 +99,24 @@ test('all nine interiors explain forecasts without spending money or time',async
       await room.getByRole('button',{name:'Shaharchaga qaytish',exact:true}).click();
     }
   }
+});
+
+
+test('decision preview stays read-only until confirmation and applies the forecast',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.goto('/hayot');await page.getByRole('button',{name:/Biznes egasi/}).click();
+  await page.getByRole('button',{name:/Boshlaymiz/}).click();
+  await page.getByRole('button',{name:'Biznes ichiga kirish',exact:true}).click();
+  const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!) as State,SAVE_KEY);
+  const preview=page.getByRole('region',{name:'Qaror natijasini oldindan ko‘rish'});
+  await preview.getByLabel('Qarorni sinab ko‘ring').selectOption('price');
+  await expect(preview.getByRole('table')).toBeVisible();
+  expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),SAVE_KEY)).toEqual(before);
+  await preview.getByRole('button',{name:'Shu qarorni qo‘llash',exact:true}).click();
+  await page.getByRole('button',{name:'Ortga qaytish',exact:true}).click();
+  expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),SAVE_KEY)).toEqual(before);
+  await preview.getByRole('button',{name:'Shu qarorni qo‘llash',exact:true}).click();
+  await page.getByRole('button',{name:'Tasdiqlash',exact:true}).click();
+  await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),SAVE_KEY)).toEqual(act(before,{type:'price',sector:'trade'}));
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width+1);
 });

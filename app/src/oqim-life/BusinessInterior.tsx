@@ -1,10 +1,11 @@
 import {useEffect, useState} from 'react';
 import {ArrowLeft, Package, Users, Wallet, Play, Pause} from 'lucide-react';
 import {economics, makeBusiness, money, SECTORS} from './engine';
-import type {Sector, State} from './engine';
+import DecisionPreview from './DecisionPreview';
+import type {Action, Sector, State} from './engine';
 
 const tiles:Record<Sector,number>={trade:0,clothing:1,online:2,production:3,furniture:4,dairy:5,service:6,carwash:7,barber:8};
-export default function BusinessInterior({state,sector,onBack}:{state:State;sector:Sector;onBack:()=>void}){
+export default function BusinessInterior({state,sector,onBack,onConfirm}:{state:State;sector:Sector;onBack:()=>void;onConfirm:(action:Action)=>void}){
  const [step,setStep]=useState(0),[playing,setPlaying]=useState(false);
  const [reduced,setReduced]=useState(()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches);
  const owned=state.businesses.find(b=>b.sector===sector),b=owned??makeBusiness(sector),d=SECTORS[sector],e=economics(state,b),tile=tiles[sector];
@@ -20,6 +21,7 @@ export default function BusinessInterior({state,sector,onBack}:{state:State;sect
   <header className="life-interior-heading"><button className="life-secondary" onClick={onBack}><ArrowLeft size={18}/> Shaharchaga qaytish</button><span>{owned?`${b.level}-bosqich · sizniki`:'Sotib olishdan oldingi ko‘rik'}</span></header>
   <h1>{d.name} ichida</h1><p>Joriy oy prognozi. Jarayonni ko‘rish pul yoki hafta sarflamaydi.</p>
   <div className="life-interior-art" role="img" aria-label={`${d.name}ning ichki ko‘rinishi`} style={{backgroundPosition:`${tile%3*50}% ${Math.floor(tile/3)*50}%`}}>
+   <span className="life-interior-actor" data-playing={playing&&!reduced} aria-hidden="true" style={{left:`${22+step*27}%`}}><span/></span>
    <span className="life-interior-badge">{b.manager?'Boshqaruvchi bilan':'Egasi boshqaradi'}</span>
    <div className="life-interior-markers" aria-hidden="true">{steps.map((x,i)=><span key={x.title} className={step===i?'active':''}><x.icon size={22}/><strong>{i+1}</strong></span>)}</div>
   </div>
@@ -28,6 +30,7 @@ export default function BusinessInterior({state,sector,onBack}:{state:State;sect
   <div className="life-process" role="group" aria-label="Biznes jarayoni bosqichlari">{steps.map((x,i)=><button key={x.title} aria-pressed={step===i} onClick={()=>{setPlaying(false);setStep(i);}}><x.icon size={20}/><span>{i+1}. {x.title}<strong>{x.value}</strong></span></button>)}</div>
   <article className="life-process-detail" aria-live={playing?'off':'polite'}><h2>{current.title}</h2><p>{current.detail}</p></article>
   <div className="life-interior-result"><div><span>Sof foyda / oy</span><strong className={e.profit<0?'life-negative':''}>{money(e.profit)} so‘m</strong></div><div><span>Naqd oqim / oy</span><strong className={e.cashFlow<0?'life-negative':''}>{money(e.cashFlow)} so‘m</strong></div></div>
+  {owned&&<DecisionPreview state={state} sector={sector} onConfirm={onConfirm}/>}
   <p className="life-interior-note">{owned?'Boshqaruv qarorlarini biznes panelidan tanlang.':'Sotib olmaguningizcha bu biznes sizga daromad keltirmaydi.'} Sahna — jarayon izohi; pul oy yakunida hisoblanadi.</p>
  </section>;
 }
