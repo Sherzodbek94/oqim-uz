@@ -117,6 +117,6 @@ test('decision preview stays read-only until confirmation and applies the foreca
   expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),SAVE_KEY)).toEqual(before);
   await preview.getByRole('button',{name:'Shu qarorni qo‘llash',exact:true}).click();
   await page.getByRole('button',{name:'Tasdiqlash',exact:true}).click();
-  await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),SAVE_KEY)).toEqual(act(before,{type:'price',sector:'trade'}));
+  await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),SAVE_KEY)).toEqual(JSON.parse(JSON.stringify(act(before,{type:'price',sector:'trade'}))));
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width+1);
 });
