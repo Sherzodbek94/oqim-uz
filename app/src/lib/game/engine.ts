@@ -3,7 +3,7 @@ import { businessMonthlyFinance } from "./business-finance";
  * OQIM — game engine (pure logic, no UI).
  * Functions mutate a draft Player/GameState — the controller clones state first.
  */
-import { startingBusiness, businessTarget, businessStage, operateBusiness, advanceBusinessMonth } from "./business";
+import { startingBusiness, businessTarget, businessStage, operateBusiness, operateBusinessMarket, advanceBusinessMonth } from "./business";
 import { businessModelForTag, describeBusinessCard } from "./business-economy";
 import type {
   ActiveNews,
@@ -1403,10 +1403,11 @@ export function applyPayday(
   news?: ActiveNews | null,
   exchange?: ExchangeState,
   /** fix-14: joriy oy (qarz bloklash muddati uchun) */
-  month = 0
+  month = 0,
+  /** biznes bozor drifti uchun (testlarda determinatsiya) */
+  rand: () => number = Math.random
 ): PaydayResult {
   const notes: string[] = [];
-  notes.push(...advanceBusinessMonth(p));
   const dividends = exchange ? portfolioDividends(p, exchange) : 0;
   let amount = monthlyCashflow(p, { forPayday: true, news, exchange });
   // Avans olingan oyda oy kunida maoshdan aynan avans sifatida berilgan qism
@@ -1533,6 +1534,9 @@ export function applyPayday(
   } else {
     p.escapeStreak = 0;
   }
+  // Tugagan oy joriy stavkada to'lanadi; bozor keyingi oy uchun harakatlanadi.
+  // Shu tartib tufayli oldindan ko'rish (probe) va haqiqiy hisob bir xil summani beradi.
+  notes.push(...advanceBusinessMonth(p, rand));
   return { amount, notes, avansDeducted };
 }
 
@@ -1910,6 +1914,8 @@ function eventGateOk(c: EventCard, p: Player): boolean {
     (!c.requiresQuadrant || c.requiresQuadrant === p.quadrant) &&
     (!c.requiresQuadrants || c.requiresQuadrants.includes(p.quadrant)) &&
     (!c.requiresBusiness || p.assets.some((a) => a.kind === "business")) &&
+    (!c.requiresBusinessModel || businessTarget(p)?.businessModel === c.requiresBusinessModel) &&
+    (!c.requiresProductionLine || !!businessTarget(p)?.operations?.line) &&
     (!c.requiresTag ||
       p.assets.some((a) => a.tag === c.requiresTag) ||
       p.loans.some((l) => new RegExp(c.requiresTag!, "i").test(l.name))) &&
@@ -1945,6 +1951,8 @@ export function applyEvent(p: Player, card: EventCard, s?: GameState): string {
   switch (e.type) {
     case "business-operation":
       return operateBusiness(p, e.action, card.businessAssetId);
+    case "business-market":
+      return operateBusinessMarket(p, e.action, card.businessAssetId);
     case "business-expansion": {
       const parent = businessTarget(p, card.businessAssetId);
       if (p.quadrant !== "B" || !parent) return "Filial uchun mavjud biznes kerak";

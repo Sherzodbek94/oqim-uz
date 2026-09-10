@@ -607,8 +607,8 @@ function ReportTab({
             </label>
           )}
           <div className="mt-2 space-y-0.5">
-            <Row label="Bazaviy tushum" value={businessRevenue} tone="good" />
-            <Row label="Bazaviy operatsion xarajat" value={-businessCosts} tone="bad" />
+            <Row label="Oylik tushum" value={businessRevenue} tone="good" />
+            <Row label="Oylik operatsion xarajat" value={-businessCosts} tone="bad" />
             <Row label="Hodisa va bozor ta’siri" value={businessNet - (businessRevenue - businessCosts)} tone="info" />
             <Row label={g.statement.businessNet} value={businessNet} tone={businessNet >= 0 ? "good" : "bad"} bold />
           </div>
@@ -630,7 +630,7 @@ function ReportTab({
                   </>}
                   {a.monthlyOperatingCosts !== undefined && <Row label="Jami operatsion xarajat" value={-a.monthlyOperatingCosts} tone="bad" />}
                   <Row label="Hodisa va bozor ta’siridan keyin" value={assetCashflow(p, a, news)} tone="info" bold />
-                  <p className="mt-1 text-sm">Kredit to'lovlari umumiy qarzlar hisobotida alohida hisoblanadi. Qiymatlar o'yin modeli uchun.</p>
+                  <p className="mt-1 text-sm">Tushum va ta'minot xarajati har oy talab, bandlik va ta'minot narxidan qayta hisoblanadi. Kredit to'lovlari umumiy qarzlar hisobotida alohida. Qiymatlar o'yin modeli uchun.</p>
                 </div>
               </details>
             ))}

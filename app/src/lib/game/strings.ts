@@ -536,7 +536,7 @@ export const g = {
     businessRevenue: "Biznes tushumi",
     businessCosts: "Operatsion xarajat",
     businessNet: "Biznes sof oqimi",
-    businessHint: "Tushumdan xodim, ijara, ta'minot va marketing xarajatlari ayriladi.",
+    businessHint: "Tushumdan xodim, ijara, ta'minot va marketing xarajatlari ayriladi. Tushum va ta'minot xarajati har oy talab, o'tgan oy bandligi va ta'minot narxidan qayta hisoblanadi.",
     salaryRow: "Ish haqi",
     salaryByQuadrant: {
       E: "Maosh",

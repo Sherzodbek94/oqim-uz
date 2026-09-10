@@ -208,6 +208,28 @@ export interface Asset {
     stock: number;
     hires: number;
     order: { units: number; monthsLeft: number } | null;
+    /** Tayyor mahsulot ombori — faqat ishlab chiqarish modelida liniyadan chiqqan mahsulot. */
+    finished?: number;
+    /** Ishlab chiqarish liniyasi: shuncha birlik shuncha oydan keyin tayyor bo'ladi. */
+    line?: { units: number; monthsLeft: number } | null;
+  };
+  /**
+   * Bazaviy (indekssiz) oylik profil. Dinamik qayta hisob shu qiymatlardan
+   * boshlanadi; yo'q bo'lsa (eski saqlovlar) oylik raqamlar o'zgarmaydi.
+   */
+  baseline?: {
+    revenue: number;
+    parts: { payroll: number; rent: number; supplies: number; marketing: number; other: number };
+  };
+  /** Biznesning bozor holati: talab, ta'minot narxi va o'tgan oy bandligi. */
+  market?: {
+    demand: number;
+    inputPrice: number;
+    utilization: number;
+    /** ta'minot narxi shuncha oy qulflangan (oldindan shartnoma) */
+    priceLockMonths: number;
+    /** marketing/talab ta'siri shuncha oy davom etadi */
+    demandBoostMonths: number;
   };
   id: string;
   title: string;
@@ -518,7 +540,9 @@ export interface MarketCard {
 }
 
 export type EventEffect =
-  | { type: "business-operation"; action: "accept" | "restock" | "deliver" | "cancel" | "hire" | "upgrade" }
+  | { type: "business-operation"; action: "accept" | "restock" | "produce" | "deliver" | "cancel" | "hire" | "upgrade" }
+  /** Sohaga oid bozor qarori: talabni oshirish, ta'minot narxini qulflash yoki liniyani ta'mirlash. */
+  | { type: "business-market"; action: "boost-demand" | "lock-input" | "raise-input" | "repair-line" | "delay-line" }
   | { type: "business-expansion"; principal: number; monthlyRate: number; months: number }
   | { type: "inflation"; pct: number }
   /** cash change; negative amounts in a category get hero expense discounts */
@@ -616,7 +640,7 @@ export interface EventChoice {
 export interface EventCard {
   /** Hodisa ochilganda biriktirilgan biznes; keyin tanlov o'zgarsa ham nishon o'zgarmaydi. */
   businessAssetId?: string;
-  businessStage?: "offer" | "procure" | "deliver" | "capacity";
+  businessStage?: "offer" | "procure" | "produce" | "line" | "deliver" | "capacity";
   id: string;
   title: string;
   desc: string;
@@ -628,6 +652,10 @@ export interface EventCard {
   choices?: [EventChoice, EventChoice];
   /** faqat biznes aktiv egalariga taklif qilinadi */
   requiresBusiness?: boolean;
+  /** faqat tanlangan biznes shu sohaviy modelda bo'lsa taklif qilinadi */
+  requiresBusinessModel?: "trade" | "production" | "service";
+  /** faqat tanlangan biznesda faol ishlab chiqarish liniyasi bo'lsa taklif qilinadi */
+  requiresProductionLine?: boolean;
   /** faqat shu tegli aktiv (yoki avto krediti) egalariga taklif qilinadi */
   requiresTag?: string;
   /** faqat shu kvadrantdagi o'yinchilarga taklif qilinadi */

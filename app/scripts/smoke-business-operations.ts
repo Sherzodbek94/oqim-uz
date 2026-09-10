@@ -7,7 +7,10 @@ import { SAVE_KEY } from "../src/lib/game/types";
 // Legacy save contract: existing balances and orders must keep their old economics.
 const make = () => {
   const p = makePlayer(0, "Biznes", PROFESSIONS[4], {isBot: false, personality: null, colorIndex: 0, dreamId: "d1", quadrant: "B"});
+  // Eski saqlov: model, bazaviy profil va bozor holati yo'q — raqamlar qotib qoladi.
   delete p.assets[0].businessModel;
+  delete p.assets[0].baseline;
+  delete p.assets[0].market;
   Object.assign(p.assets[0], {
     monthlyRevenue: 30_000_000, monthlyOperatingCosts: 16_000_000,
     operatingCostParts: { payroll: 8_000_000, rent: 3_000_000, supplies: 3_000_000, marketing: 1_000_000, other: 1_000_000 },
@@ -67,6 +70,8 @@ assert.equal(advanceBusinessMonth(p).length, 1);
 assert.equal(p.assets[0].operations!.order, null);
 assert.equal(p.assets[0].operations!.stock, 20);
 assert.equal(validBusinessOperations(p.assets[0].operations), true);
+assert.equal(p.assets[0].market, undefined, "Legacy assets never gain a market state");
+assert.equal(p.assets[0].monthlyRevenue, 30_000_000, "Legacy turnover stays frozen across months");
 
 const poor = make(); poor.cash = 0;
 operateBusiness(poor, "accept");
