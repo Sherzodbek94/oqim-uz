@@ -3,20 +3,34 @@ import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 
-async function fixture(quadrant: 'E' | 'B' = 'E', modern = false) {
+type BusinessMode = 'legacy' | 'modern' | 'production';
+
+async function fixture(quadrant: 'E' | 'B' = 'E', mode: BusinessMode = 'legacy') {
   const bundled = await build({stdin: {contents: `
     import { makePlayer, makeGame } from './src/lib/game/engine';
     import { PROFESSIONS } from './src/lib/game/data';
     import { SAVE_KEY } from './src/lib/game/types';
     import { operateBusiness, startingBusiness } from './src/lib/game/business';
     const player = makePlayer(0, 'Audit o‘yinchisi', PROFESSIONS[0], {isBot: false, personality: null, colorIndex: 0, dreamId: 'd1', quadrant: '${quadrant}'});
-    if (player.quadrant === 'B') { if (!${modern}) delete player.assets[0].businessModel; /* preserve legacy coverage */ operateBusiness(player, 'accept'); operateBusiness(player, 'restock'); player.assets.push(startingBusiness('second-business', 'transport')); }
+    if (player.quadrant === 'B') {
+      const mode = '${mode}';
+      if (mode === 'production') {
+        player.assets[0] = startingBusiness('factory', 'qurilish');
+        player.cash = 100_000_000;
+        operateBusiness(player, 'accept'); operateBusiness(player, 'restock'); operateBusiness(player, 'produce');
+      } else {
+        // Eski saqlov: model, bazaviy profil va bozor holatisiz raqamlar qotib qoladi.
+        if (mode === 'legacy') { delete player.assets[0].businessModel; delete player.assets[0].baseline; delete player.assets[0].market; }
+        operateBusiness(player, 'accept'); operateBusiness(player, 'restock');
+      }
+      player.assets.push(startingBusiness('second-business', 'transport'));
+    }
     console.log(JSON.stringify({key: SAVE_KEY, game: makeGame([player])}));`, resolveDir: process.cwd()}, bundle: true, platform: 'node', format: 'esm', write: false, alias: {'@': './src'}});
   return JSON.parse(execFileSync(process.execPath, ['--input-type=module'], {input: bundled.outputFiles[0].text, encoding: 'utf8'}));
 }
 
-async function resume(page: Page, quadrant: 'E' | 'B' = 'E', modern = false) {
-  const saved = await fixture(quadrant, modern);
+async function resume(page: Page, quadrant: 'E' | 'B' = 'E', mode: BusinessMode = 'legacy') {
+  const saved = await fixture(quadrant, mode);
   await page.addInitScript(({key, game}) => {if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(game));}, saved);
   await page.goto('/game');
   await page.getByRole('button', {name: 'Davom etish', exact: true}).click();
@@ -128,8 +142,23 @@ test('malformed successful leaderboard response shows recoverable error', async 
 });
 
 
+test('production business shows the timed line and market indices', async ({page, isMobile}) => {
+  await resume(page, 'B', 'production');
+  if (isMobile) await page.getByRole('button', {name: 'Hisobotni ochish', exact: true}).last().click();
+  await page.locator('summary:visible').filter({hasText: 'Batafsil hisobot va maqsadlar'}).first().click();
+  await page.locator('summary:visible').filter({hasText: 'Qurilish brigadasi'}).first().click();
+  const operations = page.locator("[aria-label=\"Qo'shimcha buyurtma holati\"]:visible").first();
+  await expect(operations).toContainText('Ishlab chiqarish');
+  await expect(operations).toContainText('Tayyor mahsulot ombori: 0 birlik');
+  await expect(operations).toContainText('liniyada 20 birlik, 1 oy qoldi');
+  await expect(operations).toContainText("Bozor: talab o'rtacha");
+  const box = await operations.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+});
+
 test('service business uses working hours without inventory after resume', async ({page, isMobile}) => {
-  await resume(page, 'B', true);
+  await resume(page, 'B', 'modern');
   if (isMobile) await page.getByRole('button', {name: 'Hisobotni ochish', exact: true}).last().click();
   await page.locator('summary:visible').filter({hasText: 'Batafsil hisobot va maqsadlar'}).first().click();
   await page.locator('summary:visible').filter({hasText: "O'quv markazi"}).first().click();

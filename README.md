@@ -17,7 +17,7 @@ Frontend server manzili `VITE_OQIM_SERVER` orqali build vaqtida belgilanadi. Mah
 
 ## Tuzilma
 
-- `app/src/lib/game`: umumiy hisob-kitob, qoidalar, hodisalar va botlar.
+- `app/src/lib/game`: umumiy hisob-kitob, qoidalar, hodisalar, biznes simulyatsiyasi va botlar.
 - `app/src/pages/game`: doska, hisobot, sozlash va qaror oynalari.
 - `app/src/lib/net`: onlayn ulanish va API javoblari.
 - `app/workers/src`: autentifikatsiya, xonalar, cheklovlar va natijalar.
@@ -76,4 +76,6 @@ Email amallari `/hisob` sahifasida, unga `/profil` orqali o‘tiladi. `app/worke
 
 Tasdiqlash havolasi 24 soat, parol tiklash havolasi 15 daqiqa amal qiladi. Server tokenning faqat hashini saqlaydi; havola fragmenti sahifa ochilganda manzil satridan olib tashlanadi. Email tasdiqlash adminlik bermaydi. Parol tiklanganda oldingi JWTlar bekor qilinadi. Mavjud bo‘lmagan email va jo‘natish xatolari hisob mavjudligini oshkor qiladigan javob bermaydi. Integratsiya testlari barcha tashqi email so‘rovlarini almashtiradi; haqiqiy xat jo‘natilmaydi.
 
-Auditning bajarilgan va tugallanmagan bandlari `app/AUDIT_REMEDIATION.md` da yuritiladi. Hisoblar ombori, reyting indeksi, email tasdiqlash va parolni tiklash kodi tayyor; haqiqiy ma’lumotlarni ko‘chirish va jo‘natuvchi domenni sozlash deploy bosqichida bajariladi. Kengaytirilgan biznes simulyatsiyasi hali tugallangan deb belgilanmagan.
+Auditning bajarilgan va tugallanmagan bandlari `app/AUDIT_REMEDIATION.md` da yuritiladi. Hisoblar ombori, reyting indeksi, email tasdiqlash va parolni tiklash kodi tayyor; haqiqiy ma’lumotlarni ko‘chirish va jo‘natuvchi domenni sozlash deploy bosqichida bajariladi.
+
+Kengaytirilgan biznes simulyatsiyasi yopildi: oylik aylanma talab, o‘tgan oy bandligi va ta’minot narxidan qayta hisoblanadi; ishlab chiqarishda xomashyo alohida liniyada tayyor mahsulotga aylanadi; sohaga oid hodisalar bu ko‘rsatkichlarni boshqarish imkonini beradi. Eski saqlovlar qayta hisoblanmaydi. Raqamlar o‘yin ssenariysi — bozor prognozi emas; narx belgilash, raqobat va parallel ishlab chiqarish liniyalari modeli hali yo‘q.

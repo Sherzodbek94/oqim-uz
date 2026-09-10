@@ -32,6 +32,7 @@ import { SECURITIES, buySecurity, securityById, sellSecurity } from "./exchange"
 import { formatUZSCompact } from "../format";
 import { businessTarget } from "./business";
 import { businessOrderQuote } from "./business-economy";
+import { MARKET_ACTIONS } from "./business-market";
 
 export interface BotDecision {
   buy: boolean;
@@ -142,10 +143,22 @@ export function botDilemmaChoice(p: Player, card: EventCard): 0 | 1 {
     switch (operation.action) {
       case "accept": return p.cash >= q.procurementCost + q.executionCost ? 0 : 1;
       case "restock": return p.cash >= q.procurementCost + q.executionCost ? 0 : 1;
+      case "produce": return p.freezeBusinessTurns > 0 ? 1 : 0;
       case "deliver": return p.freezeBusinessTurns > 0 || p.cash < q.executionCost ? 1 : 0;
       case "hire": return op?.order && (op.hires < 5) && p.cash >= q.economy.hireCost + 5 * q.economy.salary && monthlyCashflow(p) > 2 * q.economy.salary ? 0 : 1;
       case "upgrade": return 1; // Buyurtmasiz uskuna olishdan saqlanadi.
       case "cancel": return 0;
+    }
+  }
+  // Sohaviy bozor qarori: pullik variant faqat naqd zaxira yetarli bo'lganda olinadi.
+  if (operation.type === "business-market") {
+    const buffer = personality === "cautious" ? 8 : personality === "bold" ? 2 : 4;
+    const affordable = p.cash >= MARKET_ACTIONS[operation.action].cost * buffer;
+    switch (operation.action) {
+      case "boost-demand": return affordable && monthlyCashflow(p) > 0 ? 0 : 1;
+      case "lock-input":
+      case "repair-line": return affordable ? 0 : 1;
+      default: return 1;
     }
   }
   const loanBad = (i: 0 | 1): boolean => {

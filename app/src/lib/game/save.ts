@@ -8,6 +8,7 @@ import { BEST_KEY, OLD_SAVE_KEY, SAVE_KEY, SETTINGS_KEY } from "./types";
 import { makeExchangeState } from "./exchange";
 import { amortizeTerms, makeMarketIndices } from "./engine";
 import { validBusinessOperations, businessTarget } from "./business";
+import { validBusinessBaseline, validBusinessMarket } from "./business-market";
 
 export interface GameSettings {
   haptics: boolean;
@@ -50,6 +51,7 @@ export function loadSave(): GameState | null {
         if (!asset || typeof asset !== "object") return null;
         if (asset.businessModel !== undefined && !["trade", "production", "service"].includes(asset.businessModel)) return null;
         if (asset.operations !== undefined && !validBusinessOperations(asset.operations, asset)) return null;
+        if (!validBusinessBaseline(asset.baseline) || !validBusinessMarket(asset.market)) return null;
       }
       if (player.managedBusinessId !== undefined) {
         if (typeof player.managedBusinessId !== "string" || player.managedBusinessId.length > 128) return null;

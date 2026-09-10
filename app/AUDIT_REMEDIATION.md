@@ -1,3 +1,39 @@
+## 2026-09-10 — Dinamik biznes simulyatsiyasi
+
+Biznesning oylik aylanmasi endi statik emas. Har bir biznes uchta ko‘rsatkich bilan qayta hisoblanadi:
+
+| Ko‘rsatkich | Oralig‘i | Nimaga ta’sir qiladi |
+|---|---|---|
+| Talab | 0,75–1,25 | Oylik tushum hajmi |
+| Ta’minot narxi | 0,80–1,25 | Ta’minot va tannarx xarajati |
+| O‘tgan oy bandligi | 0–100% | Hajmga +5% gacha ustama |
+
+`business-market.ts` yangi modul: bazaviy profil (`Asset.baseline`) va bozor holati (`Asset.market`) alohida saqlanadi. Har oy talab va ta’minot narxi ±5% qadam bilan siljiydi va 1,0 ga qaytariladi (mean reversion, 0,25 kuch). Tushum = bazaviy tushum × hajm; ta’minot xarajati hajm va narx indeksiga ergashadi (xizmatda yarmi doimiy), ijara, marketing va maosh esa o‘zgarmaydi. Shu sababli operatsion leverage paydo bo‘ldi: hajm ±10% o‘zgarsa sof oqim ±20% atrofida o‘zgaradi.
+
+Neytral indekslarda (1,0) natija bazaviy qiymatlarga aynan teng, shuning uchun yangi o‘yin avvalgi raqamlar bilan boshlanadi. Xodim yollash bazaviy maoshga qo‘shiladi va shundan qayta hisoblanadi; qo‘sh hisob yo‘q. `baseline` yo‘q aktivlar (eski saqlovlar) hech qachon qayta hisoblanmaydi va raqamlarini saqlaydi; qurilishdagi biznes ishga tushmaguncha bozor tarixini to‘plamaydi.
+
+Drift oy kuni to‘lovi hisoblangandan **keyin** qo‘llanadi: tugagan oy joriy stavkada to‘lanadi, bozor keyingi oyga siljiydi. Shu tartib tufayli toast uchun hisoblangan summa haqiqiy to‘lov bilan aynan bir xil bo‘ladi. Drift tasodifiy bo‘lgani uchun jurnalga yozilmaydi; yangi indekslar hisobot panelida va karta tavsifida ko‘rinadi.
+
+### Tayyor mahsulot ombori va vaqtli ishlab chiqarish liniyasi
+
+Ishlab chiqarish modelida xomashyo endi topshirish paytida emas, alohida liniyada mahsulotga aylanadi:
+
+`offer → procure → (capacity) → produce → line → deliver`
+
+`produce` xomashyoni liniyaga beradi va quvvatni o‘sha oyda band qiladi; 1 oydan keyin 20 birlik tayyor mahsulot omborga tushadi va faqat shundan keyin buyurtma topshiriladi. Savdo va xizmat zanjiri o‘zgarmadi. Zaxira tannarxi xarid paytida aktivga kiradi, topshirishda chiqadi — liniyada va tayyor mahsulotda turgan qiymat ikkilanmaydi. Buyurtma muddati tugasa tayyor mahsulot saqlanadi va keyingi buyurtmaga ishlatiladi. Liniya vaqti ishlab chiqarishning yuqori marjasi (3 mln xarajatga 6 mln tushum) evaziga to‘lanadi; narxlar o‘zgartirilmadi.
+
+### Sohaga oid hodisalar
+
+Olti yangi karta `requiresBusinessModel` bilan tanlangan biznes modeliga bog‘landi: savdo va xizmat uchun ta’minot narxi dilemmasi hamda talabni pullik oshirish, ishlab chiqarish uchun xomashyo narxi va liniyadagi uzilish. Har bir kartaning ikkala tanlovi bitta effektdan iborat, shuning uchun onlayn qarorda ham ishlaydi: klient faqat `decisionId` va 0/1 yuboradi, narx va ta’sir server `MARKET_ACTIONS` jadvalidan olinadi. Qarorlar atomik — naqd yetmasa yoki nishon mos kelmasa holat o‘zgarmaydi. Botlar naqd zaxirasiga qarab pullik variantni tanlaydi.
+
+### Tekshiruv
+
+`smoke-business-simulation.ts`: uch model uchun 240 oylik determinatsiyalangan simulyatsiya. Har oy indekslar chegarada, `tushum − xarajat = sof oqim`, xarajat qismlari yig‘indisi jamiga teng va aktiv qiymati ombordagi zaxira tannarxiga aynan mos. O‘rtacha sof oqim uch modelda ham 15 mln atrofida (bazaviy 14 mln), oraliq 10–20 mln; topshirilgan buyurtmalar soni modelga qarab farq qiladi (savdo 160, ishlab chiqarish 119, xizmat 240 — liniya vaqti shunda ko‘rinadi). Bundan tashqari: liniya vaqti va tayyor mahsulot ombori, bozor qarorlarining narxi/chegarasi/atomikligi, sohaviy gate’lar, botlar, onlayn qaror, saqlash va buzilgan ma’lumot rad etilishi, eski saqlovlarning o‘zgarmasligi hamda oy kuni summasining tasodifga bog‘liq emasligi. Brauzer testiga ishlab chiqarish liniyasi paneli qo‘shildi.
+
+Chegaralar: bu raqamlar o‘yin ssenariysi, bozor prognozi emas. Talab indeksi o‘yinchining narx qarori bilan emas, faqat drift va marketing kartasi bilan boshqariladi; alohida narx belgilash, raqobat va mijozlar segmentatsiyasi modeli yo‘q. Liniya bitta partiyani olib boradi, parallel partiyalar yo‘q. Merge/deploy bajarilmadi.
+
+---
+
 ## 2026-09-08 — Bazaviy oylik iqtisodiyot
 
 Yangi bizneslar uchun tushum va xarajat tarkibi sohaga moslashtirildi:

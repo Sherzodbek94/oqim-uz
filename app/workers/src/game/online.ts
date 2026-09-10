@@ -280,7 +280,7 @@ function doRoll(room: OnlineRoom, now: number): void {
       const res = applyPayday(p, g.news, g.exchange, g.month);
       const mres = completeMonth(g);
       addLog(g, "coins", `${p.name}: Oy kuni ${res.amount >= 0 ? "+" : "−"}${Math.abs(res.amount).toLocaleString("uz-UZ")} so'm`, res.amount >= 0 ? "good" : "bad");
-      for (const n of res.notes.filter((n) => n.startsWith("🎉") || n.startsWith("⚠️"))) addLog(g, "coins", `${p.name}: ${n}`, n.startsWith("⚠️") ? "bad" : "gold");
+      for (const n of res.notes.filter((n) => n.startsWith("🎉") || n.startsWith("⚠️") || n.startsWith("📊"))) addLog(g, "coins", `${p.name}: ${n}`, n.startsWith("⚠️") ? "bad" : n.startsWith("📊") ? "neutral" : "gold");
       for (const dr of mres.deferred) addLog(g, "coins", `${dr.playerName}: kechiktirilgan xarajat qaytdi`, "bad");
     }
   }
@@ -641,7 +641,7 @@ export function publicState(room: OnlineRoom, forToken?: string) {
             hasManager: p.hasManager,
             managerHireCost: managerCost(p),
             managedBusinessId: businessTarget(p)?.id,
-            assets: p.assets.map((a) => ({ id: a.id, title: a.title, kind: a.kind, icon: a.icon, price: a.price, monthlyCashflow: a.monthlyCashflow, employees: a.employees, constructionLeft: a.constructionLeft, businessModel: a.businessModel, monthlyRevenue: a.monthlyRevenue, monthlyOperatingCosts: a.monthlyOperatingCosts, operatingCostParts: a.operatingCostParts ? {...a.operatingCostParts} : undefined, operations: a.operations ? structuredClone(a.operations) : undefined })),
+            assets: p.assets.map((a) => ({ id: a.id, title: a.title, kind: a.kind, icon: a.icon, price: a.price, monthlyCashflow: a.monthlyCashflow, employees: a.employees, constructionLeft: a.constructionLeft, businessModel: a.businessModel, monthlyRevenue: a.monthlyRevenue, monthlyOperatingCosts: a.monthlyOperatingCosts, operatingCostParts: a.operatingCostParts ? {...a.operatingCostParts} : undefined, operations: a.operations ? structuredClone(a.operations) : undefined, market: a.market ? {...a.market} : undefined })),
             loansCount: p.loans.length,
             children: p.children,
             escaped: p.escaped,

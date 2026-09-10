@@ -1,4 +1,5 @@
 import type { Asset, EventCard } from "./types";
+import { businessMarket, businessOutlook, marketIndexLabel } from "./business-market";
 import { formatUZSCompact } from "../format";
 
 export type BusinessModel = "trade" | "production" | "service";
@@ -36,6 +37,18 @@ export const BUSINESS_ECONOMIES: Record<BusinessModel | "legacy", BusinessEconom
     initialCapacity: 40, maxCapacity: 120, hireCost: 2_000_000, salary: 2_000_000, hireCapacity: 10, upgradeCost: 4_000_000, upgradeCapacity: 10 },
 };
 
+/** Ishlab chiqarish liniyasi shuncha oy ishlaydi; keyin tayyor mahsulot omborga tushadi. */
+export const PRODUCTION_LINE_MONTHS = 1;
+/** Uzilish hodisasi liniyani ko'pi bilan shu darajagacha cho'zishi mumkin. */
+export const MAX_LINE_MONTHS = PRODUCTION_LINE_MONTHS + 1;
+/** Tayyor mahsulot ombori chegarasi: bir buyurtmadan ortiq zaxira yig'ilmaydi. */
+export const MAX_FINISHED_UNITS = 40;
+
+/** Faqat ishlab chiqarishda xomashyo alohida liniyada tayyor mahsulotga aylanadi. */
+export function usesProductionLine(a: Pick<Asset, "businessModel">): boolean {
+  return a.businessModel === "production";
+}
+
 export function businessModelForTag(tag?: string): BusinessModel {
   if (["dala", "chorva", "qurilish", "restoran", "ishlab-chiqarish"].includes(tag ?? "")) return "production";
   if (tag === "savdo") return "trade";
@@ -56,18 +69,41 @@ export function businessOrderQuote(a: Asset) {
     capacity: units * economy.capacityPerUnit, margin: revenue - stockCost - executionCost };
 }
 
+/** Buyurtma zanjiri amallari — bu kartalarning tavsifi kotirovka bilan almashtiriladi. */
+const ORDER_ACTIONS = ["accept", "restock", "produce", "deliver", "cancel"];
+
+/** Biznesning joriy bozor holati: talab, ta'minot narxi, bandlik va sof oqim. */
+export function businessStatusNote(a: Asset): string {
+  const outlook = businessOutlook(a);
+  if (!outlook) return "";
+  const m = businessMarket(a);
+  return `Bozor holati: talab ${marketIndexLabel(m.demand)}, ta'minot narxi ${marketIndexLabel(m.inputPrice)}, o'tgan oy bandligi ${Math.round(m.utilization * 100)}% · bazaviy sof oqim ${formatUZSCompact(outlook.net)}/oy.`;
+}
+
 export function describeBusinessCard(card: EventCard, a: Asset): EventCard {
   if (!card.businessStage) return card;
   const q = businessOrderQuote(a);
   const e = q.economy;
   const details = `${e.name}: ${q.units} buyurtma birligi · ${q.capacity} ${e.capacityLabel}. Tushum ${formatUZSCompact(q.revenue)}, zaxira tannarxi ${formatUZSCompact(q.stockCost)}, bajarish xarajati ${formatUZSCompact(q.executionCost)}. Marja ${formatUZSCompact(q.margin)}; doimiy oylik xarajatlar alohida.`;
-  return {...card, desc: details + (e.resourcePerUnit === 0 ? " Ombor xaridi kerak emas; bajarish xarajati uchun naqd zaxira kerak." : ` ${e.resource}: ${q.resources} birlik kerak. Ishlab chiqarishda xomashyo topshirish vaqtida mahsulotga aylantiriladi.`),
+  const line = usesProductionLine(a);
+  const chain = e.resourcePerUnit === 0
+    ? " Ombor xaridi kerak emas; bajarish xarajati uchun naqd zaxira kerak."
+    : line
+      ? ` ${e.resource}: ${q.resources} birlik kerak. Xomashyo liniyaga beriladi va ${PRODUCTION_LINE_MONTHS} oydan keyin tayyor mahsulot omboriga tushadi.`
+      : ` ${e.resource}: ${q.resources} birlik kerak; ombordagi tovar to'g'ridan-to'g'ri topshiriladi.`;
+  const status = businessStatusNote(a);
+  const orderChain = card.choices?.some(c => c.effect.type === "business-operation" && ORDER_ACTIONS.includes(c.effect.action));
+  const desc = orderChain ? `${details}${chain} ${status}`.trimEnd() : `${card.desc} ${status}`.trimEnd();
+  return {...card, desc,
     choices: card.choices?.map(c => {
       if (c.effect.type !== "business-operation") return c;
       const hints = {
         accept: `3 oy muddat · hozir tushum yo'q · jami tannarx ${formatUZSCompact(q.stockCost + q.executionCost)}`,
         restock: `${e.resource} · yetishmagan zaxira uchun −${formatUZSCompact(q.procurementCost)}`,
-        deliver: `+${formatUZSCompact(q.revenue)} tushum · −${formatUZSCompact(q.executionCost)} bajarish xarajati · ${q.capacity} ${e.capacityLabel}`,
+        produce: `${q.resources} ${e.resource.toLowerCase()} → liniya · ${q.capacity} ${e.capacityLabel} band · ${PRODUCTION_LINE_MONTHS} oy`,
+        deliver: line
+          ? `+${formatUZSCompact(q.revenue)} tushum · tayyor mahsulotdan ${q.units} birlik`
+          : `+${formatUZSCompact(q.revenue)} tushum · −${formatUZSCompact(q.executionCost)} bajarish xarajati · ${q.capacity} ${e.capacityLabel}`,
         cancel: "Tushum yo'q; sotib olingan zaxira saqlanadi",
         hire: `−${formatUZSCompact(e.hireCost)} hozir · −${formatUZSCompact(e.salary)}/oy · quvvat +${e.hireCapacity}`,
         upgrade: `−${formatUZSCompact(e.upgradeCost)} · quvvat +${e.upgradeCapacity} (maksimal ${e.maxCapacity})`,
