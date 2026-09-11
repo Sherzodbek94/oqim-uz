@@ -96,7 +96,7 @@ export function OfficeTab({ s, a }: { s: StartupState; a: Actions }) {
           <span className="text-emerald-700">{OFFICES[s.office].name} · {s.staff.length + 1} kishi</span>
           <span className={cn(morale >= 50 ? "text-ink-600" : morale >= 30 ? "text-gold-600" : "text-clay-600")}>Kayfiyat {morale}</span>
         </div>
-        <OfficeScene level={s.office} staffCount={s.staff.length} morale={morale} className="mt-1 h-[170px] w-full" />
+        <OfficeScene level={s.office} className="mt-1 h-[170px] w-full" />
         {mods.length > 0 && (
           <div className="flex flex-wrap gap-1.5 px-1 pt-1">
             {mods.map(m => <span key={m.id} className="rounded-full bg-sand-100 px-2.5 py-1 text-[11px] font-semibold text-ink-600">{m.label} · {m.until - s.month + 1} oy</span>)}

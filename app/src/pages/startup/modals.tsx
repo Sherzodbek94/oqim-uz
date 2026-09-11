@@ -32,6 +32,19 @@ function Sheet({ children, onClose }: { children: React.ReactNode; onClose?: () 
   );
 }
 
+/**
+ * Higgsfield kartasi bor hodisalar (`public/startup/events/<id>.webp`).
+ *
+ * Hozir `balance.ts` dagi o'n beshtasining HAMMASIDA rasm bor, lekin ro'yxat
+ * qo'lda qoldirildi: yangi karta qo'shilib, rasmi hali chizilmagan bo'lsa,
+ * modal singan rasm belgisi emas, quyidagi gradient + belgi blokini
+ * ko'rsatadi. Rasm chizilgach — shu yerga id qo'shiladi.
+ */
+const ART = new Set([
+  "inflation", "fx", "outage", "tax_audit", "grant", "talent", "dev_quit",
+  "cyber", "partnership", "competitor", "award", "family", "navruz", "hashar", "intern",
+]);
+
 export function EventModal({ ev, s, onChoose }: { ev: EventCard; s: StartupState; onChoose: (id: string) => void }) {
   const k = KIND[ev.kind];
   return (
@@ -40,9 +53,21 @@ export function EventModal({ ev, s, onChoose }: { ev: EventCard; s: StartupState
         <span className={cn("text-[11px] font-extrabold uppercase tracking-[0.08em]", k.color)}>{k.label}</span>
         <span className="text-[11px] font-bold text-ink-600">Karta {s.eventsSeen + 1}</span>
       </div>
-      <div className="relative mt-3 flex h-[180px] items-center justify-center overflow-hidden rounded-2xl bg-gradient-emerald">
-        <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gold-500 shadow-[0_0_0_12px_rgba(217,164,65,0.18),0_0_0_26px_rgba(217,164,65,0.08)]"><k.Icon className="h-10 w-10 text-emerald-900" /></div>
-        {[["top-3 left-3"], ["top-3 right-3"], ["bottom-3 left-3"], ["bottom-3 right-3"]].map(([c]) => <div key={c} className={cn("absolute", c)}><Flower size={18} /></div>)}
+      <div className="relative mt-3 flex h-[min(34dvh,260px)] items-center justify-center overflow-hidden rounded-2xl bg-gradient-emerald">
+        {ART.has(ev.id) ? (
+          /*
+            `object-contain`: karta o'z ramkasi va oltin gul burchaklari bilan
+            chizilgan, `cover` esa aynan o'sha ramkani kesib tashlardi. Balandlik
+            `dvh` ga bog'langan — past telefonda rasm tanlov tugmalarini
+            ekrandan itarib yubormasligi kerak.
+          */
+          <img src={`/startup/events/${ev.id}.webp`} alt="" width={660} height={880} loading="eager" decoding="async" className="h-full w-auto object-contain" />
+        ) : (
+          <>
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gold-500 shadow-[0_0_0_12px_rgba(217,164,65,0.18),0_0_0_26px_rgba(217,164,65,0.08)]"><k.Icon className="h-10 w-10 text-emerald-900" /></div>
+            {[["top-3 left-3"], ["top-3 right-3"], ["bottom-3 left-3"], ["bottom-3 right-3"]].map(([c]) => <div key={c} className={cn("absolute", c)}><Flower size={18} /></div>)}
+          </>
+        )}
       </div>
       <h2 className="mt-3 font-display text-[22px] font-bold leading-tight text-ink-900">{ev.title}</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-ink-900">{ev.text}</p>
