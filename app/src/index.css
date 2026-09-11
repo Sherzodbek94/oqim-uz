@@ -240,6 +240,38 @@
   50% { transform: scale(1.04); }
 }
 
+/*
+ * Startap rejimidagi jonli ofis personaji.
+ *
+ * Poza almashishining O'ZI slayd-shou bo'lib qolardi: to'rtta kadr sakrab
+ * turardi, oraliqda esa hech narsa qimirlamasdi. Bu ikki animatsiya
+ * oraliqni to'ldiradi — tana yozish ritmida tebranadi, tanaffusda esa
+ * sekin nafas oladi.
+ *
+ * `transform-origin: bottom center` — langar oyoqda. Aks holda tebranish
+ * personajni stuldan ko'tarib yuborardi.
+ *
+ * Harakatni kamaytirish yuqoridagi umumiy `prefers-reduced-motion` bloki
+ * bilan o'chadi, shuning uchun bu yerda alohida qorovul yo'q.
+ */
+@keyframes oq-actor-type {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-0.9%) rotate(-0.35deg); }
+}
+
+@keyframes oq-actor-rest {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-0.5%) scale(1.006); }
+}
+
+.oq-actor {
+  transform-origin: bottom center;
+  will-change: transform;
+}
+
+.oq-actor-type { animation: oq-actor-type 0.62s ease-in-out infinite; }
+.oq-actor-rest { animation: oq-actor-rest 2.6s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -285,6 +285,21 @@ test('the garage scene animates', async ({browser}) => {
     await page.waitForTimeout(180);
   }
   expect(korilgan.size, `pozalar almashmadi: ${[...korilgan].join(', ')}`).toBeGreaterThan(1);
+
+  /*
+   * POZA ALMASHISHI YETMAYDI. To'rtta kadr sakrab tursa, oraliqda hech
+   * narsa qimirlamaydi va natija slayd-shou bo'ladi — foydalanuvchi aynan
+   * shuni «harakat emas» deb aytgan. Shuning uchun bu yerda CSS
+   * `transform` ham o'lchanadi: u kadrlar ORASIDA ham o'zgarib turishi
+   * kerak.
+   */
+  const aktor = page.locator('img.oq-actor');
+  const trs = new Set<string>();
+  for (let i = 0; i < 12; i++) {
+    trs.add(await aktor.evaluate(e => getComputedStyle(e).transform));
+    await page.waitForTimeout(70);
+  }
+  expect(trs.size, 'tana tebranmayapti — faqat poza almashyapti').toBeGreaterThan(3);
   await ctx.close();
 });
 
@@ -310,6 +325,14 @@ test('the garage scene holds still when motion is reduced', async ({browser}) =>
     await page.waitForTimeout(160);
   }
   expect([...korilgan], 'harakat kamaytirilganda poza almashmasligi kerak').toHaveLength(1);
+
+  /* CSS tebranishi ham to'xtashi kerak — u umumiy reduced-motion blokida. */
+  const trs = new Set<string>();
+  for (let i = 0; i < 10; i++) {
+    trs.add(await actor.evaluate(e => getComputedStyle(e).transform));
+    await page.waitForTimeout(80);
+  }
+  expect([...trs], "harakat kamaytirilganda tebranish ham to'xtashi kerak").toHaveLength(1);
   await ctx.close();
 });
 

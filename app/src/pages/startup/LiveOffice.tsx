@@ -19,6 +19,7 @@
  * uni to'xtatib bo'lmaydigan harakat bo'lardi.
  */
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 type Poza = "type-a" | "type-b" | "coffee" | "stretch";
 
@@ -98,7 +99,12 @@ export default function LiveOffice({ morale, className }: { morale: number; clas
         loading="eager"
         decoding="async"
         style={{ position: "absolute", ...O_RIN }}
-        className="pointer-events-none select-none"
+        /*
+          Poza almashishi + uzluksiz tebranish. Yolg'iz poza almashishi
+          slayd-shou bo'lib qolardi: kadrlar orasida hech narsa qimirlamasdi.
+        */
+        className={cn("oq-actor pointer-events-none select-none",
+          poza === "type-a" || poza === "type-b" ? "oq-actor-type" : "oq-actor-rest")}
       />
     </div>
   );
