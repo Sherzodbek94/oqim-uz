@@ -94,7 +94,7 @@ export function OfficeTab({ s, a }: { s: StartupState; a: Actions }) {
       <Card className="p-3">
         <div className="flex items-center justify-between px-1 text-xs font-semibold">
           <span className="text-emerald-700">{OFFICES[s.office].name} · {s.staff.length + 1} kishi</span>
-          <span className={cn(morale >= 50 ? "text-ink-600" : morale >= 30 ? "text-gold-600" : "text-clay-600")}>Kayfiyat {morale}</span>
+          <span className={cn(morale >= 50 ? "text-ink-600" : morale >= 30 ? "text-gold-600" : "text-clay-700")}>Kayfiyat {morale}</span>
         </div>
         <OfficeScene level={s.office} className="mt-1 w-full" />
         {mods.length > 0 && (
@@ -115,7 +115,7 @@ export function OfficeTab({ s, a }: { s: StartupState; a: Actions }) {
         {decisions.map(d => <Row key={d.title} icon={d.icon} title={d.title} sub={d.sub} onClick={() => a.goTab(d.tab)} />)}
       </div>
       <PrimaryButton onClick={a.endMonth}>Oyni yakunlash <ArrowRight className="h-5 w-5" /></PrimaryButton>
-      <p className="px-2 text-center text-[11px] text-ink-400">Prognoz: daromad {fm(E.revenueEstimate(s))} · xarajat {fm(E.monthlyCosts(s))} · oqim <b className={E.monthlyFlow(s) >= 0 ? "text-emerald-700" : "text-clay-600"}>{fm(E.monthlyFlow(s))}</b></p>
+      <p className="px-2 text-center text-[11px] text-ink-400">Prognoz: daromad {fm(E.revenueEstimate(s))} · xarajat {fm(E.monthlyCosts(s))} · oqim <b className={E.monthlyFlow(s) >= 0 ? "text-emerald-700" : "text-clay-700"}>{fm(E.monthlyFlow(s))}</b></p>
     </div>
   );
 }
@@ -136,7 +136,7 @@ export function FinanceTab({ s, a }: { s: StartupState; a: Actions }) {
   const line = (l: string, v: number, bold = false, neg = false) => (
     <div className="flex justify-between border-b border-sand-100 py-2 last:border-0">
       <span className={cn("text-[13px]", bold ? "font-extrabold text-ink-900" : "font-semibold text-ink-900")}>{l}</span>
-      <span className={cn("font-money text-[13px] font-bold tabular-nums", neg ? "text-clay-600" : bold ? "text-emerald-700" : "text-ink-900")}>{v < 0 ? "−" : ""}{fm(Math.abs(v))}</span>
+      <span className={cn("font-money text-[13px] font-bold tabular-nums", neg ? "text-clay-700" : bold ? "text-emerald-700" : "text-ink-900")}>{v < 0 ? "−" : ""}{fm(Math.abs(v))}</span>
     </div>
   );
   return (
@@ -174,7 +174,7 @@ export function FinanceTab({ s, a }: { s: StartupState; a: Actions }) {
         {line("Sof oqim", E.monthlyFlow(s), true, E.monthlyFlow(s) < 0)}
       </Card>
       <div className={cn("flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-xs", dr > 3 ? "bg-clay-100" : "bg-sand-100")}>
-        <ShieldCheck className={cn("h-5 w-5 flex-none", dr > 3 ? "text-clay-600" : "text-emerald-700")} />
+        <ShieldCheck className={cn("h-5 w-5 flex-none", dr > 3 ? "text-clay-700" : "text-emerald-700")} />
         <span className="leading-snug text-ink-900">
           Qarz yuki: <b>{dr === 0 ? "yo'q" : dr === Infinity ? "∞ (oqim manfiy)" : `${dr.toFixed(1)}×`}</b> {dr > 3 ? "— xavfli" : "— xavfsiz"}. Kompaniya qiymati: <b>{fm(E.valuation(s))}</b>.
         </span>
@@ -270,7 +270,7 @@ export function TeamTab({ s, a }: { s: StartupState; a: Actions }) {
               <span className="text-xs text-ink-600">{ROLES[e.role].name}</span>
               <Bar label={ROLES[e.role].skillLabel} v={e.skill} />
               <Bar label="Kayfiyat" v={Math.round(e.morale)} color={moraleColor(e.morale)} />
-              <button type="button" onClick={() => a.fire(e.id)} className="self-end text-[11px] font-semibold text-ink-400 hover:text-clay-600">Bo'shatish (−{fm(e.salary)})</button>
+              <button type="button" onClick={() => a.fire(e.id)} className="self-end text-[11px] font-semibold text-ink-400 hover:text-clay-700">Bo'shatish (−{fm(e.salary)})</button>
             </div>
           </Card>
         ))}
@@ -334,7 +334,7 @@ export function ProductTab({ s, a }: { s: StartupState; a: Actions }) {
             <div key={l} className="rounded-xl bg-sand-50 px-3 py-2"><div className="text-[11px] font-semibold text-ink-600">{l}</div><div className="font-money text-[15px] font-bold text-ink-900">{v}</div></div>
           ))}
         </div>
-        {!team.ok && <p className="mt-2 rounded-xl bg-clay-100 px-3 py-2 text-[11px] font-semibold text-clay-600">Jamoa yetishmaydi ({team.missing.join(", ")}) — daromad 40% ga tushadi.</p>}
+        {!team.ok && <p className="mt-2 rounded-xl bg-clay-100 px-3 py-2 text-[11px] font-semibold text-clay-700">Jamoa yetishmaydi ({team.missing.join(", ")}) — daromad 40% ga tushadi.</p>}
       </Card>
 
       <SectionTitle>Monetizatsiya</SectionTitle>

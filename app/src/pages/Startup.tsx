@@ -5,7 +5,6 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { AnimatePresence } from "framer-motion";
 import { BarChart3, Building2, ChevronLeft, Package, Rocket, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StartupState } from "@/lib/startup/types";
@@ -130,10 +129,15 @@ export default function Startup() {
         </nav>
       </div>
 
-      <AnimatePresence>
+      {/*
+        `AnimatePresence` SIZ: varaqlar endi Radix `Dialog` ustida va ular
+        chiqish animatsiyasiga ega emas — o'rami faqat ikkala varaqni bir
+        vaqtda daraxtda ushlab turish xavfini qo'shardi, bu esa a11y
+        daraxtida ikkita `role="dialog"` demakdir va fokus qaytarish
+        navbatini chalkashtirardi.
+      */}
         {s.phase === "event" && s.pendingEvent && <EventModal key="ev" ev={s.pendingEvent} s={s} onChoose={id => update(x => E.resolveEvent(x, id))} />}
         {s.phase === "report" && lastReport && <ReportModal key="rep" r={lastReport} s={s} onNext={() => { update(x => E.nextMonth(x)); setTab("office"); }} />}
-      </AnimatePresence>
       {(s.phase === "won" || s.phase === "lost") && <EndOverlay s={s} onRestart={restart} onHome={() => { restart(); navigate("/"); }} />}
     </div>
   );

@@ -66,6 +66,12 @@ module.exports = {
           50: "#EFF6F1",
         },
         clay: {
+          /*
+           * 700 — KICHIK MATN uchun. 600 (#B45A38) krem fonda 4.44,
+           * `clay-100` fonida esa atigi 3.81 beradi; WCAG AA kichik matndan
+           * 4.5 talab qiladi. Bu qadam ikkala fonda ham o'tadi (5.99 / 5.14).
+           */
+          700: "#9A4729",
           600: "#B45A38",
           500: "#C9744C",
           100: "#F6E4D7",
