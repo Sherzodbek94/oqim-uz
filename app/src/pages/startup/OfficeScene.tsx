@@ -15,6 +15,7 @@
  * qo'shilmaguncha `tsc` yiqiladi. Bu ataylab; jim qolgan bo'sh sahna
  * o'rniga build to'xtagani yaxshi.
  */
+import { cn } from "@/lib/utils";
 import type { OfficeLevel } from "@/lib/startup/types";
 
 const GOLD = "#D9A441", GD = "#1B4A38";
@@ -49,7 +50,14 @@ export default function OfficeScene({ level, className }: { level: OfficeLevel; 
       /* Ofis tab'i birinchi ochiladigan ekran — kechiktirish faqat miltillash berardi. */
       loading="eager"
       decoding="async"
-      className={className}
+      /*
+       * `aspect-[4/3]` + `object-contain` — renderlar 4:3, chaqiruvchi esa
+       * faqat enni beradi. Ilgari bu yerda SVG turardi va u `viewBox` bilan
+       * o'z nisbatini o'zi saqlardi; `<img>` esa sukut bo'yicha `fill`,
+       * ya'ni qattiq balandlik berilsa rasmni CHO'ZADI. Nisbat shu yerda
+       * qulflandi: joylashuv uni buza olmaydi.
+       */
+      className={cn("aspect-[4/3] object-contain", className)}
     />
   );
 }
