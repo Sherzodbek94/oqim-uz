@@ -3,7 +3,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import { FOUNDER_ART, ROLE_ART } from '../src/pages/startup/roleArt';
-import { FEMALE_NAMES } from '../src/lib/startup/balance';
+import { FEMALE_NAMES, NAMES } from '../src/lib/startup/balance';
+import { portraitFor } from '../src/pages/startup/roleArt';
 
 /**
  * Startap Imperiyasi (`/startap`): sozlash, oy halqasi, hodisa varag'i.
@@ -121,7 +122,7 @@ test('the team tab draws a role portrait for every card', async ({page}) => {
    */
   const urls: [string, string][] = [['founder', FOUNDER_ART]];
   for (const [role, pair] of Object.entries(ROLE_ART)) {
-    urls.push([`${role}-m`, pair.m], [`${role}-f`, pair.f]);
+    for (const g of ['m', 'f'] as const) pair[g].forEach((u, i) => urls.push([`${role}-${g}-${i + 1}`, u]));
   }
   const broken = await page.evaluate(async (list) => {
     const load = (u: string) => new Promise<boolean>(res => {
@@ -132,7 +133,8 @@ test('the team tab draws a role portrait for every card', async ({page}) => {
     return out;
   }, urls);
   expect(broken, `yechilmagan portret: ${broken.join(', ')}`).toEqual([]);
-  expect(urls.length, 'har rolga ikki variant + asoschi').toBe(19);
+  /* 3 dasturchi roli x 2 jins x 3 + 6 rol x 2 jins x 2 + asoschi. */
+  expect(urls.length, 'variantlar soni').toBe(3 * 2 * 3 + 6 * 2 * 2 + 1);
 
   /*
    * ISM VA PORTRET JINSI MOS KELSIN. Ilgari portret faqat rolga bog'langandi
@@ -147,9 +149,23 @@ test('the team tab draws a role portrait for every card', async ({page}) => {
   const mismatched = rows
     .filter(r => r.file !== 'founder.webp' && r.text)
     .map(r => ({...r, name: r.text.replace(/\s*Talant\s*/, '').trim()}))
-    .filter(r => r.file.endsWith('-f.webp') !== FEMALE_NAMES.has(r.name))
+    .filter(r => /-f-\d+\.webp$/.test(r.file) !== FEMALE_NAMES.has(r.name))
     .map(r => `${r.name} -> ${r.file}`);
   expect(mismatched, `ism va portret jinsi mos emas: ${mismatched.join(', ')}`).toEqual([]);
+
+  /*
+   * HAR BIR VARIANT ISHLATILSIN. Variant ismning xeshidan tanlanadi va
+   * ismlar ro'yxati kichik (26 ta), shunday o'lchamda xeshning sifati
+   * ko'rinib qoladi: djb2 ayol ismlarini uchta portretga 11/0/2 qilib
+   * bo'lardi, ya'ni ikkinchisi hech qachon chizilmasdi. Bu tekshiruv
+   * shunchaki fayl bor-yo'qligini emas, YETIB BORISHINI qo'riqlaydi.
+   */
+  for (const [role, pair] of Object.entries(ROLE_ART)) {
+    const used = new Set(NAMES.map(n => portraitFor(role as keyof typeof ROLE_ART, n)));
+    const all = [...pair.m, ...pair.f];
+    const unused = all.filter(u => !used.has(u));
+    expect(unused, `${role}: hech qachon chizilmaydigan portret`).toEqual([]);
+  }
 });
 
 test('ending a month reports the result and moves the counter forward', async ({page}) => {
