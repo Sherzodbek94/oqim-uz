@@ -81,6 +81,23 @@ test('mode selector opens the startup mode and the setup screen starts a run', a
   }
 });
 
+test('the team tab draws a role portrait for every card', async ({page}) => {
+  await seeded(page);
+  await page.getByRole('button', {name: 'Jamoa', exact: true}).click();
+
+  /*
+   * `ROLE_ART` to'liq `Record`, ya'ni yo'q rol `tsc` da ushlanadi — bu test
+   * esa FAYL yetib kelishini tekshiradi: yo'l noto'g'ri yozilsa yoki rasm
+   * `public/` dan tushib qolsa, tiplar baribir yashil qolardi va o'yinchi
+   * bo'sh kvadrat ko'rardi.
+   */
+  const art = page.locator('img[src*="/startup/roles/"]');
+  await expect(art.first()).toBeVisible();
+  const loaded = await art.evaluateAll(is => is.map(i => (i as HTMLImageElement).naturalWidth > 0));
+  expect(loaded.length, 'kamida asoschi va nomzodlar').toBeGreaterThan(1);
+  expect(loaded.every(Boolean), `yuklanmagan avatar: ${loaded.filter(x => !x).length}`).toBe(true);
+});
+
 test('ending a month reports the result and moves the counter forward', async ({page}) => {
   await seeded(page);
   await page.getByRole('button', {name: /Oyni yakunlash/}).click();

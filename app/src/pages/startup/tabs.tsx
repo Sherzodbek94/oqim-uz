@@ -4,7 +4,7 @@
  */
 import { ArrowRight, Briefcase, Building2, Check, ChevronRight, Flag, Landmark, Megaphone, Plus, Rocket, ShieldCheck, Sparkles, Users, Wallet, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { EquipmentId, LoanSource, MarketingChannel, Monetization, ProductId, SprintKind, StartupState, TaxRegime } from "@/lib/startup/types";
+import type { EquipmentId, LoanSource, MarketingChannel, Monetization, ProductId, RoleId, SprintKind, StartupState, TaxRegime } from "@/lib/startup/types";
 import * as E from "@/lib/startup/engine";
 import { BALANCE, EQUIPMENT, LOANS, MARKETING, OFFICES, PRODUCTS, ROLES, STAGES } from "@/lib/startup/balance";
 import OfficeScene from "./OfficeScene";
@@ -236,11 +236,35 @@ function Bar({ label, v, color }: { label: string; v: number; color?: string }) 
   );
 }
 
-function Avatar({ role, talent }: { role: string; talent?: boolean }) {
+/**
+ * Xodim avatari — Higgsfield personajlaridan kesilgan bosh-yelka
+ * (`public/startup/roles/<rol>.webp`).
+ *
+ * `Record` TO'LIQ: `types.ts` ga yangi rol qo'shilsa, rasmi bo'lmaguncha
+ * `tsc` yiqiladi. Ilgari bu yerda barcha rollar uchun BITTA umumiy SVG
+ * siluet turardi — jamoa o'sgani sayin kartalar bir-biridan farq qilmasdi.
+ *
+ * Rasm `alt=""`: yonida ism ham, rol nomi ham matn bilan yozilgan, ya'ni
+ * ekran o'quvchi uchun avatar bezak — takroriy e'lon faqat xalaqit berardi.
+ */
+const ROLE_ART: Record<RoleId | "founder", string> = {
+  founder: "/startup/roles/founder.webp",
+  junior: "/startup/roles/junior.webp",
+  middle: "/startup/roles/middle.webp",
+  senior: "/startup/roles/senior.webp",
+  designer: "/startup/roles/designer.webp",
+  smm: "/startup/roles/smm.webp",
+  sales: "/startup/roles/sales.webp",
+  accountant: "/startup/roles/accountant.webp",
+  hr: "/startup/roles/hr.webp",
+  office: "/startup/roles/office.webp",
+};
+
+function Avatar({ role, talent }: { role: RoleId | "founder"; talent?: boolean }) {
   const bg = talent ? "#F7ECD2" : role === "founder" ? "#EAE1CF" : "#DDEEE3";
   return (
-    <div className="flex h-11 w-11 flex-none items-end justify-center overflow-hidden rounded-xl" style={{ background: bg }}>
-      <svg width="34" height="36" viewBox="0 0 34 36"><circle cx="17" cy="12" r="9" fill="#F1C9A6" /><path d="M8 12 Q17 -2 26 12 Z" fill="#1B4A38" /><path d="M3 36 Q17 20 31 36 Z" fill={role === "founder" ? "#D9A441" : "#24604A"} /></svg>
+    <div className="h-11 w-11 flex-none overflow-hidden rounded-xl" style={{ background: bg }}>
+      <img src={ROLE_ART[role]} alt="" width={128} height={128} loading="lazy" decoding="async" className="h-full w-full object-cover" />
     </div>
   );
 }
@@ -282,6 +306,8 @@ export function TeamTab({ s, a }: { s: StartupState; a: Actions }) {
           const fee = E.hiringCost(s, c.salary);
           return (
             <div key={c.id} className="flex items-center gap-2.5 rounded-2xl border border-dashed border-sand-200 bg-sand-50 px-3 py-2.5">
+              {/* Bozorda rolni bir qarashda tanish uchun — matn yonida takror emas, ILOVA. */}
+              <Avatar role={c.role} talent={c.talent} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink-900">{c.name}{c.talent && <span className="rounded-full bg-gold-500 px-2 py-0.5 text-[10px]">Talant</span>}</div>
                 <div className="truncate text-[11px] text-ink-600">{ROLES[c.role].name} · {ROLES[c.role].skillLabel.toLowerCase()} {c.skill} · {fm(c.salary)}/oy · yollash {fm(fee)}</div>
