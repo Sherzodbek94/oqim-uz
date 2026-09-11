@@ -1,78 +1,50 @@
 /**
  * Jonli ofis sahnasi — PROTOTIP, hozircha faqat 0-daraja (uy/garaj).
  *
- * NEGA SHU YO'L. Ofis renderlari oldindan chizilgan rasm, model emas —
- * ularni real vaqtda 3D qilish butun vizual tilni qaytadan qurish demakdi.
- * Ustiga three.js eng kam ishlatilishida ham 515 KB xom bo'lib, repodagi
- * 400 KB chunk chegarasiga sig'maydi (o'lchandi). Shuning uchun render FON
- * bo'lib qoladi va ustiga shaffof fonli personaj qo'yiladi: qo'shimcha
- * kutubxona nolga teng, harakat esa CSS va bitta taymerda.
+ * NEGA RENDER FON BO'LIB QOLDI. Ofis rasmlari oldindan chizilgan, model
+ * emas; three.js eng kam ishlatilishida ham 515 KB xom bo'lib, repodagi
+ * 400 KB chunk chegarasiga sig'maydi (o'lchandi). Xonani video qilishga
+ * ikki marta urinildi — Seedance ham, Kling ham (pro rejim, boshlang'ich
+ * va yakuniy kadr bir xil berilgan holda ham) kamerani diorama atrofida
+ * AYLANTIRDI va xonani har kadrda qaytadan chizdi. Shuning uchun xona
+ * qimirlamaydigan rasm, harakat esa faqat personajda.
  *
- * NIMA QILADI. Personaj yozadi (ikki kadr almashadi), vaqti-vaqti bilan
- * qahva ho'playdi yoki cho'zilib esnaydi. Tanaffus chastotasi KAYFIYATGA
- * bog'liq: kayfiyat past bo'lsa u ko'proq chalg'iydi va kamroq yozadi —
- * ya'ni harakat bezak emas, o'yin holatini ko'rsatadi.
+ * PERSONAJ — 16 KADRLI SPRITE VARAQ. U alohida yasalgan videodan olingan:
+ * tekis fonda yolg'iz personaj animatsiya qilinganda aylantiradigan
+ * diorama bo'lmaydi va kadr qulf turadi. O'lchov buni tasdiqladi —
+ * hamma kadrda bo'y 605 px, oyoq markazi 295.1–295.2 px, ya'ni siljish
+ * yo'q. Fon qora matte bo'lib kelgani uchun (MP4 alfa saqlamaydi)
+ * CHEKKADAN TO'LDIRISH bilan ajratildi: oddiy qora-kalit ichkaridagi qora
+ * sochni ham teshib o'tardi.
  *
- * HARAKATNI KAMAYTIRISH so'ralgan bo'lsa (`prefers-reduced-motion`) taymer
- * umuman ishga tushmaydi va bitta tinch kadr qoladi. Bu shart emas, balki
- * zarur: sahna doimiy aylanadi, ya'ni vestibulyar sezgirligi bor odam uchun
- * uni to'xtatib bo'lmaydigan harakat bo'lardi.
+ * NEGA BITTA VARAQ VA `steps()`. O'n olti alohida `<img>` almashtirilsa,
+ * brauzer har kadrni alohida dekod qilardi va birinchi siklda miltillash
+ * berardi. Varaq bir marta yuklanadi, `background-position` esa
+ * kompozitor darajasida siljiydi.
+ *
+ * KAYFIYAT tezlikka bog'langan: charchagan xodim sekinroq yozadi. Harakat
+ * bezak emas — sahna o'yin holatini ko'rsatadi.
+ *
+ * HARAKATNI KAMAYTIRISH `index.css` dagi umumiy `prefers-reduced-motion`
+ * bloki bilan to'xtaydi (u `animation-duration` ni 0.01 ms ga tushiradi va
+ * takrorni bittaga qisqartiradi), shuning uchun bu yerda alohida qorovul
+ * yo'q. Sahna to'xtovsiz aylanadi, ya'ni uni to'xtata olish shart.
  */
-import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
-
-type Poza = "type-a" | "type-b" | "coffee" | "stretch";
-
-const SRC: Record<Poza, string> = {
-  "type-a": "/startup/actors/founder-type-a.webp",
-  "type-b": "/startup/actors/founder-type-b.webp",
-  coffee: "/startup/actors/founder-coffee.webp",
-  stretch: "/startup/actors/founder-stretch.webp",
-};
 
 /*
  * Personajning fon ichidagi o'rni — foizda, chunki sahna ekran eniga qarab
- * cho'ziladi. Raqamlar 1168x880 asl renderdagi stul ustida o'lchangan.
- *
- * POZALAR TANA LANGARI bo'yicha tekislangan, chegara markazi bo'yicha emas.
- * Avval markaz olingandi va cho'zilish pozasida qo'llar yuqoriga ketgani
- * uchun chegara siljib, personaj stuldan 26 px yon tomonga sakrardi —
- * «stul boshqa tomonda, harakat boshqa tomonda» ko'rinardi. Langar — eng
- * pastki qatorlar (oyoqlar) markazi, u har qanday pozada joyida qoladi.
+ * cho'ziladi. Raqamlar 1168x880 asl renderdagi stul ustida o'lchangan va
+ * sprite varaqning OYOQ LANGARI bo'yicha hisoblangan.
  */
-const O_RIN = { left: "30.94%", top: "41.62%", width: "17.66%" };
+const O_RIN = { left: "31.68%", top: "42.95%", width: "12.26%" };
 
-/** Yozish kadri necha ms; tanaffus oralig'i va davomiyligi. */
-const YOZISH_KADR = 620;
+/** Varaqdagi kadrlar soni va bitta kadrning nisbati. */
+const KADR = 16;
+const NISBAT = "190 / 398";
 
 export default function LiveOffice({ morale, className }: { morale: number; className?: string }) {
-  const [poza, setPoza] = useState<Poza>("type-a");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    let t: ReturnType<typeof setTimeout>;
-    let yozilgan = 0;
-    /*
-     * Kayfiyat 100 da ~20 kadr yozib bir tanaffus, 0 da ~6 kadr. Ya'ni
-     * charchagan xodim ekranda ham tez-tez chalg'iydi.
-     */
-    const kadrTanaffusgacha = () => Math.round(6 + (morale / 100) * 14);
-
-    const keyingi = (p: Poza) => {
-      setPoza(p);
-      const kut = p === "coffee" ? 2400 : p === "stretch" ? 1800 : YOZISH_KADR;
-      t = setTimeout(() => {
-        if (p === "coffee" || p === "stretch") { yozilgan = 0; keyingi("type-a"); return; }
-        yozilgan++;
-        if (yozilgan >= kadrTanaffusgacha()) keyingi(Math.random() < 0.5 ? "coffee" : "stretch");
-        else keyingi(p === "type-a" ? "type-b" : "type-a");
-      }, kut);
-    };
-    keyingi("type-a");
-    return () => clearTimeout(t);
-  }, [morale]);
+  /* Kayfiyat 100 -> 1.4 s sikl, 0 -> 2.6 s. */
+  const sikl = 2.6 - (Math.max(0, Math.min(100, morale)) / 100) * 1.2;
 
   return (
     <div className={className} style={{ position: "relative" }}>
@@ -83,28 +55,23 @@ export default function LiveOffice({ morale, className }: { morale: number; clas
         height={542}
         loading="eager"
         decoding="async"
-        /* Tabiiy nisbat: `aspect-[4/3]` + `object-contain` rasmni quti ichida
-           letterbox qilardi va foizlar rasmga emas, QUTIGA tushardi. */
         className="block w-full"
       />
       {/*
-        `alt=""`: xodim soni va kayfiyat sahna USTIDA matn bilan yozilgan,
-        ya'ni bu rasm ekran o'quvchi uchun takror.
+        `aria-hidden`: xodim soni va kayfiyat sahna USTIDA matn bilan
+        yozilgan, ya'ni bu ekran o'quvchi uchun takror.
       */}
-      <img
-        src={SRC[poza]}
-        alt=""
-        width={200}
-        height={306}
-        loading="eager"
-        decoding="async"
-        style={{ position: "absolute", ...O_RIN }}
-        /*
-          Poza almashishi + uzluksiz tebranish. Yolg'iz poza almashishi
-          slayd-shou bo'lib qolardi: kadrlar orasida hech narsa qimirlamasdi.
-        */
-        className={cn("oq-actor pointer-events-none select-none",
-          poza === "type-a" || poza === "type-b" ? "oq-actor-type" : "oq-actor-rest")}
+      <div
+        aria-hidden="true"
+        className="oq-actor oq-actor-work pointer-events-none"
+        style={{
+          position: "absolute",
+          ...O_RIN,
+          aspectRatio: NISBAT,
+          backgroundImage: "url(/startup/actors/founder-work.webp)",
+          backgroundSize: `${KADR * 100}% 100%`,
+          animationDuration: `${sikl.toFixed(2)}s`,
+        }}
       />
     </div>
   );

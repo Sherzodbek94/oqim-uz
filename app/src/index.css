@@ -241,36 +241,34 @@
 }
 
 /*
- * Startap rejimidagi jonli ofis personaji.
+ * Startap rejimidagi jonli ofis personaji — 16 kadrli sprite varaq.
  *
- * Poza almashishining O'ZI slayd-shou bo'lib qolardi: to'rtta kadr sakrab
- * turardi, oraliqda esa hech narsa qimirlamasdi. Bu ikki animatsiya
- * oraliqni to'ldiradi — tana yozish ritmida tebranadi, tanaffusda esa
- * sekin nafas oladi.
+ * `steps(16, jump-none)` — ODDIY `steps(16)` EMAS. Varaq quti enidan 16
+ * baravar keng, ya'ni `background-position-x: P%` siljishni
+ * `P x (16-1) x quti` qilib beradi: kadr chegarasiga tushish uchun P
+ * 0 dan 100% gacha 15 qadamda emas, 16 TA QIYMATDA yurishi kerak.
+ * Oddiy `steps(16)` k/16 beradi va kadrlar orasiga tushib qoladi —
+ * ekranda ikkita personaj yonma-yon ko'rinardi. `jump-none` k/15 beradi.
  *
- * `transform-origin: bottom center` — langar oyoqda. Aks holda tebranish
- * personajni stuldan ko'tarib yuborardi.
+ * Sikl davomiyligi komponentda, kayfiyatga qarab beriladi.
  *
- * Harakatni kamaytirish yuqoridagi umumiy `prefers-reduced-motion` bloki
- * bilan o'chadi, shuning uchun bu yerda alohida qorovul yo'q.
+ * Harakatni kamaytirish quyidagi umumiy blok bilan o'chadi — u
+ * `animation-duration` ni 0.01 ms ga tushiradi va birinchi kadr qoladi.
  */
-@keyframes oq-actor-type {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50%      { transform: translateY(-0.9%) rotate(-0.35deg); }
-}
-
-@keyframes oq-actor-rest {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-0.5%) scale(1.006); }
+@keyframes oq-actor-work {
+  from { background-position-x: 0%; }
+  to   { background-position-x: 100%; }
 }
 
 .oq-actor {
-  transform-origin: bottom center;
-  will-change: transform;
+  will-change: background-position;
 }
 
-.oq-actor-type { animation: oq-actor-type 0.62s ease-in-out infinite; }
-.oq-actor-rest { animation: oq-actor-rest 2.6s ease-in-out infinite; }
+.oq-actor-work {
+  animation-name: oq-actor-work;
+  animation-timing-function: steps(16, jump-none);
+  animation-iteration-count: infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,

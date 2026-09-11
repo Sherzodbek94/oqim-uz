@@ -271,35 +271,33 @@ test('the garage scene animates', async ({browser}) => {
   await seeded(page);
 
   /*
-   * 0-daraja jonli: personaj shaffof sprite bo'lib fon ustida turadi va
-   * pozalar taymer bilan almashadi. Bu yerda ANIMATSIYA emas, uning
-   * KO'RINADIGAN natijasi o'lchanadi — src o'zgarmasa, sahna qotib qolgan.
+   * Personaj — 16 kadrli sprite varaq, `background-position-x` bilan
+   * siljiydi. HAMMA kadr ko'rinishi tekshiriladi: `steps(16)` (ya'ni
+   * `jump-none` siz) qiymatlarni k/16 da beradi va kadr chegaralariga
+   * tushmaydi — ekranda ikkita personaj yonma-yon ko'rinardi. To'g'ri
+   * sozlamada 16 ta aniq qiymat chiqadi.
    */
-  const actor = page.locator('img[src*="/startup/actors/"]');
+  const actor = page.locator('.oq-actor');
   await expect(actor).toBeVisible();
-  await expect.poll(() => actor.evaluate(i => (i as HTMLImageElement).naturalWidth > 0)).toBe(true);
-
-  const korilgan = new Set<string>();
-  for (let i = 0; i < 40; i++) {
-    korilgan.add((await actor.getAttribute('src')) ?? '');
-    await page.waitForTimeout(180);
+  const kadrlar = new Set<string>();
+  for (let i = 0; i < 70; i++) {
+    kadrlar.add(await actor.evaluate(e => getComputedStyle(e).backgroundPositionX));
+    await page.waitForTimeout(40);
   }
-  expect(korilgan.size, `pozalar almashmadi: ${[...korilgan].join(', ')}`).toBeGreaterThan(1);
+  expect(kadrlar.size, `kadrlar almashmadi: ${[...kadrlar].join(', ')}`).toBe(16);
 
   /*
-   * POZA ALMASHISHI YETMAYDI. To'rtta kadr sakrab tursa, oraliqda hech
-   * narsa qimirlamaydi va natija slayd-shou bo'ladi — foydalanuvchi aynan
-   * shuni «harakat emas» deb aytgan. Shuning uchun bu yerda CSS
-   * `transform` ham o'lchanadi: u kadrlar ORASIDA ham o'zgarib turishi
-   * kerak.
+   * SON YETMAYDI, QIYMAT MUHIM. `steps(16)` ham o'n olti xil qiymat beradi
+   * — faqat ular k/16 da, kadrlar ORASIDA. Kadr chegarasi k/15, ya'ni
+   * 6.6667% ning karralari; shu tekshiruvsiz ikkita personaj yonma-yon
+   * ko'ringan build ham yashil o'tardi (mutatsiyada aynan shunday bo'ldi).
    */
-  const aktor = page.locator('img.oq-actor');
-  const trs = new Set<string>();
-  for (let i = 0; i < 12; i++) {
-    trs.add(await aktor.evaluate(e => getComputedStyle(e).transform));
-    await page.waitForTimeout(70);
-  }
-  expect(trs.size, 'tana tebranmayapti — faqat poza almashyapti').toBeGreaterThan(3);
+  const QADAM = 100 / (16 - 1);
+  const notogri = [...kadrlar].filter(v => {
+    const p = parseFloat(v);
+    return Math.abs(p / QADAM - Math.round(p / QADAM)) > 0.02;
+  });
+  expect(notogri, `kadr chegarasiga tushmagan qiymatlar: ${notogri.join(', ')}`).toEqual([]);
   await ctx.close();
 });
 
@@ -307,32 +305,20 @@ test('the garage scene holds still when motion is reduced', async ({browser}) =>
   /*
    * `prefers-reduced-motion` — bu qulaylik emas, zarurat: sahna to'xtovsiz
    * aylanadi va vestibulyar sezgirligi bor odam uni to'xtata olmasdi.
+   * To'xtatish `index.css` dagi umumiy blokda, shuning uchun bu yerda
+   * aynan NATIJA o'lchanadi.
    */
   const ctx = await browser.newContext({reducedMotion: 'reduce'});
   const page = await ctx.newPage();
   await seeded(page);
-  const actor = page.locator('img[src*="/startup/actors/"]');
+  const actor = page.locator('.oq-actor');
   await expect(actor).toBeVisible();
-  /*
-   * ORALIQDA ham namuna olinadi. Faqat boshi va oxirini solishtirish
-   * yetmaydi: yozish kadri 620 ms da almashadi, ya'ni 3 soniyadan keyin
-   * poza tasodifan o'sha kadrga qaytib qoladi va qorovul o'chirilgan bo'lsa
-   * ham test yashil qolardi — birinchi yozilishida aynan shunday bo'lgan.
-   */
-  const korilgan = new Set<string>();
+  const kadrlar = new Set<string>();
   for (let i = 0; i < 25; i++) {
-    korilgan.add((await actor.getAttribute('src')) ?? '');
-    await page.waitForTimeout(160);
+    kadrlar.add(await actor.evaluate(e => getComputedStyle(e).backgroundPositionX));
+    await page.waitForTimeout(120);
   }
-  expect([...korilgan], 'harakat kamaytirilganda poza almashmasligi kerak').toHaveLength(1);
-
-  /* CSS tebranishi ham to'xtashi kerak — u umumiy reduced-motion blokida. */
-  const trs = new Set<string>();
-  for (let i = 0; i < 10; i++) {
-    trs.add(await actor.evaluate(e => getComputedStyle(e).transform));
-    await page.waitForTimeout(80);
-  }
-  expect([...trs], "harakat kamaytirilganda tebranish ham to'xtashi kerak").toHaveLength(1);
+  expect([...kadrlar], 'harakat kamaytirilganda kadr almashmasligi kerak').toHaveLength(1);
   await ctx.close();
 });
 
