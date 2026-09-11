@@ -2,7 +2,6 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
-import { APP_VERSION, VERSION_KEY } from '../src/lib/version';
 
 /**
  * Startap Imperiyasi (`/startap`): sozlash, oy halqasi, hodisa varag'i.
@@ -48,14 +47,14 @@ async function seeded(page: Page, seed = SEED) {
 
 test('mode selector opens the startup mode and the setup screen starts a run', async ({page}) => {
   /*
-   * «Yangi versiya» panelini o'chiramiz. U birinchi tashrifda `fixed bottom-6
-   * right-4` bo'lib chiqadi va telefon enida asosiy tugma USTIGA tushib,
-   * bosishni to'sadi — o'z yopish tugmasi ham bosilmaydi. Bu `Layout.tsx`
-   * dagi alohida kamchilik; shu test rejim tanlashni sinaydi, o'sha panelni
-   * emas, shuning uchun ilovaning O'Z kaliti bilan «ko'rilgan» deb
-   * belgilanadi — qaytgan foydalanuvchi holati.
+   * BIRINCHI TASHRIF holatida: «Yangi versiya» paneli chiqib turadi.
+   *
+   * Ilgari u telefon enida 260 px balandlikda o'ng pastda turardi va asosiy
+   * tugma ustiga tushib, bosishni yutib yuborardi — bosilardi, lekin hech
+   * narsa bo'lmasdi. Endi telefonda u bitta qatorli 58 px tasma. Shu test
+   * o'sha tuzatishning qorovuli: panel yana CTA ni to'ssa, birinchi bo'lib
+   * shu yerda qiziradi.
    */
-  await page.addInitScript(({key, v}) => {localStorage.setItem(key, String(v));}, {key: VERSION_KEY, v: APP_VERSION});
   await page.goto('/');
   /*
    * Tinchlanishini kutamiz: bosh sahifada lenis silliq skroll va kirish
