@@ -136,6 +136,19 @@ export const NAMES = [
   "Farrux", "Dildora", "Javohir", "Shahnoza", "Sanjar", "Mohira",
 ];
 
+/**
+ * `NAMES` ichidagi AYOL ismlari — portret variantini tanlash uchun.
+ *
+ * `NAMES` ning O'ZI va tartibi TEGILMAGAN: u seeded RNG bilan tortiladi,
+ * ro'yxat qayta tartiblansa oldingi partiyalar boshqacha o'ynardi. Shuning
+ * uchun bu yerda alohida to'plam turadi — ism tanlashga ta'sir qilmaydi,
+ * faqat tanlangan ismni izohlaydi.
+ */
+export const FEMALE_NAMES = new Set([
+  "Dilnoza", "Madina", "Nilufar", "Kamola", "Sevara", "Gulnora", "Zilola",
+  "Feruza", "Malika", "Nargiza", "Dildora", "Shahnoza", "Mohira",
+]);
+
 export const STAGES = [
   { id: 0, name: "Uy / garaj",  months: "1–6 oy",   goal: "Oylik oqim musbat" },
   { id: 1, name: "Coworking",   months: "7–14 oy",  goal: "3 xodim · birinchi ofis" },

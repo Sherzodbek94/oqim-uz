@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { EquipmentId, LoanSource, MarketingChannel, Monetization, ProductId, RoleId, SprintKind, StartupState, TaxRegime } from "@/lib/startup/types";
 import * as E from "@/lib/startup/engine";
 import { BALANCE, EQUIPMENT, LOANS, MARKETING, OFFICES, PRODUCTS, ROLES, STAGES } from "@/lib/startup/balance";
+import { portraitFor } from "./roleArt";
 import OfficeScene from "./OfficeScene";
 
 export interface Actions {
@@ -236,35 +237,12 @@ function Bar({ label, v, color }: { label: string; v: number; color?: string }) 
   );
 }
 
-/**
- * Xodim avatari — Higgsfield personajlaridan kesilgan bosh-yelka
- * (`public/startup/roles/<rol>.webp`).
- *
- * `Record` TO'LIQ: `types.ts` ga yangi rol qo'shilsa, rasmi bo'lmaguncha
- * `tsc` yiqiladi. Ilgari bu yerda barcha rollar uchun BITTA umumiy SVG
- * siluet turardi — jamoa o'sgani sayin kartalar bir-biridan farq qilmasdi.
- *
- * Rasm `alt=""`: yonida ism ham, rol nomi ham matn bilan yozilgan, ya'ni
- * ekran o'quvchi uchun avatar bezak — takroriy e'lon faqat xalaqit berardi.
- */
-const ROLE_ART: Record<RoleId | "founder", string> = {
-  founder: "/startup/roles/founder.webp",
-  junior: "/startup/roles/junior.webp",
-  middle: "/startup/roles/middle.webp",
-  senior: "/startup/roles/senior.webp",
-  designer: "/startup/roles/designer.webp",
-  smm: "/startup/roles/smm.webp",
-  sales: "/startup/roles/sales.webp",
-  accountant: "/startup/roles/accountant.webp",
-  hr: "/startup/roles/hr.webp",
-  office: "/startup/roles/office.webp",
-};
-
-function Avatar({ role, talent }: { role: RoleId | "founder"; talent?: boolean }) {
+/** Portret `roleArt.ts` da: komponent fayli konstanta eksport qila olmaydi. */
+function Avatar({ role, name, talent }: { role: RoleId | "founder"; name?: string; talent?: boolean }) {
   const bg = talent ? "#F7ECD2" : role === "founder" ? "#EAE1CF" : "#DDEEE3";
   return (
     <div className="h-11 w-11 flex-none overflow-hidden rounded-xl" style={{ background: bg }}>
-      <img src={ROLE_ART[role]} alt="" width={128} height={128} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+      <img src={portraitFor(role, name)} alt="" width={128} height={128} loading="lazy" decoding="async" className="h-full w-full object-cover" />
     </div>
   );
 }
@@ -285,7 +263,7 @@ export function TeamTab({ s, a }: { s: StartupState; a: Actions }) {
         </Card>
         {s.staff.map(e => (
           <Card key={e.id} className="flex gap-3 p-3">
-            <Avatar role={e.role} talent={e.talent} />
+            <Avatar role={e.role} name={e.name} talent={e.talent} />
             <div className="flex flex-1 flex-col gap-1">
               <div className="flex items-baseline justify-between">
                 <span className="text-[14px] font-extrabold text-ink-900">{e.name}{e.talent && <span className="ml-1.5 rounded-full bg-gold-500 px-2 py-0.5 text-[10px] font-extrabold text-ink-900">Talant</span>}</span>
@@ -307,7 +285,7 @@ export function TeamTab({ s, a }: { s: StartupState; a: Actions }) {
           return (
             <div key={c.id} className="flex items-center gap-2.5 rounded-2xl border border-dashed border-sand-200 bg-sand-50 px-3 py-2.5">
               {/* Bozorda rolni bir qarashda tanish uchun — matn yonida takror emas, ILOVA. */}
-              <Avatar role={c.role} talent={c.talent} />
+              <Avatar role={c.role} name={c.name} talent={c.talent} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink-900">{c.name}{c.talent && <span className="rounded-full bg-gold-500 px-2 py-0.5 text-[10px]">Talant</span>}</div>
                 <div className="truncate text-[11px] text-ink-600">{ROLES[c.role].name} · {ROLES[c.role].skillLabel.toLowerCase()} {c.skill} · {fm(c.salary)}/oy · yollash {fm(fee)}</div>

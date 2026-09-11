@@ -2,6 +2,8 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
+import { FOUNDER_ART, ROLE_ART } from '../src/pages/startup/roleArt';
+import { FEMALE_NAMES } from '../src/lib/startup/balance';
 
 /**
  * Startap Imperiyasi (`/startap`): sozlash, oy halqasi, hodisa varag'i.
@@ -93,9 +95,61 @@ test('the team tab draws a role portrait for every card', async ({page}) => {
    */
   const art = page.locator('img[src*="/startup/roles/"]');
   await expect(art.first()).toBeVisible();
-  const loaded = await art.evaluateAll(is => is.map(i => (i as HTMLImageElement).naturalWidth > 0));
-  expect(loaded.length, 'kamida asoschi va nomzodlar').toBeGreaterThan(1);
-  expect(loaded.every(Boolean), `yuklanmagan avatar: ${loaded.filter(x => !x).length}`).toBe(true);
+  expect(await art.count(), 'kamida asoschi va nomzodlar').toBeGreaterThan(1);
+
+  /*
+   * `toBeVisible` YETARLI EMAS: u element joylashuvga tushishi bilan o'tadi,
+   * rasm baytlari kelishini kutmaydi. Portretlar `loading="lazy"`, ya'ni
+   * yuklash tab ochilgandan keyin boshlanadi — sovuq CI runner'da bu
+   * tekshiruvdan kechroq tugaydi. Birinchi yozilishida test aynan shunday
+   * yiqilgan edi (WebKit, `naturalWidth === 0`), shuning uchun bu yerda
+   * so'rov emas, KUTISH turadi.
+   */
+  await expect
+    .poll(() => art.evaluateAll(is => is.every(i => (i as HTMLImageElement).naturalWidth > 0)), {timeout: 15_000})
+    .toBe(true);
+
+  /*
+   * Yuqoridagi tekshiruv faqat SHU partiyada chizilgan rollarni qamraydi —
+   * nomzodlar seeddan kelib chiqadi, ya'ni to'qqiztadan uch-to'rttasi.
+   *
+   * Shuning uchun `ROLE_ART` ning O'ZI — komponent ishlatadigan xarita —
+   * manifest sifatida olinadi va har bir QIYMAT so'raladi. Fayl ro'yxatidan
+   * yasalgan yo'llar yetarli emasdi: ular faylning borligini tasdiqlardi,
+   * lekin xaritadagi xato yozuvni emas (aynan shunday sinovda o'tib ketgan).
+   * Har rolning IKKALA jins varianti ham tekshiriladi.
+   */
+  const urls: [string, string][] = [['founder', FOUNDER_ART]];
+  for (const [role, pair] of Object.entries(ROLE_ART)) {
+    urls.push([`${role}-m`, pair.m], [`${role}-f`, pair.f]);
+  }
+  const broken = await page.evaluate(async (list) => {
+    const load = (u: string) => new Promise<boolean>(res => {
+      const i = new Image(); i.onload = () => res(true); i.onerror = () => res(false); i.src = u;
+    });
+    const out: string[] = [];
+    for (const [id, u] of list) if (!(await load(u))) out.push(`${id} -> ${u}`);
+    return out;
+  }, urls);
+  expect(broken, `yechilmagan portret: ${broken.join(', ')}`).toEqual([]);
+  expect(urls.length, 'har rolga ikki variant + asoschi').toBe(19);
+
+  /*
+   * ISM VA PORTRET JINSI MOS KELSIN. Ilgari portret faqat rolga bog'langandi
+   * va «Ulug'bek — dizayner» ayol portreti bilan chiqardi. Bu tekshiruv
+   * ekrandagi HAR bir kartani `FEMALE_NAMES` bilan solishtiradi: fayl
+   * nomidagi `-m`/`-f` qo'shimchasi ismdan kelib chiqishi shart.
+   */
+  const rows = await page.locator('img[src*="/startup/roles/"]').evaluateAll(is => is.map(i => {
+    const row = i.closest('div')?.parentElement;
+    return {file: i.getAttribute('src')!.split('/').pop()!, text: (row as HTMLElement)?.innerText?.split('\n')[0]?.trim() ?? ''};
+  }));
+  const mismatched = rows
+    .filter(r => r.file !== 'founder.webp' && r.text)
+    .map(r => ({...r, name: r.text.replace(/\s*Talant\s*/, '').trim()}))
+    .filter(r => r.file.endsWith('-f.webp') !== FEMALE_NAMES.has(r.name))
+    .map(r => `${r.name} -> ${r.file}`);
+  expect(mismatched, `ism va portret jinsi mos emas: ${mismatched.join(', ')}`).toEqual([]);
 });
 
 test('ending a month reports the result and moves the counter forward', async ({page}) => {
