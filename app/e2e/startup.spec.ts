@@ -133,8 +133,8 @@ test('the team tab draws a role portrait for every card', async ({page}) => {
     return out;
   }, urls);
   expect(broken, `yechilmagan portret: ${broken.join(', ')}`).toEqual([]);
-  /* 3 dasturchi roli x 2 jins x 3 + 6 rol x 2 jins x 2 + asoschi. */
-  expect(urls.length, 'variantlar soni').toBe(3 * 2 * 3 + 6 * 2 * 2 + 1);
+  /* junior 5 + middle 4 + senior 4 + 6 rol x 3, har biri ikki jinsda, + asoschi. */
+  expect(urls.length, 'variantlar soni').toBe((5 + 4 + 4 + 6 * 3) * 2 + 1);
 
   /*
    * ISM VA PORTRET JINSI MOS KELSIN. Ilgari portret faqat rolga bog'langandi
