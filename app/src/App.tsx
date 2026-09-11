@@ -12,6 +12,7 @@ const Leaderboard = lazy(() => import('@/pages/Leaderboard'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const Online = lazy(() => import('@/pages/Online'))
 const Game = lazy(() => import('@/pages/Game'))
+const Startup = lazy(() => import('@/pages/Startup'))
 
 function PageLoader() {
   return (
@@ -39,6 +40,8 @@ export default function App() {
           <Route path="/game" element={<Game />} />
           {/* v19: Onlayn multiplayer — alohida sahifa, lokal o'yinga ta'sir qilmaydi */}
           <Route path="/onlayn" element={<Online />} />
+          {/* Startap Imperiyasi — tycoon rejimi, o'z HUD va tab-bari bilan (GDD v1.0) */}
+          <Route path="/startap" element={<Startup />} />
           {/* Noto'g'ri marshrutlar */}
           <Route path="*" element={<NotFound />} />
         </Routes>

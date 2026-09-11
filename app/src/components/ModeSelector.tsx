@@ -5,7 +5,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
-import { Play, Users, Globe, X, Bot, Wifi } from "lucide-react";
+import { Play, Users, Globe, X, Bot, Wifi, Rocket, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uz } from "@/lib/uz";
 
@@ -35,6 +35,16 @@ const modes = [
     badge: Wifi,
     badgeText: "Onlayn",
     to: "/onlayn",
+    primary: false,
+  },
+  {
+    id: "startup",
+    title: "Startap Imperiyasi",
+    desc: "Garajdan unicorn'gacha: xodimlar, mahsulot, soliq, kredit — o'zbek realiyasida tycoon.",
+    icon: Rocket,
+    badge: Building2,
+    badgeText: "Yangi rejim",
+    to: "/startap",
     primary: false,
   },
 ] as const;
@@ -81,11 +91,11 @@ export default function ModeSelector({ open, onClose }: ModeSelectorProps) {
           </div>
           <h2 className="mt-4 text-h2 font-bold text-ink-900">O'yin rejimi</h2>
           <p className="mt-1 text-body-sm text-ink-600">
-            Qaysi usulda o'ynashni xohlaysiz? Ikkalasi ham bir saytda — alohida havolalar kerak emas.
+            Qaysi usulda o'ynashni xohlaysiz? Uchalasi ham bir saytda — alohida havolalar kerak emas.
           </p>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {modes.map((m) => {
             const Icon = m.icon;
             const Badge = m.badge;
