@@ -32,8 +32,14 @@ const SRC: Record<Poza, string> = {
 /*
  * Personajning fon ichidagi o'rni — foizda, chunki sahna ekran eniga qarab
  * cho'ziladi. Raqamlar 1168x880 asl renderdagi stul ustida o'lchangan.
+ *
+ * POZALAR TANA LANGARI bo'yicha tekislangan, chegara markazi bo'yicha emas.
+ * Avval markaz olingandi va cho'zilish pozasida qo'llar yuqoriga ketgani
+ * uchun chegara siljib, personaj stuldan 26 px yon tomonga sakrardi —
+ * «stul boshqa tomonda, harakat boshqa tomonda» ko'rinardi. Langar — eng
+ * pastki qatorlar (oyoqlar) markazi, u har qanday pozada joyida qoladi.
  */
-const O_RIN = { left: "27.01%", top: "41.55%", width: "17.55%" };
+const O_RIN = { left: "30.94%", top: "41.62%", width: "17.66%" };
 
 /** Yozish kadri necha ms; tanaffus oralig'i va davomiyligi. */
 const YOZISH_KADR = 620;
@@ -76,7 +82,9 @@ export default function LiveOffice({ morale, className }: { morale: number; clas
         height={542}
         loading="eager"
         decoding="async"
-        className="aspect-[4/3] w-full object-contain"
+        /* Tabiiy nisbat: `aspect-[4/3]` + `object-contain` rasmni quti ichida
+           letterbox qilardi va foizlar rasmga emas, QUTIGA tushardi. */
+        className="block w-full"
       />
       {/*
         `alt=""`: xodim soni va kayfiyat sahna USTIDA matn bilan yozilgan,
