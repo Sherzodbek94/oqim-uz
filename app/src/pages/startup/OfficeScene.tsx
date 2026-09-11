@@ -16,6 +16,7 @@
  * o'rniga build to'xtagani yaxshi.
  */
 import { cn } from "@/lib/utils";
+import LiveOffice from "./LiveOffice";
 import type { OfficeLevel } from "@/lib/startup/types";
 
 const GOLD = "#D9A441", GD = "#1B4A38";
@@ -39,7 +40,10 @@ export function Flower({ size = 18, color = GOLD }: { size?: number; color?: str
   );
 }
 
-export default function OfficeScene({ level, className }: { level: OfficeLevel; className?: string }) {
+export default function OfficeScene({ level, morale, className }: { level: OfficeLevel; morale: number; className?: string }) {
+  /* 0-daraja jonli sahnada — PROTOTIP. Qolgan darajalar hozircha statik. */
+  if (level === 0) return <LiveOffice morale={morale} className={className} />;
+
   const { src, alt } = ART[level];
   return (
     <img

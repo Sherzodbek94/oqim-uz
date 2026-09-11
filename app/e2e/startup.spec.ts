@@ -260,6 +260,59 @@ test('the event sheet is a modal dialog and keeps focus inside', async ({page}) 
   await expect.poll(() => report.evaluate(d => d.contains(document.activeElement))).toBe(true);
 });
 
+test('the garage scene animates', async ({browser}) => {
+  /*
+   * O'Z KONTEKSTI kerak: `playwright.config.ts` butun to'plamga
+   * `reducedMotion: 'reduce'` qo'yadi, ya'ni sukut bo'yicha sahna ataylab
+   * qotib turadi. Animatsiyani ko'rish uchun o'sha sozlama bekor qilinadi.
+   */
+  const ctx = await browser.newContext({reducedMotion: 'no-preference'});
+  const page = await ctx.newPage();
+  await seeded(page);
+
+  /*
+   * 0-daraja jonli: personaj shaffof sprite bo'lib fon ustida turadi va
+   * pozalar taymer bilan almashadi. Bu yerda ANIMATSIYA emas, uning
+   * KO'RINADIGAN natijasi o'lchanadi — src o'zgarmasa, sahna qotib qolgan.
+   */
+  const actor = page.locator('img[src*="/startup/actors/"]');
+  await expect(actor).toBeVisible();
+  await expect.poll(() => actor.evaluate(i => (i as HTMLImageElement).naturalWidth > 0)).toBe(true);
+
+  const korilgan = new Set<string>();
+  for (let i = 0; i < 40; i++) {
+    korilgan.add((await actor.getAttribute('src')) ?? '');
+    await page.waitForTimeout(180);
+  }
+  expect(korilgan.size, `pozalar almashmadi: ${[...korilgan].join(', ')}`).toBeGreaterThan(1);
+  await ctx.close();
+});
+
+test('the garage scene holds still when motion is reduced', async ({browser}) => {
+  /*
+   * `prefers-reduced-motion` — bu qulaylik emas, zarurat: sahna to'xtovsiz
+   * aylanadi va vestibulyar sezgirligi bor odam uni to'xtata olmasdi.
+   */
+  const ctx = await browser.newContext({reducedMotion: 'reduce'});
+  const page = await ctx.newPage();
+  await seeded(page);
+  const actor = page.locator('img[src*="/startup/actors/"]');
+  await expect(actor).toBeVisible();
+  /*
+   * ORALIQDA ham namuna olinadi. Faqat boshi va oxirini solishtirish
+   * yetmaydi: yozish kadri 620 ms da almashadi, ya'ni 3 soniyadan keyin
+   * poza tasodifan o'sha kadrga qaytib qoladi va qorovul o'chirilgan bo'lsa
+   * ham test yashil qolardi — birinchi yozilishida aynan shunday bo'lgan.
+   */
+  const korilgan = new Set<string>();
+  for (let i = 0; i < 25; i++) {
+    korilgan.add((await actor.getAttribute('src')) ?? '');
+    await page.waitForTimeout(160);
+  }
+  expect([...korilgan], 'harakat kamaytirilganda poza almashmasligi kerak').toHaveLength(1);
+  await ctx.close();
+});
+
 test('the run is restored from localStorage after a reload', async ({page}) => {
   await seeded(page);
   await page.getByRole('button', {name: /Oyni yakunlash/}).click();
