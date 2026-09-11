@@ -79,7 +79,7 @@ export function PrimaryButton({ children, onClick, disabled }: { children: React
 
 // ---------- OFIS ----------
 export function OfficeTab({ s, a }: { s: StartupState; a: Actions }) {
-  const morale = s.staff.length ? Math.round(s.staff.reduce((x, e) => x + e.morale, 0) / s.staff.length) : 70;
+  const morale = E.teamMorale(s);
   const team = E.teamOk(s);
   const decisions = [
     { icon: <Users className="h-5 w-5" />, title: "Xodim yollash", sub: `${s.candidates.length} nomzod bozorda · oyliklar ${fm(E.payroll(s))}/oy`, tab: "team" as Tab },

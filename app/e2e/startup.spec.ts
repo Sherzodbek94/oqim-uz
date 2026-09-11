@@ -3,7 +3,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import { FOUNDER_ART, ROLE_ART } from '../src/pages/startup/roleArt';
-import { FEMALE_NAMES, NAMES } from '../src/lib/startup/balance';
+import { readdirSync, readFileSync } from 'node:fs';
+import { BALANCE, FEMALE_NAMES, NAMES } from '../src/lib/startup/balance';
 import { portraitFor } from '../src/pages/startup/roleArt';
 
 /**
@@ -353,4 +354,56 @@ test('the office screen fits a phone and the art is not stretched', async ({page
 
   const layout = await page.evaluate(() => ({needed: document.documentElement.scrollWidth, have: document.documentElement.clientWidth}));
   expect(layout.needed, `o'yin ekrani: ${layout.needed}px kerak, ${layout.have}px bor`).toBeLessThanOrEqual(layout.have);
+});
+
+/** «… kayfiyat 70» / «Kayfiyat 70» satridan raqamni ajratadi. */
+function moraleIn(text: string): number {
+  const m = /kayfiyat (\d+)/i.exec(text);
+  if (!m) throw new Error(`kayfiyat raqami topilmadi: ${text}`);
+  return Number(m[1]);
+}
+
+test('the monthly report and the office header agree on morale', async ({page}) => {
+  /*
+   * Ilgari o'rtacha kayfiyat IKKI joyda alohida hisoblanardi va xodim yo'q
+   * holatda ikki xil zaxiraga tushardi: sarlavha 70, hisobot 100. O'yinchi
+   * birinchi xodimni yollagunicha har oy shu ziddiyatni ko'rardi.
+   *
+   * Endi ikkalasi `engine.teamMorale` dan oladi. Bu test o'sha yagona
+   * manbani emas, NATIJANI o'lchaydi: kelajakda kimdir yana o'z hisobini
+   * yozsa, funksiya joyida qolgani testni yashil qilib qo'ymaydi.
+   */
+  await seeded(page);
+  await page.getByRole('button', {name: /Oyni yakunlash/}).click();
+  await page.getByRole('dialog').getByRole('button').first().click();
+
+  const report = page.getByRole('dialog', {name: '1-oy hisoboti'});
+  const inReport = moraleIn(await report.getByText(/kayfiyat \d+/).innerText());
+  await page.getByRole('button', {name: /2-oyga o'tish/}).click();
+  await expect(report).toBeHidden();
+
+  const inHeader = moraleIn(await page.getByText(/^Kayfiyat \d+$/).innerText());
+  expect(inReport, `hisobot ${inReport}, sarlavha ${inHeader}`).toBe(inHeader);
+
+  /*
+   * Zaxira qiymatning O'ZI ham tekshiriladi, aks holda ikkalasi 100 ga
+   * ketib ham kelishardi. Yangi xodim `moraleBase` bilan keladi — yolg'iz
+   * asoschi 100 da tursa, birinchi yollash kayfiyat qulagandek ko'rinardi.
+   * Chegara ATAYLAB keng: bu raqamni qulflamaydi, jarlikni taqiqlaydi.
+   */
+  expect(Math.abs(inHeader - BALANCE.moraleBase), `yolg'iz ${inHeader}, birinchi xodim ${BALANCE.moraleBase}`).toBeLessThanOrEqual(20);
+});
+
+test('every office render ships for a reason', async () => {
+  /*
+   * `level0.webp` jonli sahnaga o'tilgach yetim qolgandi: `OfficeScene` 0-daraja
+   * uchun `LiveOffice` ni qaytarib, `ART[0]` ga umuman yetib bormasdi — rasm esa
+   * har deploy'da 24 KB bo'lib chiqib turardi. Tipdagi `Exclude` uni kodga
+   * qaytarishdan saqlaydi; bu test TESKARI tomonni qo'riqlaydi — `public/` ga
+   * tashlangan, hech kim so'ramaydigan faylni.
+   */
+  const used = ['src/pages/startup/OfficeScene.tsx', 'src/pages/startup/LiveOffice.tsx']
+    .map(f => readFileSync(f, 'utf8')).join('\n');
+  const orphans = readdirSync('public/startup/office').filter(f => !used.includes(`/startup/office/${f}`));
+  expect(orphans, `hech kim ishlatmaydigan rasm: ${orphans.join(', ')}`).toEqual([]);
 });

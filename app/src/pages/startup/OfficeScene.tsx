@@ -14,6 +14,11 @@
  * `ART` — TO'LIQ `Record`: `types.ts` ga yangi daraja qo'shilsa, rasm
  * qo'shilmaguncha `tsc` yiqiladi. Bu ataylab; jim qolgan bo'sh sahna
  * o'rniga build to'xtagani yaxshi.
+ *
+ * 0-DARAJA `Record` DAN CHIQARILGAN. U jonli sahnaga o'tgach `ART[0]` ga
+ * yetib kelinmay qoldi, lekin `level0.webp` yuklanishda davom etardi —
+ * 24 KB hech qachon so'ralmaydigan fayl. `Exclude` bilan u endi tipda ham
+ * yo'q: 0-daraja uchun rasm qo'shishga urinish `tsc` da to'xtaydi.
  */
 import { cn } from "@/lib/utils";
 import LiveOffice from "./LiveOffice";
@@ -21,8 +26,7 @@ import type { OfficeLevel } from "@/lib/startup/types";
 
 const GOLD = "#D9A441", GD = "#1B4A38";
 
-const ART: Record<OfficeLevel, { src: string; alt: string }> = {
-  0: { src: "/startup/office/level0.webp", alt: "Uy/garaj: bitta stol, noutbuk, deraza ortida Toshkent hovlisi" },
+const ART: Record<Exclude<OfficeLevel, 0>, { src: string; alt: string }> = {
   1: { src: "/startup/office/level1.webp", alt: "Coworking: uchta stol, umumiy qahva burchagi, telefon kabinasi" },
   2: { src: "/startup/office/level2.webp", alt: "Kichik ofis: oltita stol, yig'ilish stoli, server tokchasi, generator" },
   3: { src: "/startup/office/level3.webp", alt: "Korporativ ofis: ikki qavat, o'n ikki stol, shisha yig'ilish xonasi" },

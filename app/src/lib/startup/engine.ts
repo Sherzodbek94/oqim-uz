@@ -102,6 +102,14 @@ export function teamOk(s: StartupState): { ok: boolean; missing: string[] } {
   return { ok: missing.length === 0, missing };
 }
 
+/** Xodim yo'q oyda ko'rsatiladigan kayfiyat: yangi xodim 60 bilan keladi, 100 dan tushish qulash ko'rinardi */
+const SOLO_MORALE = 70;
+
+/** Jamoa kayfiyati — HUD va oy hisoboti uchun bitta manba (ilgari ikki joyda 70 va 100 deb alohida hisoblanardi) */
+export function teamMorale(s: StartupState): number {
+  return s.staff.length ? Math.round(s.staff.reduce((a, e) => a + e.morale, 0) / s.staff.length) : SOLO_MORALE;
+}
+
 export function devPower(s: StartupState) {
   let p = B.founderSkill * 0.5;
   for (const e of devs(s)) {
@@ -122,6 +130,7 @@ export function revenueEstimate(s: StartupState) {
   const mono: Record<Monetization, number> = { ads: 0.85, subscription: 1.0, license: has(s, "sales") ? 1.25 : 0.7 };
   base *= mono[s.monetization];
   if (!teamOk(s).ok) base *= 0.4;
+  // `teamMorale` emas: bu yerda yaxlitlanmagan o'rtacha kerak, yaxlitlash chegaraviy oyni teskarisiga ag'darardi
   const lowMorale = s.staff.length > 0 && s.staff.reduce((a, e) => a + e.morale, 0) / s.staff.length < B.moraleSlowBelow;
   if (lowMorale) base *= 0.6;
   base *= modMult(s, "revMult");
@@ -540,7 +549,7 @@ function settleMonth(s: StartupState, ev: EventCard | null, choice: string | und
   rep.cashAfter = s.cash;
   rep.usersAfter = s.users;
   rep.qualityAfter = Math.round(s.quality);
-  rep.moraleAfter = s.staff.length ? Math.round(s.staff.reduce((a, e) => a + e.morale, 0) / s.staff.length) : 100;
+  rep.moraleAfter = teamMorale(s);
   s.reports.push(rep);
   s.modifiers = s.modifiers.filter(m => m.until >= s.month + 1);
 
