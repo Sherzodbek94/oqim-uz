@@ -3,7 +3,7 @@
  */
 import { useRef } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowRight, Gift, Landmark, RotateCcw, Sparkles, Trophy, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, Gift, Landmark, Rocket, RotateCcw, Sparkles, Trophy, X, Zap } from "lucide-react";
 import { Dialog, DialogPortal, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import { Content as DialogContentPrimitive } from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
@@ -32,19 +32,27 @@ const KIND: Record<EventKind, { label: string; color: string; Icon: typeof Zap }
  * Tab undan chiqmaydi. Ilgari bu oddiy `div` edi — sichqonchasiz o'yinchi
  * varaq ochilganini sezmasdi va Tab ortidagi tab-barga tushib ketardi.
  *
- * VARAQLAR YOPILMAYDI. Ularning har biri o'yinchidan QAROR kutadi (hodisada
- * tanlov, hisobotda «keyingi oyga»), shuning uchun Escape ham, tashqariga
- * bosish ham to'xtatiladi: yopilsa, o'yinchi qarorsiz, qotib qolgan ekranda
- * qolardi. `ModalShell` `onClose` siz chaqirilganda aynan shunday qiladi.
+ * QAROR KUTAYOTGAN VARAQLAR YOPILMAYDI. Hodisa kartasi tanlov kutadi,
+ * hisobot «keyingi oyga» kutadi — shuning uchun ular `onClose` SIZ
+ * chaqiriladi va Escape ham, tashqariga bosish ham to'xtatiladi: yopilsa,
+ * o'yinchi qarorsiz, qotib qolgan ekranda qolardi. `ModalShell` `onClose`
+ * siz chaqirilganda aynan shunday qiladi.
+ *
+ * `onClose` BERILGANDA aksincha: varaq oddiy oyna bo'ladi — Escape yopadi,
+ * tashqariga bosish yopadi va yuqori o'ng burchakda yopish tugmasi chiqadi.
+ * Yo'l-yo'riq va tasdiqlash oynasi shunday ishlatiladi; ularni yopish
+ * o'yinchini hech qanday qarorsiz qoldirmaydi.
  *
  * NOMI `DialogTitle` ORQALI: sarlavhani varaqning o'zi emas, CHAQIRUVCHI
  * chizadi (hodisada `<h2>`, hisobotda yorliq `<span>`), ya'ni umumiy ramka
  * unga id qo'ya olmaydi. Ko'rinadigan matnning O'ZI uzatiladi va u
  * ekran o'quvchi uchun `sr-only` sarlavhaga qo'yiladi.
  */
-function Sheet({ children, label }: { children: React.ReactNode; label: string }) {
+function Sheet({ children, label, onClose }: { children: React.ReactNode; label: string; onClose?: () => void }) {
   /* Yopilgach fokus varaqni ochgan tugmaga qaytadi (ModalShell bilan bir xil). */
   const opener = useRef(typeof document !== "undefined" ? document.activeElement : null);
+  /* `onClose` yo'q bo'lsa — qaror kutilmoqda, yopishga urinish e'tiborsiz qoladi. */
+  const qorovul = (e: Event) => { if (onClose) onClose(); else e.preventDefault(); };
   return (
     <Dialog open>
       <DialogPortal>
@@ -52,12 +60,19 @@ function Sheet({ children, label }: { children: React.ReactNode; label: string }
         <DialogContentPrimitive
           aria-describedby={undefined}
           onCloseAutoFocus={e => { if (opener.current instanceof HTMLElement && opener.current.isConnected) { e.preventDefault(); opener.current.focus(); } }}
-          onEscapeKeyDown={e => e.preventDefault()}
-          onInteractOutside={e => e.preventDefault()}
+          onEscapeKeyDown={qorovul}
+          onInteractOutside={qorovul}
           className="fixed inset-x-0 bottom-0 z-[80] mx-auto flex max-h-[92dvh] w-full max-w-[430px] flex-col overflow-y-auto rounded-t-[28px] border-[3px] border-b-0 border-emerald-700 bg-sand-50 px-4 pb-8 pt-3 outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[28px] sm:border-b-[3px]"
         >
           {/* Nom `aria-label` da; Radix sarlavhani baribir talab qiladi. */}
           <DialogTitle className="sr-only">{label}</DialogTitle>
+          {onClose && (
+            /* DOMda BIRINCHI — ochilganda fokus shu yerga tushadi, ya'ni Enter xavfsiz harakatni bajaradi. */
+            <button type="button" onClick={onClose} aria-label="Yopish"
+              className="absolute right-3 top-3 z-10 rounded-full p-2 text-ink-600 transition-colors hover:bg-sand-100">
+              <X className="h-5 w-5" />
+            </button>
+          )}
           <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.3, ease: EASE }}>
             <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-sand-200" />
             {children}
@@ -188,6 +203,85 @@ export function ReportModal({ r, s, onNext }: { r: MonthReport; s: StartupState;
       {r.notes.length > 0 && <ul className="mt-3 flex flex-col gap-1 px-1 text-[12px] text-ink-600">{r.notes.map((n, i) => <li key={i}>• {n}</li>)}</ul>}
       {s.cash < 0 && <p className="mt-3 rounded-xl bg-clay-100 px-3 py-2 text-[12px] font-semibold text-clay-700">Naqd manfiy. 2 oylik xarajatdan ko'proq minusga tushsangiz — bankrotlik.</p>}
       <div className="mt-4"><PrimaryButton onClick={onNext}>{r.month + 1}-oyga o'tish <ArrowRight className="h-5 w-5" /></PrimaryButton></div>
+    </Sheet>
+  );
+}
+
+/**
+ * Boshlang'ich yo'l-yo'riq — YANGI partiya boshlanganda bir marta.
+ *
+ * Klassik o'yinda shunday tutorial bor (`Game.tsx`, yangi partiya
+ * boshlangach `setTutorialOpen(true)`), startap rejimida esa YO'Q edi:
+ * `src/pages/startup/` bo'ylab `tutorial|yo'riq|onboard` qidiruvi hech
+ * narsa topmasdi. Shu sababdan kirgan o'yinchi nimadan boshlashni
+ * bilmasdi — bu o'sha bo'shliqni yopadi.
+ *
+ * SAQLANMAGA YOZILMAYDI. Oyna yangi partiya boshlangandagina ochiladi,
+ * ya'ni tiklangan saqlanmada chiqmaydi — alohida bayroq saqlash shart emas.
+ */
+const QADAMLAR: [string, string][] = [
+  ["Har oy — bitta aylana", "Ofis tab'ida qaror qabul qilasiz: xodim yollash, sprint tanlash, marketing yoqish, kredit olish."],
+  ["Oyni yakunlang", "Pastdagi tugma oyni yopadi — daromad, oyliklar, arenda va soliq hisoblanadi."],
+  ["Hodisa kartasi", "Ba'zi oylarda hodisa chiqadi: inflyatsiya, elektr uzilishi, grant. Tanlovingiz natijaga ta'sir qiladi."],
+  ["Maqsad — 100 mlrd", "Kompaniya qiymatini shu darajaga yetkazing. Naqd 2 oylik xarajatdan ko'proq minusga tushsa — bankrotlik."],
+];
+
+export function GuideModal({ s, onClose }: { s: StartupState; onClose: () => void }) {
+  return (
+    <Sheet label="Boshlang'ich yo'l-yo'riq" onClose={onClose}>
+      <div className="flex items-center gap-3 pr-10">
+        <span className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-emerald-100"><Rocket className="h-6 w-6 text-emerald-700" /></span>
+        <div className="min-w-0">
+          <div className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-emerald-700">Boshlang'ich yo'l-yo'riq</div>
+          <h2 className="truncate font-display text-[20px] font-bold leading-tight text-ink-900">«{s.companyName}» yo'lga chiqdi</h2>
+        </div>
+      </div>
+      <p className="mt-3 text-[13px] leading-relaxed text-ink-600">Qo'lingizda <b className="text-ink-900">15 mln so'm</b> va uydagi garaj bor. Bir oy — bir aylana.</p>
+      <ol className="mt-3 flex flex-col gap-2">
+        {QADAMLAR.map(([sarlavha, matn], i) => (
+          <li key={sarlavha} className="flex gap-3 rounded-2xl border border-sand-200 bg-white px-3.5 py-3">
+            <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-emerald-700 text-[12px] font-bold text-white">{i + 1}</span>
+            <div className="min-w-0">
+              <div className="text-[14px] font-extrabold text-ink-900">{sarlavha}</div>
+              <div className="mt-0.5 text-[12px] leading-snug text-ink-600">{matn}</div>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-4"><PrimaryButton onClick={onClose}>Tushundim, boshladik <ArrowRight className="h-5 w-5" /></PrimaryButton></div>
+    </Sheet>
+  );
+}
+
+/**
+ * Qayta boshlashni tasdiqlash.
+ *
+ * Ilgari `restart()` faqat `EndOverlay` ga ulangandi, ya'ni partiyani
+ * FAQAT g'alaba yoki bankrotlikdan keyin qayta boshlash mumkin edi —
+ * o'rtada hech qanday yo'l yo'q. Endi HUD dagi tugma shu oynani ochadi.
+ *
+ * Tasdiqlash shart, chunki amal qaytarib bo'lmaydi: `clearStartup()`
+ * saqlanmani o'chiradi va tiklab bo'lmaydi. Shuning uchun oynada joriy
+ * partiyaning nimasi yo'qolishi ayni raqamlar bilan ko'rsatiladi.
+ */
+export function ConfirmRestart({ s, onConfirm, onClose }: { s: StartupState; onConfirm: () => void; onClose: () => void }) {
+  return (
+    <Sheet label="Partiyani qayta boshlash" onClose={onClose}>
+      <div className="flex items-center gap-3 pr-10">
+        <span className="flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-clay-100"><AlertTriangle className="h-6 w-6 text-clay-700" /></span>
+        <h2 className="font-display text-[20px] font-bold leading-tight text-ink-900">Qayta boshlansinmi?</h2>
+      </div>
+      <p className="mt-3 text-[14px] leading-relaxed text-ink-900">
+        «{s.companyName}» — {s.month}-oy, qiymat {fm(E.valuation(s))}, jamoada {s.staff.length + 1} kishi.
+      </p>
+      <p className="mt-2 rounded-xl bg-clay-100 px-3 py-2 text-[12px] font-semibold text-clay-700">Bu partiya butunlay o'chadi va tiklab bo'lmaydi.</p>
+      <div className="mt-4 flex flex-col gap-2">
+        <button type="button" onClick={onConfirm}
+          className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-clay-700 text-[15px] font-extrabold text-white transition-all active:scale-[0.99]">
+          <RotateCcw className="h-5 w-5" /> Ha, yangi startap
+        </button>
+        <button type="button" onClick={onClose} className="btn-secondary w-full">Bekor qilish</button>
+      </div>
     </Sheet>
   );
 }

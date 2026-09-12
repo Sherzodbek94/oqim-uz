@@ -5,14 +5,14 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { BarChart3, Building2, ChevronLeft, Package, Rocket, Users } from "lucide-react";
+import { BarChart3, Building2, ChevronLeft, Package, Rocket, RotateCcw, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StartupState } from "@/lib/startup/types";
 import * as E from "@/lib/startup/engine";
 import { clearStartup, loadStartup, saveStartup } from "@/lib/startup/save";
 import { Flower } from "./startup/OfficeScene";
 import { FinanceTab, OfficeTab, ProductTab, TeamTab, type Actions, type Tab } from "./startup/tabs";
-import { EndOverlay, EventModal, ReportModal } from "./startup/modals";
+import { ConfirmRestart, EndOverlay, EventModal, GuideModal, ReportModal } from "./startup/modals";
 
 const fm = E.fmtM;
 
@@ -35,6 +35,9 @@ export default function Startup() {
   const [state, setState] = useState<StartupState | null>(() => loadStartup());
   const [tab, setTab] = useState<Tab>("office");
   const [name, setName] = useState("");
+  /* Yo'l-yo'riq faqat YANGI partiyada — tiklangan saqlanmada emas, shuning uchun saqlanmaga yozilmaydi. */
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [restartAsk, setRestartAsk] = useState(false);
 
   useEffect(() => { if (state) saveStartup(state); }, [state]);
 
@@ -56,7 +59,9 @@ export default function Startup() {
     goTab: t => setTab(t),
   }), [update]);
 
-  const restart = () => { clearStartup(); setState(null); setTab("office"); };
+  const restart = () => { clearStartup(); setState(null); setTab("office"); setRestartAsk(false); };
+  /* Yangi partiya — klassik o'yindagidek, darhol yo'l-yo'riq ochiladi. */
+  const begin = () => { setState(E.newStartup(name)); setGuideOpen(true); };
 
   // ---------- SETUP ----------
   if (!state) {
@@ -75,7 +80,7 @@ export default function Startup() {
           <label className="mt-6 block text-xs font-bold uppercase tracking-[0.06em] text-ink-600">Kompaniya nomi</label>
           <input value={name} onChange={e => setName(e.target.value)} maxLength={28} placeholder="masalan, Oqim Tech" className="mt-2 h-12 w-full rounded-2xl border border-sand-200 bg-white px-4 text-[15px] font-semibold text-ink-900 outline-none focus:border-emerald-600" />
           <div className="mt-auto pt-8">
-            <button type="button" onClick={() => setState(E.newStartup(name))} className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-gradient-gold text-[15px] font-extrabold text-ink-900 shadow-[0_5px_0_#B98428] active:translate-y-[3px] active:shadow-[0_2px_0_#B98428]">
+            <button type="button" onClick={begin} className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-gradient-gold text-[15px] font-extrabold text-ink-900 shadow-[0_5px_0_#B98428] active:translate-y-[3px] active:shadow-[0_2px_0_#B98428]">
               <Rocket className="h-5 w-5" /> Startapni boshlash
             </button>
             <p className="mt-3 text-center text-[11px] text-ink-400">Ro'yxatdan o'tish shart emas — o'yin brauzeringizda saqlanadi.</p>
@@ -113,7 +118,20 @@ export default function Startup() {
         <header className="sticky top-0 z-40 rounded-b-[26px] bg-gradient-emerald px-4 pb-3.5 pt-3 shadow-card">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2" aria-label="Bosh sahifa"><Flower size={22} /><span className="font-display text-[14px] font-extrabold tracking-[0.04em] text-white">OQIM</span></Link>
-            <div className="flex items-center gap-1.5 rounded-full bg-black/10 px-3 py-1.5 text-[12px]"><span className="font-bold text-white">{s.month}-oy</span><span className="text-emerald-100">· {calendar(s.month)}</span></div>
+            <div className="flex items-center gap-2">
+              {/*
+                QAYTA BOSHLASH. Ilgari `restart()` faqat `EndOverlay` ga ulangandi,
+                ya'ni partiyani o'rtada qayta boshlashning hech qanday yo'li yo'q edi —
+                yagona chora brauzer konsolida saqlanmani o'chirish bo'lardi.
+                Amal qaytarilmas, shuning uchun to'g'ridan bajarilmaydi: tasdiqlash
+                oynasi ochiladi.
+              */}
+              <button type="button" onClick={() => setRestartAsk(true)} aria-label="Partiyani qayta boshlash"
+                className="rounded-full bg-black/10 p-2 text-white transition-colors hover:bg-black/20">
+                <RotateCcw className="h-4 w-4" />
+              </button>
+              <div className="flex items-center gap-1.5 rounded-full bg-black/10 px-3 py-1.5 text-[12px]"><span className="font-bold text-white">{s.month}-oy</span><span className="text-emerald-100">· {calendar(s.month)}</span></div>
+            </div>
           </div>
           <div className="mt-2.5 grid grid-cols-3 gap-2">
             {[["Naqd pul", fm(s.cash), s.cash < 0 ? "text-clay-100" : "text-white"], ["Oylik oqim", `${flow >= 0 ? "+" : ""}${fm(flow)}`, flow >= 0 ? "text-gold-100" : "text-clay-100"], ["Qiymat", fm(E.valuation(s)), "text-white"]].map(([l, v, c]) => (
@@ -156,6 +174,14 @@ export default function Startup() {
       */}
         {s.phase === "event" && s.pendingEvent && <EventModal key="ev" ev={s.pendingEvent} s={s} onChoose={id => update(x => E.resolveEvent(x, id))} />}
         {s.phase === "report" && lastReport && <ReportModal key="rep" r={lastReport} s={s} onNext={() => { update(x => E.nextMonth(x)); setTab("office"); }} />}
+      {/*
+        Bir vaqtda BITTA oyna. Yo'l-yo'riq faqat `decide` fazasida ochiladi
+        (yangi partiya aynan shu fazadan boshlanadi), tasdiqlash esa hodisa
+        yoki hisobot ochiq bo'lsa chiqmaydi — aks holda a11y daraxtida ikkita
+        `role="dialog"` paydo bo'lardi va fokus qaytarish navbati chalkashardi.
+      */}
+      {guideOpen && s.phase === "decide" && <GuideModal s={s} onClose={() => setGuideOpen(false)} />}
+      {restartAsk && !guideOpen && s.phase !== "event" && s.phase !== "report" && <ConfirmRestart s={s} onConfirm={restart} onClose={() => setRestartAsk(false)} />}
       {(s.phase === "won" || s.phase === "lost") && <EndOverlay s={s} onRestart={restart} onHome={() => { restart(); navigate("/"); }} />}
     </div>
   );

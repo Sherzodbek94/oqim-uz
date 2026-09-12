@@ -102,6 +102,17 @@ test('mode selector opens the startup mode and the setup screen starts a run', a
 
   await page.getByPlaceholder(/masalan/i).fill(NAME);
   await page.getByRole('button', {name: /Startapni boshlash/}).click();
+
+  /*
+   * Yangi partiya YO'L-YO'RIQ bilan boshlanadi. U modal varaq, ya'ni ortidagi
+   * hamma narsa `aria-hidden` bo'ladi va navigatsiya rol bo'yicha topilmaydi —
+   * shuning uchun avval yopiladi. (Yo'riqning o'zi alohida testda tekshiriladi.)
+   */
+  const guide = page.getByRole('dialog', {name: "Boshlang'ich yo'l-yo'riq"});
+  await expect(guide).toBeVisible();
+  await guide.getByRole('button', {name: /Tushundim/}).click();
+  await expect(guide).toBeHidden();
+
   await expect(page.getByRole('navigation', {name: "Bo'limlar"})).toBeVisible();
   /* Start kapitali — GDD §6: 15 mln so'm. */
   await expect(page.getByText('15 mln').first()).toBeVisible();
@@ -698,4 +709,89 @@ test('every event card renders at AA contrast', async ({page}) => {
   /* Qorovulning qorovuli: ostki yozuv birorta kartada ham o'lchanmasa, test tishsiz. */
   expect(subsMeasured, "hech bir kartada oltin tugma ostki yozuvi o'lchanmadi").toBeGreaterThan(0);
   expect(kinds.size, 'hodisa turlari qamrovi').toBeGreaterThanOrEqual(4);
+});
+
+/** Sozlash ekranidan haqiqiy yangi partiya boshlaydi (saqlanma seed qilmasdan). */
+async function yangiPartiya(page: Page) {
+  await page.goto('/startap');
+  await page.evaluate(() => localStorage.clear());
+  await page.goto('/startap');
+  await page.getByPlaceholder(/masalan/i).fill(NAME);
+  await page.getByRole('button', {name: /Startapni boshlash/}).click();
+}
+
+test('a new run opens the guide once and a resumed run does not', async ({page}) => {
+  /*
+   * `/startap` da yo'l-yo'riq YO'Q edi — `src/pages/startup/` bo'ylab
+   * `tutorial|yo'riq|onboard` qidiruvi hech narsa topmasdi, klassik o'yinda
+   * esa bor. Kirgan o'yinchi nimadan boshlashni bilmasdi.
+   *
+   * Oyna saqlanmaga bayroq yozmaydi — u YANGI partiyaga bog'langan.
+   * Shuning uchun test ikkala tomonni ham tekshiradi: yangi partiyada
+   * chiqishi VA tiklangan saqlanmada chiqmasligi. Ikkinchisi bo'lmasa,
+   * oyna har ochilganda chiqib, halaqit berardi.
+   */
+  await yangiPartiya(page);
+
+  const guide = page.getByRole('dialog', {name: "Boshlang'ich yo'l-yo'riq"});
+  await expect(guide).toBeVisible();
+  /* To'rt qadam — matnning o'zi emas, ularning BORLIGI qo'riqlanadi. */
+  await expect(guide.getByRole('listitem')).toHaveCount(4);
+
+  const rows = await kontrastTinch(guide, 6);
+  const bad = rows.filter(r => r.ratio < r.required);
+  expect(bad, `yo'l-yo'riq: ${bad.map(b => `"${b.text}" ${b.ratio}:1 < ${b.required}`).join(' | ')}`).toEqual([]);
+
+  await guide.getByRole('button', {name: /Tushundim/}).click();
+  await expect(guide).toBeHidden();
+  await expect(page.getByRole('navigation', {name: "Bo'limlar"})).toBeVisible();
+
+  /* Tiklangan saqlanmada CHIQMASLIGI kerak. */
+  await page.reload();
+  await expect(page.getByRole('navigation', {name: "Bo'limlar"})).toBeVisible();
+  await expect(page.getByRole('dialog', {name: "Boshlang'ich yo'l-yo'riq"})).toHaveCount(0);
+});
+
+test('the restart button asks first and only then wipes the run', async ({page}) => {
+  /*
+   * `restart()` bor edi, lekin FAQAT `EndOverlay` ga ulangandi — ya'ni
+   * partiyani g'alaba yoki bankrotlikdan oldin qayta boshlashning hech
+   * qanday yo'li yo'q edi. Endi HUD da tugma bor.
+   *
+   * Amal qaytarilmas (`clearStartup()` saqlanmani o'chiradi), shuning uchun
+   * test IKKALA tomonni ham qo'riqlaydi: bekor qilinganda partiya
+   * BUZILMASLIGI va tasdiqlanganda haqiqatan o'chishi.
+   */
+  await seeded(page);
+  /* Oyni yakunlab, 2-oyga o'tamiz — «o'chdi» ni «o'chmadi» dan ajratish uchun. */
+  await page.getByRole('button', {name: /Oyni yakunlash/}).click();
+  await page.getByRole('dialog').getByRole('button').first().click();
+  await page.getByRole('button', {name: /2-oyga o'tish/}).click();
+  await expect(page.getByRole('banner').getByText('2-oy')).toBeVisible();
+
+  const tugma = page.getByRole('button', {name: 'Partiyani qayta boshlash'});
+  await expect(tugma).toBeVisible();
+
+  await tugma.click();
+  const ask = page.getByRole('dialog', {name: 'Partiyani qayta boshlash'});
+  await expect(ask).toBeVisible();
+  /* Nimani yo'qotishi ko'rinib tursin — tasdiqlash ma'nosi shunda. */
+  await expect(ask.getByText(new RegExp(NAME))).toBeVisible();
+  await expect(ask.getByText(/2-oy/)).toBeVisible();
+
+  const rows = await kontrastTinch(ask, 4);
+  const bad = rows.filter(r => r.ratio < r.required);
+  expect(bad, `tasdiqlash: ${bad.map(b => `"${b.text}" ${b.ratio}:1 < ${b.required} (${b.bg})`).join(' | ')}`).toEqual([]);
+
+  /* 1) BEKOR QILISH partiyani buzmasligi kerak. */
+  await ask.getByRole('button', {name: /Bekor qilish/}).click();
+  await expect(ask).toBeHidden();
+  await expect(page.getByRole('banner').getByText('2-oy')).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('oqim-startup-v1') ?? '{}').month)).toBe(2);
+
+  /* 2) TASDIQLASH saqlanmani o'chirib, sozlash ekraniga qaytarishi kerak. */
+  await tugma.click();
+  await page.getByRole('dialog', {name: 'Partiyani qayta boshlash'}).getByRole('button', {name: /Ha, yangi startap/}).click();
+  await expect(page.getByPlaceholder(/masalan/i)).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('oqim-startup-v1'))).toBeNull();
 });
