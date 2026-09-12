@@ -57,7 +57,40 @@ module.exports = {
         ink: {
           900: "#1E2D2A",
           600: "#51635D",
-          400: "#8A9992",
+          /*
+           * 400 — QUYUQLASHTIRILDI (#8A9992 -> #5C6E67).
+           *
+           * Eskisi krem fonda atigi 2.81 berardi, WCAG AA esa bu o'lchamdagi
+           * matndan 4.5 talab qiladi. Bu bitta token emas, ILOVA BO'YLAB
+           * nosozlik edi: `text-ink-400` 171 joyda turibdi va axe uni
+           * `/startap` ning har bir tab'ida «serious» deb belgilardi —
+           * pastki navigatsiyaning uchta faol bo'lmagan yorlig'i, «Prognoz»
+           * qatori, «Hozircha yolg'izsiz…» maslahati va boshqalar.
+           *
+           * Yangisi matn ustida turadigan HAMMA fonda o'tadi. Fonlar taxmin
+           * emas — butun ilova bo'ylab O'LCHANDI (har bir `ink-400` tugunining
+           * ortidagi rang piksel bo'yicha olindi): oq 5.45, #FBF8F2 5.10,
+           * #F4EEE1 4.68, #EFF6F1 4.93, oraliq kremlar (#F5EFE3, #F6F1E6,
+           * #F8F5ED) 4.7–5.0.
+           *
+           * Bitta istisno `sand-200` (#EAE1CF) — 4.17. O'lchov u yerdagi
+           * hamma tugun FAOL EMAS ekanini ko'rsatdi: yetib borilmagan sozlash
+           * qadamlari (2/3/4), ochilmagan kvadrant nishonlari (S/B/I),
+           * o'chirilgan asosiy tugma va uning ikonkasi, «Chiqish shartlari»
+           * dagi qulflar. WCAG faol bo'lmagan boshqaruvdan kontrast talab
+           * qilmaydi, 3:1 lik ikonka/chegara talabidan esa 4.17 baribir
+           * yuqori — va eski 2.29 dan ancha yaxshi.
+           *
+           * NEGA TOKENNING O'ZI. Ikkinchi yo'l — yangi `ink-500` qo'shib,
+           * 146 ta tirik matnni unga ko'chirish edi. Bitta qator o'rniga 146
+           * ta tahrir, va `ink-400` kelajakdagi kod uchun tuzoq bo'lib
+           * qolardi.
+           *
+           * NARXI: `ink-600` dan farq qisqardi (6.02 va 5.10). Krem fonda AA
+           * so'nuq matnni bundan yorug' qilishga yo'l qo'ymaydi — uchinchi
+           * pog'onani saqlashning boshqa usuli yo'q.
+           */
+          400: "#5C6E67",
         },
         emerald: {
           700: "#24604A",
@@ -77,6 +110,18 @@ module.exports = {
           100: "#F6E4D7",
         },
         gold: {
+          /*
+           * 700 — KICHIK MATN uchun, `clay-700` bilan bir xil sababdan.
+           * `gold-600` (#B98428) krem fonda atigi 3.09, oqda 3.28 beradi;
+           * WCAG AA kichik matndan 4.5 talab qiladi. Bu qadam to'rtta och
+           * fonda ham o'tadi: sand-50 5.11, oq 5.42, sand-100 4.69,
+           * gold-100 4.61.
+           *
+           * `gold-600` o'zi QOLDIRILDI: u yana 55 joyda, ko'pincha fon yoki
+           * hover rangi sifatida ishlatiladi va ularning har biri alohida
+           * o'lchovni talab qiladi.
+           */
+          700: "#8A6314",
           600: "#B98428",
           500: "#D9A441",
           100: "#F7ECD2",
@@ -110,7 +155,22 @@ module.exports = {
       },
       backgroundImage: {
         "gradient-hero": "linear-gradient(135deg, #FBF8F2 0%, #F4EEE1 55%, #EFF6F1 100%)",
-        "gradient-gold": "linear-gradient(120deg, #D9A441, #B98428)",
+        /*
+         * Quyuq uchi #B98428 dan #BE8B2C ga bir qadam yoritildi.
+         *
+         * Bu bugungi NOSOZLIKNI tuzatmaydi: piksel o'lchovi tugmalar ostidagi
+         * haqiqiy oraliqni #c38e30…#d6a13f deb berdi va `ink-900` u yerda
+         * 4.59–5.76, ya'ni AA dan o'tadi. Lekin gradientning E'LON QILINGAN
+         * quyuq uchida `ink-900` atigi 4.37 — balandroq tugmada yoki
+         * gradient burchagi o'zgarsa nosozlik o'zidan paydo bo'lardi.
+         * Yangi uchda eng yomon holat ham 4.73.
+         *
+         * Ko'z bilan farq sezilmaydi (bitta to'xtashning yorqinligi 2.6%
+         * ga o'zgardi), lekin `e2e/startup.spec.ts` dagi qorovul gradientni
+         * ENG YOMON uchi bo'yicha o'lchaydi — u shu qadamsiz yolg'on
+         * ogohlantirish berardi.
+         */
+        "gradient-gold": "linear-gradient(120deg, #D9A441, #BE8B2C)",
         "gradient-emerald": "linear-gradient(120deg, #2E7D5F, #24604A)",
         "felt-vignette": "radial-gradient(circle, #EFF6F1 0%, #F4EEE1 70%)",
       },

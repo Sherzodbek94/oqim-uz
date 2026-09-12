@@ -1,10 +1,11 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { build } from 'esbuild';
 import { execFileSync } from 'node:child_process';
 import { FOUNDER_ART, ROLE_ART } from '../src/pages/startup/roleArt';
 import { readdirSync, readFileSync } from 'node:fs';
-import { BALANCE, FEMALE_NAMES, NAMES } from '../src/lib/startup/balance';
+import { BALANCE, EVENTS, FEMALE_NAMES, NAMES } from '../src/lib/startup/balance';
+import type { EventCard } from '../src/lib/startup/types';
 import { portraitFor } from '../src/pages/startup/roleArt';
 
 /**
@@ -47,6 +48,33 @@ async function seeded(page: Page, seed = SEED) {
   await page.addInitScript(({key, state}) => {if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(state));}, {key, state});
   await page.goto('/startap');
   await expect(page.getByRole('navigation', {name: "Bo'limlar"})).toBeVisible();
+}
+
+/**
+ * TANLANGAN hodisa kartasi bilan ochilgan varaq.
+ *
+ * Dvigateldan kartani kutib o'tirmaydi: kartalar seeded RNG bilan tortiladi,
+ * ya'ni ayrim kartalar tasodifiy partiyada oylab chiqmasligi mumkin — va
+ * aynan shunday kartalarning rangi buzilgandi. Shuning uchun saqlanmaga
+ * `phase: "event"` va kerakli karta TO'G'RIDAN-TO'G'RI yoziladi.
+ *
+ * `addInitScript` EMAS, `goto` + yozish + `reload`. Init-skript HAR navigatsiyada
+ * ishlaydi va halqada CHAQIRUVLAR TO'PLANADI: birinchi kartaning skripti
+ * saqlanmani birinchi bo'lib to'ldirib, keyingi hamma iteratsiyada o'sha
+ * kartani ko'rsatib turardi. Natijada halqa o'n besh marta aylanib, aslida
+ * bitta kartani tekshirardi — mutatsiya testi buni ochdi.
+ *
+ * `seeded` dan farqli — navigatsiyani kutmaydi: varaq ochiq bo'lganda ortidagi
+ * hamma narsa `aria-hidden`, ya'ni `getByRole('navigation')` uni ko'rmaydi.
+ */
+async function seededEvent(page: Page, key: string, state: unknown, ev: EventCard) {
+  await page.goto('/startap');
+  await page.evaluate(({key, state}) => localStorage.setItem(key, JSON.stringify(state)),
+    {key, state: {...(state as object), phase: 'event', pendingEvent: ev}});
+  await page.reload();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  /* Qorovul: AYNAN shu karta ochilganini tasdiqlaydi — yuqoridagi xato jim o'tib ketgandi. */
+  await expect(page.getByRole('dialog').getByRole('heading', {name: ev.title}).first()).toBeAttached();
 }
 
 test('mode selector opens the startup mode and the setup screen starts a run', async ({page}) => {
@@ -406,4 +434,268 @@ test('every office render ships for a reason', async () => {
     .map(f => readFileSync(f, 'utf8')).join('\n');
   const orphans = readdirSync('public/startup/office').filter(f => !used.includes(`/startup/office/${f}`));
   expect(orphans, `hech kim ishlatmaydigan rasm: ${orphans.join(', ')}`).toEqual([]);
+});
+
+type Kontrast = { text: string; fontPx: number; ratio: number; required: number; bg: string };
+
+/**
+ * Ichidagi HAR BIR matnli tugun uchun WCAG 2 kontrast nisbatini qaytaradi.
+ *
+ * `axe` ning O'ZI yetarli emas: matn rangi shaffof bo'lsa (`text-white/85`),
+ * u ba'zi tugunlarni «incomplete» deb belgilaydi va ular nosozlik hisobiga
+ * KIRMAYDI — ya'ni faqat `violations` ga qaralsa, buzilgan rang testdan jim
+ * o'tib ketardi. Shuning uchun nisbat shu yerda hisoblangan uslublardan
+ * qayta o'lchanadi: alfa ota-onaning to'liq rangi ustiga qo'shiladi.
+ *
+ * Fon aniqlanmasa `ratio: -1` qaytadi va test uni xato deb sanaydi —
+ * o'lchanmagan tugun «o'tdi» degani emas.
+ */
+async function kontrast(scope: Locator): Promise<Kontrast[]> {
+  return scope.evaluate((root: HTMLElement) => {
+    const srgb = (c: number) => { const x = c / 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+    const lum = (c: number[]) => 0.2126 * srgb(c[0]) + 0.7152 * srgb(c[1]) + 0.0722 * srgb(c[2]);
+    const nums = (s: string) => (s.match(/[\d.]+/g) ?? []).map(Number);
+
+    const mix = (fg: number[], a: number, bg: number[]) => [0, 1, 2].map(i => a * fg[i] + (1 - a) * bg[i]);
+
+    /*
+     * Tugun ostida HAQIQATDAN bo'yaladigan fon(lar).
+     *
+     * Uch narsani hisobga oladi, chunki uchalasi ham shu loyihada nosozlikni
+     * YASHIRGAN:
+     *
+     * 1. SHAFFOF QOPLAMALAR. HUD plitkasi `bg-black/10` — o'zi fon emas,
+     *    ostidagini o'zgartiradi. Ilgari faqat «birinchi to'liq rang»
+     *    qidirilardi va qoplama e'tiborsiz qolardi.
+     * 2. GRADIENTLAR. `axe` gradient ustidagi matnni «incomplete» deb
+     *    belgilaydi va u NOSOZLIK HISOBIGA KIRMAYDI — startap HUD'idagi
+     *    2.22 lik «Oylik oqim» aynan shu bo'shliqdan o'tib ketgandi.
+     *    Bu yerda gradientning HAMMA to'xtashi nomzod fon sifatida
+     *    qaytariladi va eng yomoni olinadi.
+     * 3. OTA-ONA SHAFFOFLIGI. `framer-motion` varaqni `opacity: 0 -> 1`
+     *    bilan chiqaradi; yarim yo'lda o'lchangan rang haqiqiy emas
+     *    (0.91 da #24604A ekranda #386e59 bo'lib chiqdi). Bunda o'lchov
+     *    bekor qilinadi.
+     *
+     * Hech biri aniqlanmasa `null` — chaqiruvchi buni «o'tdi» emas, XATO
+     * deb sanaydi.
+     */
+    const fonlar = (el: HTMLElement): number[][] | null => {
+      /*
+       * SHAFFOFLIK BUTUN ZANJIR bo'ylab alohida tekshiriladi, fon qidiruvi
+       * bilan birga emas.
+       *
+       * Sababi o'lchab topildi: hisobot sarlavhasining foni `bg-clay-700` —
+       * to'liq rang, ya'ni qidiruv DARHOL to'xtaydi va animatsiya qilinuvchi
+       * `motion.div` ga yetib bormaydi. Natijada test yarim yo'lda o'lchab
+       * «o'tdi» deb qo'yardi; to'liq to'plam yuklamada ishga tushganda `axe`
+       * o'sha tugunni 3.56 deb ko'rsatdi (emerald-700 ning 0.71 shaffofligi).
+       */
+      for (let n: HTMLElement | null = el; n; n = n.parentElement) {
+        if (Number(getComputedStyle(n).opacity) < 1) return null;
+      }
+      const ustki: { c: number[]; a: number }[] = [];
+      const qo11a = (baza: number[]) => {
+        /* Bo'yash tashqaridan ichkariga: yuqoriga yurib yig'ilgani teskari qo'llanadi. */
+        let b = baza;
+        for (const o of ustki.slice().reverse()) b = mix(o.c, o.a, b);
+        return b;
+      };
+      for (let n: HTMLElement | null = el; n; n = n.parentElement) {
+        const s = getComputedStyle(n);
+        const bc = nums(s.backgroundColor);
+        const alfa = bc.length >= 4 ? bc[3] : 1;
+        if (s.backgroundImage !== 'none') {
+          const stops = (s.backgroundImage.match(/rgba?\([^)]*\)/g) ?? []).map(nums).filter(c => c.length >= 3);
+          if (!stops.length) return null;   // rasm yoki `conic` — o'lchab bo'lmaydi
+          return stops.map(st => qo11a(st.slice(0, 3)));
+        }
+        if (bc.length >= 3 && alfa > 0 && alfa < 1) { ustki.push({ c: bc.slice(0, 3), a: alfa }); continue; }
+        if (bc.length >= 3 && alfa === 1) return [qo11a(bc.slice(0, 3))];
+      }
+      return null;
+    };
+
+    const rows: Kontrast[] = [];
+    for (const el of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
+      /* Faqat O'Z matni bor tugunlar — o'ram elementlar matnni ikki marta sanardi. */
+      if (!Array.from(el.childNodes).some(n => n.nodeType === 3 && (n.textContent ?? '').trim())) continue;
+      const st = getComputedStyle(el);
+      const text = (el.textContent ?? '').trim().slice(0, 40);
+      const bgs = fonlar(el);
+      if (!bgs) { rows.push({ text, fontPx: 0, ratio: -1, required: 0, bg: "noma'lum" }); continue; }
+      const fg = nums(st.color);
+      const a = fg[3] ?? 1;
+      const fontPx = parseFloat(st.fontSize);
+      /* AA: 24px dan katta, yoki 18.66px dan katta va qalin — 3:1; qolgani 4.5:1. */
+      const large = fontPx >= 24 || (fontPx >= 18.66 && Number(st.fontWeight) >= 700);
+      /* Gradientda matn har qanday to'xtash ustiga tushishi mumkin — eng yomoni olinadi. */
+      let eng = Infinity, engBg = bgs[0];
+      for (const bg of bgs) {
+        const l1 = lum(mix(fg, a, bg)), l2 = lum(bg);
+        const r = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+        if (r < eng) { eng = r; engBg = bg; }
+      }
+      rows.push({
+        text, fontPx,
+        ratio: Math.round(eng * 100) / 100,
+        required: large ? 3 : 4.5,
+        bg: `rgb(${engBg.map(Math.round).join(',')})`,
+      });
+    }
+    return rows;
+  });
+}
+
+/**
+ * Animatsiya tugab, doiradagi HAR BIR tugun o'lchanadigan bo'lguncha kutadi.
+ *
+ * `framer-motion` varaqni `opacity: 0 -> 1` bilan chiqaradi va shaffoflik
+ * o'rami MATN TUGUNLARIDAN YUQORIDA, lekin varaqning ildizidan PASTDA —
+ * ya'ni varaqning o'zida shaffoflikni kutish yetarli emas (birinchi urinishda
+ * aynan shu sababdan varaqdagi hamma tugun «noma'lum» chiqdi). Shuning uchun
+ * o'lchovning O'ZI takrorlanadi: `ratio < 0` qolmaguncha.
+ *
+ * Haqiqatan o'lchab bo'lmaydigan fon bo'lsa (masalan rasm) bu kutish
+ * uziladi — va bu to'g'ri natija: o'lchanmagan tugun «o'tdi» degani emas.
+ */
+async function kontrastTinch(scope: Locator, minRows: number): Promise<Kontrast[]> {
+  let rows: Kontrast[] = [];
+  await expect.poll(async () => {
+    rows = await kontrast(scope);
+    if (rows.length < minRows) return `faqat ${rows.length} tugun (kamida ${minRows} kutilgan)`;
+    const yoq = rows.filter(r => r.ratio < 0);
+    return yoq.length ? `${yoq.length} tugun fonini aniqlab bo'lmadi: ${yoq.map(r => `"${r.text}"`).join(', ')}` : 'ok';
+  }).toBe('ok');
+  return rows;
+}
+
+test('the monthly report header meets AA contrast in both cash states', async ({page}) => {
+  /*
+   * Ilgari MANFIY oyda sarlavha `clay-600` ustidagi `white/70` va `white/80`
+   * bilan 3.16 va 3.62 berardi. Yashil oyda o'sha `white/70` 4.54 bilan
+   * zo'rg'a o'tardi, ya'ni sog'lom partiyani sinagan hech kim buni ko'rmasdi:
+   * nosozlik faqat pul minusga ketgan oyda chiqardi.
+   *
+   * Seed 1 ning birinchi kartasi IKKALA holatni ham beradi — tanlov[0]
+   * generator sotib oladi (−11,5 mln), tanlov[2] chidab turadi (+2,9 mln) —
+   * shuning uchun ikkala sarlavha bitta fixture bilan tekshiriladi.
+   */
+  const bgs: string[] = [];
+  for (const [tanlov, kutilgan] of [[0, 'manfiy'], [2, 'ijobiy']] as const) {
+    /* Saqlanmani tozalab qayta seed qilamiz — `seeded` bo'sh xotiraga yozadi. */
+    await page.goto('/startap').catch(() => {});
+    await page.evaluate(() => localStorage.clear()).catch(() => {});
+    await seeded(page);
+
+    await page.getByRole('button', {name: /Oyni yakunlash/}).click();
+    await page.getByRole('dialog').getByRole('button').nth(tanlov).click();
+    const report = page.getByRole('dialog', {name: '1-oy hisoboti'});
+    await expect(report).toBeVisible();
+
+    const head = report.getByText("Naqd o'zgarishi").locator('..');
+    const rows = await kontrastTinch(head, 3);
+    bgs.push(await head.evaluate(e => getComputedStyle(e).backgroundColor));
+    const bad = rows.filter(r => r.ratio < r.required);
+    expect(bad, `${kutilgan}: ${bad.map(b => `"${b.text}" ${b.ratio}:1 < ${b.required} (${b.fontPx}px, ${b.bg})`).join(' | ')}`).toEqual([]);
+
+    /*
+     * `axe` qo'shimcha qarovul — nisbatdan boshqa qoidalarni ham ko'radi
+     * (rollar, nomlar, `aria-*`). BIR MARTA ishlatiladi: ikkala holatda
+     * varaqning tuzilishi bir xil, farq faqat rangda — rangni esa yuqoridagi
+     * o'lchov aniqroq tekshiradi. Axe sahifaga o'zini yuklaydi va bu og'ir
+     * qadam; ikki marta chaqirilganda render jarayoni yiqilardi.
+     */
+    if (tanlov === 0) {
+      const res = await new AxeBuilder({page}).include('[role="dialog"]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+      const nomi = res.violations.flatMap(v => v.nodes.map(n => `${v.id} @ ${n.target.join(' ')} :: ${n.failureSummary?.replace(/\s+/g, ' ').slice(0, 160)}`));
+      expect(nomi, `${kutilgan}: ${nomi.join(' || ')}`).toEqual([]);
+    }
+  }
+
+  /* Ikkala YO'L ham yurilganiga ishonch: aks holda test bitta rangni ikki marta tekshirardi. */
+  expect(bgs[0], `ikkala hisobot ham bir xil fonda: ${bgs[0]}`).not.toBe(bgs[1]);
+});
+
+/*
+ * Har bir tab — ALOHIDA test, bitta halqa emas.
+ *
+ * Ilgari to'rttasi bitta testda edi va to'rt marta ketma-ket to'liq axe
+ * skani render jarayonini yiqitardi («Target crashed», to'plamda muntazam
+ * «flaky»). Alohida testda har biri toza sahifa oladi va bitta skan bajaradi.
+ * Yon foyda: yiqilsa, QAYSI tab ekani test nomida turadi.
+ *
+ * `text-ink-400` (#8A9992) krem fonda 2.81 berardi va axe buni har bir tab'da
+ * «serious» deb belgilardi: pastki navigatsiyaning uchta faol bo'lmagan
+ * yorlig'i, «Prognoz» qatori, «Hozircha yolg'izsiz…» maslahati. Token
+ * quyuqlashtirildi (#5C6E67); bu testlar uni joyida ushlab turadi.
+ */
+for (const tab of ['Ofis', 'Moliya', 'Jamoa', 'Mahsulot']) {
+  test(`the ${tab} tab passes AA colour contrast`, async ({page}) => {
+    await seeded(page);
+    await page.getByRole('button', {name: tab, exact: true}).click();
+    await expect(page.getByRole('button', {name: tab, exact: true})).toHaveAttribute('aria-current', 'page');
+
+    /* Skanerlash TO'LIQ sahifa bo'yicha: nosozlik varaqlar ORTIDAGI doimiy tartibda edi. */
+    const res = await new AxeBuilder({page}).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+    const bad = res.violations.flatMap(v => v.nodes.map(n => {
+      const r = /contrast of ([\d.]+)/.exec(n.failureSummary ?? '');
+      return `${tab}/${v.id}${r ? ` ${r[1]}:1` : ''} @ ${n.target.join(' ')}`;
+    }));
+    expect(bad, bad.join(' || ')).toEqual([]);
+
+    /*
+     * HUD alohida o'lchanadi va `axe` ga ISHONILMAYDI. Sarlavha
+     * `bg-gradient-emerald` ustida turadi, gradient esa `axe` uchun
+     * «incomplete» — ya'ni `violations` bo'sh bo'lgani bilan u yerdagi matn
+     * tekshirilmagan qoladi. Aynan shu bo'shliqdan uchta yorliq (3.68–4.46)
+     * va «Oylik oqim» qiymati (2.22) o'tib ketgandi.
+     */
+    const rows = await kontrastTinch(page.getByRole('banner'), 6);
+    const hudBad = rows.filter(r => r.ratio < r.required);
+    expect(hudBad, `${tab} HUD: ${hudBad.map(b => `"${b.text}" ${b.ratio}:1 < ${b.required} (${b.fontPx}px, ${b.bg})`).join(' | ')}`).toEqual([]);
+  });
+}
+
+test('every event card renders at AA contrast', async ({page}) => {
+  /*
+   * HAR BIR karta ochiladi, turiga bitta vakil emas.
+   *
+   * Avval turlar bo'yicha bittadan olinardi va test YOLG'ON YASHIL bo'ldi:
+   * har turning birinchi kartasida tanlovlar (yoki ularning `sub` yozuvi)
+   * bo'lmasligi mumkin, ya'ni oltin tugmaning ostki yozuvi umuman
+   * chizilmasdi — `emerald-900/70` ni 2.42 ga qaytarib qo'yganda ham test
+   * o'tib ketdi. Endi ro'yxat to'liq, va ostki yozuv haqiqatan
+   * O'LCHANGANI alohida tasdiqlanadi.
+   *
+   * Qamrov: har turning yorlig'i (`KIND` dagi rang — `mixed` `gold-600`
+   * bilan 3.09 berardi) va oltin tugmaning ikkala qatori. Ikkinchisi `axe`
+   * uchun ko'rinmas edi: gradient ustidagi matn «incomplete» deb belgilanadi
+   * va nosozlik hisobiga kirmaydi.
+   */
+  const kinds = new Set<string>();
+  let subsMeasured = 0;
+  /* Fixture bir marta yasaladi — esbuild'ni o'n besh marta yugurtirish shart emas. */
+  const {key, state} = await fixture();
+
+  for (const ev of EVENTS) {
+    await seededEvent(page, key, state, ev);
+    kinds.add(ev.kind);
+
+    const rows = await kontrastTinch(page.getByRole('dialog'), 4);
+    const bad = rows.filter(r => r.ratio < r.required);
+    expect(bad, `${ev.id} (${ev.kind}): ${bad.map(b => `"${b.text}" ${b.ratio}:1 < ${b.required} (${b.fontPx}px, ${b.bg})`).join(' | ')}`).toEqual([]);
+
+    /* Oltin tugma ostki yozuvi chizilgan bo'lsa — u o'lchovga TUSHGANINI tasdiqlaymiz. */
+    const sub = ev.choices?.[0]?.sub;
+    if (sub) {
+      const bosh = sub.slice(0, 18);
+      expect(rows.some(r => r.text.startsWith(bosh)), `${ev.id}: "${bosh}…" o'lchovga tushmadi`).toBe(true);
+      subsMeasured++;
+    }
+  }
+
+  /* Qorovulning qorovuli: ostki yozuv birorta kartada ham o'lchanmasa, test tishsiz. */
+  expect(subsMeasured, "hech bir kartada oltin tugma ostki yozuvi o'lchanmadi").toBeGreaterThan(0);
+  expect(kinds.size, 'hodisa turlari qamrovi').toBeGreaterThanOrEqual(4);
 });

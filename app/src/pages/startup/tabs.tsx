@@ -95,7 +95,8 @@ export function OfficeTab({ s, a }: { s: StartupState; a: Actions }) {
       <Card className="p-3">
         <div className="flex items-center justify-between px-1 text-xs font-semibold">
           <span className="text-emerald-700">{OFFICES[s.office].name} · {s.staff.length + 1} kishi</span>
-          <span className={cn(morale >= 50 ? "text-ink-600" : morale >= 30 ? "text-gold-600" : "text-clay-700")}>Kayfiyat {morale}</span>
+          {/* O'rta kayfiyat `gold-700` da — `gold-600` oq kartada 3.28 berardi, AA 4.5 talab qiladi. */}
+          <span className={cn(morale >= 50 ? "text-ink-600" : morale >= 30 ? "text-gold-700" : "text-clay-700")}>Kayfiyat {morale}</span>
         </div>
         <OfficeScene level={s.office} morale={morale} className="mt-1 w-full" />
         {mods.length > 0 && (

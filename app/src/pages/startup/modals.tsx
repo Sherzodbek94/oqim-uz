@@ -19,7 +19,8 @@ const KIND: Record<EventKind, { label: string; color: string; Icon: typeof Zap }
   loss: { label: "Hodisa · yo'qotish", color: "text-clay-700", Icon: AlertTriangle },
   risk: { label: "Hodisa · xavf", color: "text-clay-700", Icon: AlertTriangle },
   luck: { label: "Hodisa · omad", color: "text-emerald-700", Icon: Sparkles },
-  mixed: { label: "Hodisa · aralash", color: "text-gold-600", Icon: Zap },
+  /* `gold-700`, `gold-600` emas: yorliq 11px va krem fonda 600 atigi 3.09 berardi. */
+  mixed: { label: "Hodisa · aralash", color: "text-gold-700", Icon: Zap },
   neutral: { label: "Hodisa", color: "text-ink-600", Icon: Gift },
 };
 
@@ -114,7 +115,18 @@ export function EventModal({ ev, s, onChoose }: { ev: EventCard; s: StartupState
               className={cn("flex flex-col items-start rounded-2xl px-4 py-3 text-left transition-all active:scale-[0.99] disabled:opacity-50",
                 i === 0 ? "bg-gradient-gold text-ink-900 shadow-[0_5px_0_#B98428]" : "border border-sand-200 bg-white text-ink-900")}>
               <span className="text-[14px] font-extrabold">{c.label}</span>
-              {c.sub && <span className={cn("text-xs", i === 0 ? "font-semibold text-emerald-900/70" : "text-ink-600")}>{c.sub}{cant ? " · naqd yetarli emas" : ""}</span>}
+              {/*
+                OLTIN TUGMADA `ink-900`, `emerald-900/70` EMAS. Eskisi
+                gradient ustida 2.42–2.67 berardi — `axe` uni ko'ra olmasdi
+                («background gradient» sababli «incomplete»), shuning uchun
+                nosozlik hisobotlarda umuman chiqmasdi. Piksel o'lchovi
+                gradientning bu tugma ostidagi haqiqiy oralig'ini berdi
+                (#c38e30…#d6a13f) va unda faqat TO'LIQ `ink-900` 4.5 dan
+                o'tadi (4.94–5.76): `emerald-900` sof holida ham 3.35 da
+                qoladi, chunki oltin fon juda yorug'.
+                So'nuqlik endi rangdan emas — o'lcham va qalinlikdan.
+              */}
+              {c.sub && <span className={cn("text-xs", i === 0 ? "font-semibold text-ink-900" : "text-ink-600")}>{c.sub}{cant ? " · naqd yetarli emas" : ""}</span>}
             </button>
           );
         })}
@@ -137,10 +149,24 @@ export function ReportModal({ r, s, onNext }: { r: MonthReport; s: StartupState;
         <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-emerald-700">{r.month}-oy hisoboti</span>
         <span className="text-[11px] font-bold text-ink-600">{s.companyName}</span>
       </div>
-      <div className={cn("mt-3 rounded-2xl px-4 py-3", r.net >= 0 ? "bg-emerald-700" : "bg-clay-600")}>
-        <div className="text-[11px] font-semibold text-white/70">Naqd o'zgarishi</div>
-        <div className="font-money text-[26px] font-bold text-white">{r.net >= 0 ? "+" : "−"}{fm(Math.abs(r.net))} <span className="text-[13px] font-semibold text-white/70">so'm</span></div>
-        <div className="text-[12px] font-semibold text-white/80">Naqd: {fm(r.cashAfter)} · foydalanuvchi {r.usersAfter.toLocaleString("ru-RU")} · sifat {r.qualityAfter} · kayfiyat {r.moraleAfter}</div>
+      {/*
+        MANFIY SARLAVHA `clay-700`, `clay-600` EMAS, va so'nuq yozuvlar 85%.
+        Eski juftlik — `clay-600` (#B45A38) ustida `white/70` va `white/80` —
+        3.16 va 3.62 berardi, WCAG AA esa bu o'lchamdagi matndan 4.5 talab
+        qiladi. Yashil oyda o'sha `white/70` zo'rg'a o'tardi (4.54), ya'ni
+        nosozlik faqat ZARAR ko'rgan oylarda chiqardi — hisobot eng muhim
+        bo'lgan paytda.
+        `clay-600` ustida hech qanday shaffof oq yetarli emas: 95% ham atigi
+        4.42, faqat sof oq (4.71) o'tadi — u esa katta raqamdan farq qilmay,
+        ierarxiyani yo'qotardi. Shuning uchun fon bir qadam quyuqlashtirildi
+        (`clay-700` — modalning o'zida manfiy raqamlar allaqachon shu rangda)
+        va uchala so'nuq qatlam bitta darajaga keltirildi.
+        O'lchov: yashilda 5.85, terrakotada 5.07 — ikkalasi ham AA dan yuqori.
+      */}
+      <div className={cn("mt-3 rounded-2xl px-4 py-3", r.net >= 0 ? "bg-emerald-700" : "bg-clay-700")}>
+        <div className="text-[11px] font-semibold text-white/85">Naqd o'zgarishi</div>
+        <div className="font-money text-[26px] font-bold text-white">{r.net >= 0 ? "+" : "−"}{fm(Math.abs(r.net))} <span className="text-[13px] font-semibold text-white/85">so'm</span></div>
+        <div className="text-[12px] font-semibold text-white/85">Naqd: {fm(r.cashAfter)} · foydalanuvchi {r.usersAfter.toLocaleString("ru-RU")} · sifat {r.qualityAfter} · kayfiyat {r.moraleAfter}</div>
       </div>
       {r.event && (
         <div className="mt-3 flex gap-2.5 rounded-2xl border border-sand-200 bg-white px-3.5 py-3">

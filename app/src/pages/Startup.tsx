@@ -93,20 +93,38 @@ export default function Startup() {
     <div className="min-h-dvh bg-sand-50">
       <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
         {/* HUD */}
+        {/*
+          PLITKALAR `black/10`, `white/10` EMAS.
+
+          Oq qoplama zumrad gradientni yoritib yuborardi (o'lchangan fon
+          #3C7560…#41846A) va shunda USTIDAGI HECH QANDAY och matn WCAG AA
+          dan o'tolmasdi — sof oq ham eng yorug' plitkada 4.11 da qolardi.
+          Ya'ni muammo matn rangida emas, fonda edi: yorliqlar 3.68–4.46,
+          «Oylik oqim» qiymati esa `gold-500` bilan atigi 2.22.
+
+          Qoplama teskari burilgach fon quyuqlashadi (#297056…#205643) va
+          butun sarlavha bo'sh joy bilan o'tadi: yorliqlar 4.91–7.04,
+          oq qiymatlar 5.92–8.49, manfiy `clay-100` 4.79–6.87.
+
+          `gold-500` esa baribir o'tmaydi (quyuq plitkada ham 2.63) —
+          to'yingan oltin zumrad ustida shunchaki past kontrastli. Musbat
+          oqim uchun `gold-100` olindi: oltin ohang saqlanadi, nisbat 5.04.
+        */}
         <header className="sticky top-0 z-40 rounded-b-[26px] bg-gradient-emerald px-4 pb-3.5 pt-3 shadow-card">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2" aria-label="Bosh sahifa"><Flower size={22} /><span className="font-display text-[14px] font-extrabold tracking-[0.04em] text-white">OQIM</span></Link>
-            <div className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[12px]"><span className="font-bold text-white">{s.month}-oy</span><span className="text-emerald-100">· {calendar(s.month)}</span></div>
+            <div className="flex items-center gap-1.5 rounded-full bg-black/10 px-3 py-1.5 text-[12px]"><span className="font-bold text-white">{s.month}-oy</span><span className="text-emerald-100">· {calendar(s.month)}</span></div>
           </div>
           <div className="mt-2.5 grid grid-cols-3 gap-2">
-            {[["Naqd pul", fm(s.cash), s.cash < 0 ? "text-clay-100" : "text-white"], ["Oylik oqim", `${flow >= 0 ? "+" : ""}${fm(flow)}`, flow >= 0 ? "text-gold-500" : "text-clay-100"], ["Qiymat", fm(E.valuation(s)), "text-white"]].map(([l, v, c]) => (
-              <div key={l} className="rounded-xl border border-white/15 bg-white/10 px-3 py-2">
+            {[["Naqd pul", fm(s.cash), s.cash < 0 ? "text-clay-100" : "text-white"], ["Oylik oqim", `${flow >= 0 ? "+" : ""}${fm(flow)}`, flow >= 0 ? "text-gold-100" : "text-clay-100"], ["Qiymat", fm(E.valuation(s)), "text-white"]].map(([l, v, c]) => (
+              <div key={l} className="rounded-xl border border-white/15 bg-black/10 px-3 py-2">
                 <div className="text-[10.5px] font-semibold text-emerald-100">{l}</div>
                 <div className={cn("truncate font-money text-[15px] font-bold", c)}>{v}</div>
               </div>
             ))}
           </div>
-          <div className="mt-1.5 truncate px-1 text-[11px] text-emerald-100">{s.companyName} · {s.log[s.log.length - 1]}</div>
+          {/* Plitkasiz qator — yalang' gradient ustida `emerald-100` 4.13 da qolardi. */}
+          <div className="mt-1.5 truncate px-1 text-[11px] text-emerald-50">{s.companyName} · {s.log[s.log.length - 1]}</div>
         </header>
 
         <main className="flex-1 px-4 pb-4 pt-3">
