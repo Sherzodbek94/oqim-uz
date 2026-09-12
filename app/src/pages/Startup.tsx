@@ -135,7 +135,7 @@ export default function Startup() {
         vaqtda daraxtda ushlab turish xavfini qo'shardi, bu esa a11y
         daraxtida ikkita `role="dialog"` demakdir va fokus qaytarish
         navbatini chalkashtirardi.
-      */}
+      */}
         {s.phase === "event" && s.pendingEvent && <EventModal key="ev" ev={s.pendingEvent} s={s} onChoose={id => update(x => E.resolveEvent(x, id))} />}
         {s.phase === "report" && lastReport && <ReportModal key="rep" r={lastReport} s={s} onNext={() => { update(x => E.nextMonth(x)); setTab("office"); }} />}
       {(s.phase === "won" || s.phase === "lost") && <EndOverlay s={s} onRestart={restart} onHome={() => { restart(); navigate("/"); }} />}
